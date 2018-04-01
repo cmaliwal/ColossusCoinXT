@@ -8,7 +8,7 @@ COLX is a cutting edge cryptocurrency, with many features not available in most 
 - Fast transactions featuring guaranteed zero confirmation transactions, we call it _SwiftTX_.
 - Decentralized blockchain voting providing for consensus based advancement of the current Masternode
   technology used to secure the network and provide the above features, each Masternode is secured
-  with collateral of 10m COLX
+  with collateral of 10 M COLX
 
 
 ### Coin Specs
@@ -18,7 +18,7 @@ COLX is a cutting edge cryptocurrency, with many features not available in most 
 <tr><td>Difficulty Retargeting</td><td>Every Block</td></tr>
 </table>
 
-ColossusCoinXT is an open source, peer-to-peer, energy-saving, community driven, decentralized and modern POS3.0 Masternode-Cryptocurrency. ColossuscoinXT has active wallet development and brings new features and active community involvement.
+ColossusXT is an open source, peer-to-peer, energy-saving, community driven, decentralized and modern PoS 3.0 Masternode-Cryptocurrency. ColossusXT has active wallet development and brings new features and active community involvement.
 
 ### Official ANN on Bitcointalk: 
 
@@ -49,8 +49,8 @@ Forums: http://www.colossuscointalk.org/
 
 Terms of Service:
 https://colossuscoinxt.org/2018/01/colx-terms-of-service-tos/
-ColossuscoinXT software is an experimental software. There is no guarantee given here.
+ColossusXT software is an experimental software. There is no guarantee given here.
 Use it at your own risk and please do your due diligence when investing.
 
-### ColossuscoinXT – Extremely resource friendly | Lightning fast | Stealth Anonymous 
+### ColossusXT – Extremely resource friendly | Lightning fast | Stealth Anonymous 
 ![](https://i.imgur.com/NnR0Y18.png) 
