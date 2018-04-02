@@ -92,6 +92,7 @@ then
     pushd `pwd`
     cd ColossusCoinXT
     git checkout "${BRANCH}"
+    git pull
     popd
 fi
 
