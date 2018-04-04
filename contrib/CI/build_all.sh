@@ -12,7 +12,13 @@ then
 fi
 
 # test if dependencies was built
-arch=`ls depends/work/build`
+if [[ -e depends/work/build ]]
+then
+    arch=`ls depends/work/build`
+else
+    arch=""
+fi
+
 if [[ -z "$arch" || ! -e "depends/$arch" ]]
 then
     echo "Building dependencies..."
