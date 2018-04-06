@@ -24,13 +24,9 @@ std::map<uint256, int64_t> askedForSourceProposalOrBudget;
 std::vector<CBudgetProposalBroadcast> vecImmatureBudgetProposals;
 std::vector<CFinalizedBudgetBroadcast> vecImmatureFinalizedBudgets;
 
-int nSubmittedFinalBudget;
-
 int GetBudgetPaymentCycleBlocks()
 {
-    int64_t nSecondsPerMonth = 60*60*24*30;
-
-    return static_cast<int>(nSecondsPerMonth / Params().TargetSpacing());
+    return static_cast<int>(Params().GetBudgetPaymentCycle() / Params().TargetSpacing());
 }
 
 bool IsBudgetCollateralValid(uint256 nTxCollateralHash, uint256 nExpectedHash, std::string& strError, int64_t& nTime, int& nConf)

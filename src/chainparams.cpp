@@ -118,6 +118,7 @@ public:
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
         nBudgetPercent = 5;
+        nBudgetPaymentCycle = 60*60*24*30; // 1 month
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 6;
         nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
@@ -228,6 +229,7 @@ public:
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
         nBudgetPercent = 5;
+        nBudgetPaymentCycle = 60*60*2; // 2 hours
         nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
         nMasternodePaymentSigTotal = 10;
