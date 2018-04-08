@@ -24,6 +24,8 @@ Script that does this stuff: `setup_jenkins.sh`
 
 Test: http://[Jenkins Server IP]:8080
 
+If jenkins eats all your disk space see: https://stackoverflow.com/questions/31740373/how-can-i-prevent-that-the-jenkins-log-gets-spammed-with-strange-messages
+
 
 ### Configure Jenkins
 
