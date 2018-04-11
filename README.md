@@ -24,7 +24,7 @@ ColossusXT is an open source, peer-to-peer, energy-saving, community driven, dec
 
 https://bitcointalk.org/index.php?topic=2141880.0
 
-### Roadmap 2018: ![Roadmap 2018](https://i.imgur.com/vXnVxWb.jpg) 
+### Roadmap 2018: ![Roadmap 2018](https://i.imgur.com/TUVMC3t.jpg) 
 
 ### Blockchain Explorer:
 
