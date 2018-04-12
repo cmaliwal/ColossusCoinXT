@@ -98,7 +98,6 @@ public:
 
     int GetMasternodePaymentSigTotal() const { return nMasternodePaymentSigTotal; }
     int GetMasternodePaymentSigRequired() const { return nMasternodePaymentSigRequired; }
-    int64_t GetMasternodeRewardPercent() const { return nMasternodeRewardPercent; }
     int64_t GetBudgetPercent() const { return nBudgetPercent; }
     int64_t GetBudgetPaymentCycle() const { return nBudgetPaymentCycle; }
     unsigned int GetModifierInterval() const { return nModifierInterval; }
@@ -153,7 +152,6 @@ protected:
 
     int nMasternodePaymentSigTotal;
     int nMasternodePaymentSigRequired;
-    int64_t nMasternodeRewardPercent;
     int64_t nBudgetPercent;
     int64_t nBudgetPaymentCycle;
     unsigned int nModifierInterval;

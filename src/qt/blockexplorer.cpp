@@ -197,8 +197,8 @@ std::string BlockToString(CBlockIndex* pBlock)
     ReadBlockFromDisk(block, pBlock);
 
     CAmount Fees = 0;
-    CAmount OutVolume = 0;
-    CAmount Reward = 0;
+    CAmount Generated = 0;
+    CAmount ValueOut = 0;
 
     std::string TxLabels[] = {_("Hash"), _("From"), _("Amount"), _("To"), _("Amount")};
 
@@ -209,31 +209,22 @@ std::string BlockToString(CBlockIndex* pBlock)
 
         CAmount In = getTxIn(tx);
         CAmount Out = tx.GetValueOut();
-        if (tx.IsCoinBase())
-            Reward += Out;
-        else if (In < 0)
-            Fees = -Params().MaxMoneyOut();
-        else {
-            Fees += In - Out;
-            OutVolume += Out;
-        }
+        ValueOut += Out;
+        if (tx.IsCoinBase() || tx.IsCoinStake())
+            Generated += (Out - In);
+        else
+            Fees += (In - Out);
     }
     TxContent += "</table>";
-
-    CAmount Generated;
-    if (pBlock->nHeight == 0)
-        Generated = OutVolume;
-    else
-        Generated = GetBlockValue(pBlock->nHeight - 1, Fees, false);
 
     std::string BlockContentCells[] =
         {
             _("Height"), itostr(pBlock->nHeight),
             _("Size"), itostr(GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION)),
             _("Number of Transactions"), itostr(block.vtx.size()),
-            _("Value Out"), ValueToString(OutVolume),
+            _("Value Out"), ValueToString(ValueOut),
             _("Fees"), ValueToString(Fees),
-            _("Generated"), ValueToString(Generated),
+            _("Generated"), ValueToString(Generated - Fees),
             _("Timestamp"), TimeToString(block.nTime),
             _("Difficulty"), strprintf("%.4f", GetDifficulty(pBlock)),
             _("Bits"), utostr(block.nBits),

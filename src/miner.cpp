@@ -332,25 +332,31 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             }
         }
 
-//        if (!fProofOfStake) {
-//            //Masternode and general budget payments
-//            FillBlockPayee(txNew, nFees, fProofOfStake);
-//
-//            //Make payee
-//            if (txNew.vout.size() > 1) {
-//                pblock->payee = txNew.vout[1].scriptPubKey;
-//            }
-//        }
+        //Masternode and general budget payments
+        if (fProofOfStake) {
+            assert(pblock->vtx.size() > 1);
+            assert(pblock->vtx[1].IsCoinStake());
+            CMutableTransaction txCoinStake = pblock->vtx[1];
+            FillBlockPayee(txCoinStake, nFees, fProofOfStake);
+
+            if (pwallet->SignTx(txCoinStake, 0)) {
+                pblock->vtx[1] = txCoinStake;
+                DebugPrintf("CreateNewBlock(): successfully signed coinstake:\n%s\n", txCoinStake.ToString());
+            }
+            else {
+                LogPrintf("CreateNewBlock(): failed to sign coinstake:\n%s\n", txCoinStake.ToString());
+                return NULL;
+            }
+        }
 
         nLastBlockTx = nBlockTx;
         nLastBlockSize = nBlockSize;
         LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
 
-
         // Compute final coinbase transaction.
         pblock->vtx[0].vin[0].scriptSig = CScript() << nHeight << OP_0;
         if (!fProofOfStake) {
-            txNew.vout[0].nValue = GetBlockValue(nHeight, nFees, false);
+            txNew.vout[0].nValue = GetBlockValueReward(nHeight) + nFees;
             pblock->vtx[0] = txNew;
             pblocktemplate->vTxFees[0] = -nFees;
         }
@@ -364,48 +370,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
 
         if (pblock->IsProofOfStake()) {
-            // We have to verify masternode reward in the coin stake because of
-            // actual fee may be higher than was used in the calculation of the reward.
-            // In that case we have to update masternode reward in the coin stake because
-            // if SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT is active - block will be rejected due to unsufficient reward.
-            assert(pblock->vtx.size() > 1);
-            assert(pblock->vtx[1].IsCoinStake());
-            CMutableTransaction txCoinStake = pblock->vtx[1];
-
-            const CAmount nMinFeeReward = txCoinStake.vout.back().nValue;
-            const CAmount nFeesReward = GetMasternodePayment(GetBlockValue(nHeight, nFees, false));
-            if (nFeesReward > nMinFeeReward) {
-                LogPrintf("Drift in the masternode reward detected, it is %s but must be %s\n", FormatMoney(nMinFeeReward), FormatMoney(nFeesReward));
-                const CAmount nRewardDrift = nFeesReward - nMinFeeReward;
-
-                bool sign = true;
-                if (txCoinStake.vout.size() == 3) {
-                    // 0 - coin base, 1 - coin stake, 2 - mn reward
-                    txCoinStake.vout[1].nValue -= nRewardDrift;
-                    txCoinStake.vout[2].nValue = nFeesReward;
-                }
-                else if (txCoinStake.vout.size() == 4) {
-                    // 0 - coin base, 1 - coin stake split1, 2 - coin stake split2, 3 - mn reward
-                    const CAmount nDrift1 = nRewardDrift / 2;
-                    const CAmount nDrift2 = nRewardDrift - nDrift1;
-                    txCoinStake.vout[1].nValue -= nDrift1;
-                    txCoinStake.vout[2].nValue -= nDrift2;
-                    txCoinStake.vout[3].nValue = nFeesReward;
-                } else {
-                    sign = false;
-                    LogPrintf("Coin stake tx contains invalid number of vout:\n%s\n", txCoinStake.ToString());
-                }
-
-                if (sign) {
-                    // we have updated coin stake, so update signature
-                    if (pwallet->SignTx(txCoinStake, 0)) {
-                        pblock->vtx[1] = txCoinStake;
-                        LogPrintf("Masternode reward has been updated, tx:\n%s\n", txCoinStake.ToString());
-                    } else
-                        LogPrintf("Masternode reward has not been updated, failed to update signature, tx:\n%s\n", txCoinStake.ToString());
-                }
-            }
-
             CValidationState state;
             if (!TestBlockValidity(state, *pblock, pindexPrev, false, false)) {
                 LogPrintf("CreateNewBlock() : TestBlockValidity failed\n");

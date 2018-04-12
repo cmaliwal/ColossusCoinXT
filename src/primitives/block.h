@@ -25,7 +25,11 @@ class CBlockHeader
 {
 public:
     // header
-    static const int32_t CURRENT_VERSION=3;
+    static const int32_t VERSION1=1; // initial
+    static const int32_t VERSION2=2; // coinbase starts with serialized block height
+    static const int32_t VERSION3=3; // DERSIG (BIP66) rules
+    static const int32_t VERSION4=4; // new budget percent and masternode see-saw reward
+    static const int32_t CURRENT_VERSION=VERSION4;
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;

@@ -226,10 +226,17 @@ bool DisconnectBlocksAndReprocess(int blocks);
 
 // ***TODO***
 double ConvertBitsToDouble(unsigned int nBits);
-int64_t GetMasternodePayment(CAmount nTotalBlockReward);
 
 bool ActivateBestChain(CValidationState& state, CBlock* pblock = NULL);
-int64_t GetBlockValue(int nHeight, CAmount nFees, bool fBudgetBlock);
+
+// total block value: reward + budget
+CAmount GetBlockValue(int nHeight);
+// reward part of the block value: miner + masternode
+CAmount GetBlockValueReward(int nHeight);
+// budget part of the block value
+CAmount GetBlockValueBudget(int nHeight);
+// masternode part of the block value using see-saw algorithm
+CAmount GetMasternodePayment(int nHeight, CAmount blockValue, int nMasternodeCount, CAmount nMoneySupply);
 
 /** Create a new block index entry for a given block hash */
 CBlockIndex* InsertBlockIndex(uint256 hash);

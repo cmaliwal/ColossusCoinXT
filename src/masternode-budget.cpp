@@ -29,6 +29,15 @@ int GetBudgetPaymentCycleBlocks()
     return static_cast<int>(Params().GetBudgetPaymentCycle() / Params().TargetSpacing());
 }
 
+int GetBudgetFinalizationBlocks()
+{
+     //2 days before payment for Mainnet
+    if (Params().NetworkID() == CBaseChainParams::MAIN)
+        return (GetBudgetPaymentCycleBlocks() / 30) * 2;
+    else //in the middle of the budget cycle for other networks
+        return GetBudgetPaymentCycleBlocks() / 2;
+}
+
 bool IsBudgetCollateralValid(uint256 nTxCollateralHash, uint256 nExpectedHash, std::string& strError, int64_t& nTime, int& nConf)
 {
     CTransaction txCollateral;
@@ -130,8 +139,8 @@ void CBudgetManager::SubmitFinalBudget()
 
     int nBlockStart = nCurrentHeight - nCurrentHeight % GetBudgetPaymentCycleBlocks() + GetBudgetPaymentCycleBlocks();
     if (nSubmittedHeight >= nBlockStart) return;
-    //submit final budget 2 days before payment for Mainnet, about 9 minutes for Testnet
-    if (nBlockStart - nCurrentHeight > ((GetBudgetPaymentCycleBlocks() / 30) * 2)) return;
+    //submit final budget
+    if (nBlockStart - nCurrentHeight > GetBudgetFinalizationBlocks()) return;
 
     std::vector<CBudgetProposal*> vBudgetProposals = budget.GetBudget();
     std::string strBudgetName = "main";
@@ -445,19 +454,20 @@ void CBudgetManager::CheckAndRemove()
     LogPrintf("CBudgetManager::CheckAndRemove - PASSED\n");
 }
 
-void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake)
+void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev)
 {
     LOCK(cs);
 
-    CBlockIndex* pindexPrev = chainActive.Tip();
-    if (!pindexPrev) return;
+    if (!pindexPrev) {
+        LogPrintf("%s: pindexPrev is nullptr", __func__);
+        return;
+    }
 
-    int nHighestCount = 0;
     CScript payee;
     CAmount nAmount = 0;
+    int nHighestCount = 0;
 
     // ------- Grab The Highest Count
-
     std::map<uint256, CFinalizedBudget>::iterator it = mapFinalizedBudgets.begin();
     while (it != mapFinalizedBudgets.end()) {
         CFinalizedBudget* pfinalizedBudget = &((*it).second);
@@ -471,10 +481,18 @@ void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, b
         ++it;
     }
 
-    CAmount blockValue = GetBlockValue(pindexPrev->nHeight, nFees, false);
+    if (0 == nHighestCount) {
+        LogPrintf("CBudgetManager::FillBlockPayee - No Budget payment, nHighestCount = %d, finalized budgets size = %lld\n", nHighestCount, mapFinalizedBudgets.size());
+        return;
+    }
 
     if (fProofOfStake) {
-        if (nHighestCount > 0) {
+        if (txNew.vout.size() < 2) {
+            error("%s: invalid transaction:\n%s\n", __func__, txNew.ToString());
+        } else {
+            //Add fee to the miner
+            txNew.vout[1].nValue += nFees;
+
             unsigned int i = txNew.vout.size();
             txNew.vout.resize(i + 1);
             txNew.vout[i].scriptPubKey = payee;
@@ -483,24 +501,24 @@ void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, b
             CTxDestination address1;
             ExtractDestination(payee, address1);
             CBitcoinAddress address2(address1);
+            LogPrintf("CBudgetManager::FillBlockPayee - Budget payment to %s for %lld, nHighestCount = %d\n", address2.ToString(), nAmount, nHighestCount);
         }
     } else {
         //miners get the full amount on these blocks
+        CAmount blockValue = GetBlockValueReward(pindexPrev->nHeight) + nFees;
         txNew.vout[0].nValue = blockValue;
 
-        if (nHighestCount > 0) {
-            txNew.vout.resize(2);
+        txNew.vout.resize(2);
 
-            //these are super blocks, so their value can be much larger than normal
-            txNew.vout[1].scriptPubKey = payee;
-            txNew.vout[1].nValue = nAmount;
+        //these are super blocks, so their value can be much larger than normal
+        txNew.vout[1].scriptPubKey = payee;
+        txNew.vout[1].nValue = nAmount;
 
-            CTxDestination address1;
-            ExtractDestination(payee, address1);
-            CBitcoinAddress address2(address1);
+        CTxDestination address1;
+        ExtractDestination(payee, address1);
+        CBitcoinAddress address2(address1);
 
-            LogPrintf("CBudgetManager::FillBlockPayee - Budget payment to %s for %lld\n", address2.ToString(), nAmount);
-        }
+        LogPrintf("CBudgetManager::FillBlockPayee - Budget payment to %s for %lld\n", address2.ToString(), nAmount);
     }
 }
 
@@ -782,11 +800,8 @@ std::string CBudgetManager::GetRequiredPaymentsString(int nBlockHeight)
 
 CAmount CBudgetManager::GetTotalBudget(int nHeight)
 {
-    if (chainActive.Tip() == NULL) return 0;
-
-    CAmount nSubsidy = GetBlockValue(nHeight, 0, true); //calculate with 0 fees
-
-    return nSubsidy * Params().GetBudgetPercent() * GetBudgetPaymentCycleBlocks();
+    CAmount nSubsidy = GetBlockValueBudget(nHeight);
+    return nSubsidy * GetBudgetPaymentCycleBlocks();
 }
 
 void CBudgetManager::NewBlock()

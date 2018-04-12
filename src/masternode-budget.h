@@ -45,6 +45,9 @@ void DumpBudgets();
 // Define amount of blocks in budget payment cycle
 int GetBudgetPaymentCycleBlocks();
 
+// Define amount of blocks before payment when budget finalization runs
+int GetBudgetFinalizationBlocks();
+
 //Check the collateral transaction for the budget proposal/finalized budget
 bool IsBudgetCollateralValid(uint256 nTxCollateralHash, uint256 nExpectedHash, std::string& strError, int64_t& nTime, int& nConf);
 
@@ -237,7 +240,7 @@ public:
     bool PropExists(uint256 nHash);
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
     std::string GetRequiredPaymentsString(int nBlockHeight);
-    void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake);
+    void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
 
     void CheckOrphanVotes();
     void Clear()

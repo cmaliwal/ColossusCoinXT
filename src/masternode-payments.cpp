@@ -245,27 +245,32 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
     }
 
     //check for masternode payee
-    if (masternodePayments.IsTransactionValid(txNew, nBlockHeight, nFees))
+    if (masternodePayments.IsTransactionValid(txNew, nBlockHeight)) {
         return true;
-    LogPrintf("Invalid mn payment detected %s\n", txNew.ToString().c_str());
-
-    if (IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT))
-        return false;
-    LogPrintf("Masternode payment enforcement is disabled, accepting block\n");
-
-    return true;
+    } else {
+        LogPrintf("Invalid mn payment detected %s\n", txNew.ToString().c_str());
+        if (IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)) {
+            return false;
+        } else {
+            LogPrintf("Masternode payment enforcement is disabled, accepting block\n");
+            return true;
+        }
+    }
 }
 
 
 void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake)
 {
     CBlockIndex* pindexPrev = chainActive.Tip();
-    if (!pindexPrev) return;
+    if (!pindexPrev) {
+        LogPrintf("%s: pindexPrev is nullptr", __func__);
+        return;
+    }
 
     if (IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS) && budget.IsBudgetPaymentBlock(pindexPrev->nHeight + 1)) {
-        budget.FillBlockPayee(txNew, nFees, fProofOfStake);
+        budget.FillBlockPayee(txNew, nFees, fProofOfStake, pindexPrev);
     } else {
-        masternodePayments.FillBlockPayee(txNew, nFees, fProofOfStake);
+        masternodePayments.FillBlockPayee(txNew, nFees, fProofOfStake, pindexPrev);
     }
 }
 
@@ -278,9 +283,8 @@ std::string GetRequiredPaymentsString(int nBlockHeight)
     }
 }
 
-void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake)
+void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake, CBlockIndex* pindexPrev)
 {
-    CBlockIndex* pindexPrev = chainActive.Tip();
     if (!pindexPrev) {
         LogPrintf("%s: pindexPrev is nullptr", __func__);
         return;
@@ -289,7 +293,6 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFe
     bool hasPayment = true;
     CScript payee;
 
-    //spork
     if (!masternodePayments.GetBlockPayee(pindexPrev->nHeight + 1, payee)) {
         //no masternode detected
         CMasternode* winningNode = mnodeman.GetCurrentMasterNode(1);
@@ -301,49 +304,54 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFe
         }
     }
 
-    CAmount blockValue = GetBlockValue(pindexPrev->nHeight, nFees, false);
-    CAmount masternodePayment = GetMasternodePayment(blockValue);
+    if (!hasPayment)
+        return;
 
-    if (hasPayment) {
-        if (fProofOfStake) {
-            /**For Proof Of Stake vout[0] must be null
-             * Stake reward can be split into many different outputs, so we must
-             * use vout.size() to align with several different cases.
-             */
-            if (txNew.vout.size() < 2) {
-                LogPrintf("%s: invalid transaction, vout size is %d", __func__, txNew.vout.size());
-            } else {
-                //Append an additional output as the masternode payment
-                txNew.vout.push_back(CTxOut(masternodePayment, payee));
+    const int nMasternodeCount = mnodeman.stable_size();
+    CAmount blockValue = GetBlockValueReward(pindexPrev->nHeight + 1);
+    CAmount masternodePayment = GetMasternodePayment(pindexPrev->nHeight + 1, blockValue, nMasternodeCount, pindexPrev->nMoneySupply);
 
-                /**Subtract mn payment from the stake reward
-                 * There can be 1 or 2 stake outputs so subtract equally
-                */
-                if (txNew.vout.size() > 3) {
-                    const CAmount masternodePayment1 = masternodePayment / 2;
-                    const CAmount masternodePayment2 = masternodePayment - masternodePayment1;
-                    txNew.vout[1].nValue -= masternodePayment1;
-                    txNew.vout[2].nValue -= masternodePayment2;
-                } else
-                    txNew.vout[1].nValue -= masternodePayment;
-
-                LogPrintf("*** total reward %s masternode %s stake %s\n",
-                          FormatMoney(blockValue), FormatMoney(masternodePayment),
-                          FormatMoney(blockValue - masternodePayment));
-            }
+    if (fProofOfStake) {
+        /**For Proof Of Stake vout[0] must be null
+         * Stake reward can be split into many different outputs, so we must
+         * use vout.size() to align with several different cases.
+         */
+        if (txNew.vout.size() < 2) {
+            error("%s: invalid transaction:\n%s\n", __func__, txNew.ToString());
         } else {
-            txNew.vout.resize(2);
-            txNew.vout[1].scriptPubKey = payee;
-            txNew.vout[1].nValue = masternodePayment;
-            txNew.vout[0].nValue = blockValue - masternodePayment;
+            //Add fee to the miner
+            txNew.vout[1].nValue += nFees;
+
+            //Append an additional output as the masternode payment
+            txNew.vout.push_back(CTxOut(masternodePayment, payee));
+
+            /**Subtract mn payment from the stake reward
+             * There can be 1 or 2 stake outputs so subtract equally
+            */
+            if (txNew.vout.size() > 3) {
+                const CAmount masternodePayment1 = masternodePayment / 2;
+                const CAmount masternodePayment2 = masternodePayment - masternodePayment1;
+                txNew.vout[1].nValue -= masternodePayment1;
+                txNew.vout[2].nValue -= masternodePayment2;
+            } else
+                txNew.vout[1].nValue -= masternodePayment;
+
+            LogPrintf("*** total reward %s masternode %s stake %s\n",
+                      FormatMoney(blockValue), FormatMoney(masternodePayment),
+                      FormatMoney(blockValue - masternodePayment));
         }
-
-        CTxDestination address1;
-        ExtractDestination(payee, address1);
-        CBitcoinAddress address2(address1);
-
-        LogPrintf("Masternode payment of %s to %s\n", FormatMoney(masternodePayment).c_str(), address2.ToString().c_str());
+    } else {
+        txNew.vout.resize(2);
+        txNew.vout[1].scriptPubKey = payee;
+        txNew.vout[1].nValue = masternodePayment;
+        txNew.vout[0].nValue -= masternodePayment;
     }
+
+    CTxDestination address1;
+    ExtractDestination(payee, address1);
+    CBitcoinAddress address2(address1);
+
+    LogPrintf("Masternode payment of %s to %s\n", FormatMoney(masternodePayment).c_str(), address2.ToString().c_str());
 }
 
 int CMasternodePayments::GetMinMasternodePaymentsProto()
@@ -525,16 +533,29 @@ bool CMasternodePayments::AddWinningMasternode(CMasternodePaymentWinner& winnerI
     return true;
 }
 
-bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmount nFees)
+bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew)
 {
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    if (!pindexPrev) {
+        LogPrintf("%s: pindexPrev is nullptr", __func__);
+        return false;
+    }
+
     LOCK(cs_vecPayments);
 
     int nMaxSignatures = 0;
-    
     std::string strPayeesPossible = "";
 
-    CAmount nReward = GetBlockValue(nBlockHeight, nFees, false);
-    CAmount requiredMasternodePayment = GetMasternodePayment(nReward);
+    //account for the fact that all peers do not see the same masternode count. An allowance of being off our masternode count is given
+    //we only need to look at an increased masternode count because as count increases, the reward decreases. This code only checks
+    //for mnPayment >= required, so it only makes sense to check the max node count allowed.
+    const int nMasternodeCountStable = mnodeman.stable_size();
+    const int nMasternodeCountDrift = nMasternodeCountStable + Params().MasternodeCountDrift();
+
+    CAmount nReward = GetBlockValueReward(nBlockHeight);
+    CAmount requiredMasternodePayment = GetMasternodePayment(nBlockHeight, nReward, nMasternodeCountDrift, pindexPrev->nMoneySupply);
+
+    DebugPrintf("%s: Height=%d, Reward=%lld, MasternodeCountDrift=%d\n", __func__, nBlockHeight, nReward, nMasternodeCountDrift);
 
     //require at least 6 signatures
     BOOST_FOREACH (CMasternodePayee& payee, vecPayments)
@@ -542,7 +563,8 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmou
             nMaxSignatures = payee.nVotes;
 
     // if we don't have at least 6 signatures on a payee, approve whichever is the longest chain
-    if (nMaxSignatures < Params().GetMasternodePaymentSigRequired()) return true;
+    if (nMaxSignatures < Params().GetMasternodePaymentSigRequired())
+        return true;
 
     BOOST_FOREACH (CMasternodePayee& payee, vecPayments) {
         bool found = false;
@@ -551,7 +573,7 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmou
                 if(out.nValue >= requiredMasternodePayment)
                     found = true;
                 else
-                    LogPrintf("Masternode payment is out of drift range. Paid=%s Min=%s\n", FormatMoney(out.nValue).c_str(), FormatMoney(requiredMasternodePayment).c_str());
+                    LogPrintf("Masternode payment is out of drift range. Paid=%s Min=%s\n", FormatMoney(out.nValue), FormatMoney(requiredMasternodePayment));
             }
         }
 
@@ -570,7 +592,7 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, CAmou
         }
     }
 
-    LogPrintf("CMasternodePayments::IsTransactionValid - Missing required payment of %s to %s\n", FormatMoney(requiredMasternodePayment).c_str(), strPayeesPossible.c_str());
+    LogPrintf("CMasternodePayments::IsTransactionValid - Missing required payment of %s to %s\n", FormatMoney(requiredMasternodePayment), strPayeesPossible.c_str());
     return false;
 }
 
@@ -606,15 +628,15 @@ std::string CMasternodePayments::GetRequiredPaymentsString(int nBlockHeight)
     return "Unknown";
 }
 
-bool CMasternodePayments::IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CAmount nFees)
+bool CMasternodePayments::IsTransactionValid(const CTransaction& txNew, int nBlockHeight)
 {
     LOCK(cs_mapMasternodeBlocks);
 
     if (mapMasternodeBlocks.count(nBlockHeight)) {
-        return mapMasternodeBlocks[nBlockHeight].IsTransactionValid(txNew, nFees);
+        return mapMasternodeBlocks[nBlockHeight].IsTransactionValid(txNew);
+    } else {
+        return true;
     }
-
-    return true;
 }
 
 void CMasternodePayments::CleanPaymentList()

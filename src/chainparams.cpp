@@ -117,11 +117,10 @@ public:
         nMaxMoneyOut = int64_t(20000000000) * COIN;
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
-        nBudgetPercent = 5;
+        nBudgetPercent = 10;
         nBudgetPaymentCycle = 60*60*24*30; // 1 month
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 6;
-        nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
 
         /**
@@ -224,14 +223,12 @@ public:
         nPastBlocksMin = 200;
         nLastPOWBlock = 200;
         nMaturity = 15;
-        nMasternodeCountDrift = 4;
         nModifierUpdateBlock = 0; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = int64_t(20000000000) * COIN;
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
         nBudgetPercent = 5;
         nBudgetPaymentCycle = 60*60*2; // 2 hours
-        nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 1;
