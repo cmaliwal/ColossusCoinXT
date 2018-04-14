@@ -245,7 +245,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
     }
 
     //check for masternode payee
-    if (masternodePayments.IsTransactionValid(txNew, nBlockHeight)) {
+    if (masternodePayments.IsTransactionValid(txNew, block.GetVersion(), nBlockHeight)) {
         return true;
     } else {
         LogPrintf("Invalid mn payment detected %s\n", txNew.ToString().c_str());
@@ -533,7 +533,7 @@ bool CMasternodePayments::AddWinningMasternode(CMasternodePaymentWinner& winnerI
     return true;
 }
 
-bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew)
+bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int nBlockVersion)
 {
     CBlockIndex* pindexPrev = chainActive.Tip();
     if (!pindexPrev) {
@@ -553,7 +553,11 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew)
     const int nMasternodeCountDrift = nMasternodeCountStable + Params().MasternodeCountDrift();
 
     CAmount nReward = GetBlockValueReward(nBlockHeight);
-    CAmount requiredMasternodePayment = GetMasternodePayment(nBlockHeight, nReward, nMasternodeCountDrift, pindexPrev->nMoneySupply);
+    CAmount requiredMasternodePayment = 0;
+    if (nBlockVersion < CBlockHeader::VERSION4)
+        requiredMasternodePayment = GetMasternodePaymentBeforeVersion4(nBlockHeight);
+    else
+        requiredMasternodePayment = GetMasternodePayment(nBlockHeight, nReward, nMasternodeCountDrift, pindexPrev->nMoneySupply);
 
     DebugPrintf("%s: Height=%d, Reward=%lld, MasternodeCountDrift=%d\n", __func__, nBlockHeight, nReward, nMasternodeCountDrift);
 
@@ -628,12 +632,12 @@ std::string CMasternodePayments::GetRequiredPaymentsString(int nBlockHeight)
     return "Unknown";
 }
 
-bool CMasternodePayments::IsTransactionValid(const CTransaction& txNew, int nBlockHeight)
+bool CMasternodePayments::IsTransactionValid(const CTransaction& txNew, int nBlockVersion, int nBlockHeight)
 {
     LOCK(cs_mapMasternodeBlocks);
 
     if (mapMasternodeBlocks.count(nBlockHeight)) {
-        return mapMasternodeBlocks[nBlockHeight].IsTransactionValid(txNew);
+        return mapMasternodeBlocks[nBlockHeight].IsTransactionValid(txNew, nBlockVersion);
     } else {
         return true;
     }

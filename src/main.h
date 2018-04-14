@@ -229,13 +229,20 @@ double ConvertBitsToDouble(unsigned int nBits);
 
 bool ActivateBestChain(CValidationState& state, CBlock* pblock = NULL);
 
+// since block version 4 budget percent changed
+// returns expected reward depends on the block version
+CAmount GetBlockExpectedMint(int nHeight, int nBlockVersion);
+// block reward before version 4
+CAmount GetBlockRewardBeforeVersion4(int nHeight);
+// masternode part of the block reward before version 4
+CAmount GetMasternodePaymentBeforeVersion4(int nHeight);
 // total block value: reward + budget
 CAmount GetBlockValue(int nHeight);
 // reward part of the block value: miner + masternode
 CAmount GetBlockValueReward(int nHeight);
 // budget part of the block value
 CAmount GetBlockValueBudget(int nHeight);
-// masternode part of the block value using see-saw algorithm
+// masternode part of the block reward using see-saw algorithm
 CAmount GetMasternodePayment(int nHeight, CAmount blockValue, int nMasternodeCount, CAmount nMoneySupply);
 
 /** Create a new block index entry for a given block hash */

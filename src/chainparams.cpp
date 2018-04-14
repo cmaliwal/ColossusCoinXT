@@ -227,7 +227,7 @@ public:
         nMaxMoneyOut = int64_t(20000000000) * COIN;
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
-        nBudgetPercent = 5;
+        nBudgetPercent = 10;
         nBudgetPaymentCycle = 60*60*2; // 2 hours
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
         nMasternodePaymentSigTotal = 10;

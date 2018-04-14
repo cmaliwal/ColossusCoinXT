@@ -76,6 +76,11 @@ public:
     {
         return (int64_t)nTime;
     }
+
+    int32_t GetVersion() const
+    {
+        return nVersion;
+    }
 };
 
 

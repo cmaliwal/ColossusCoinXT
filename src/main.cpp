@@ -1558,6 +1558,36 @@ double ConvertBitsToDouble(unsigned int nBits)
     return dDiff;
 }
 
+CAmount GetBlockExpectedMint(int nHeight, int nBlockVersion)
+{
+    if (nBlockVersion < CBlockHeader::VERSION4)
+        return GetBlockRewardBeforeVersion4(nHeight);
+    else
+        return GetBlockValueReward(nHeight);
+}
+
+CAmount GetBlockRewardBeforeVersion4(int nHeight)
+{
+    CAmount nSubsidy = 0;
+    CAmount nBudgetMultiplier = COIN - 5 * CENT; // 5% budget before version 4
+
+    if (nHeight == 1)
+        nSubsidy = CAmount(12000000000) * COIN; //premine has no budget allocation
+    else if (nHeight < 151201)
+        nSubsidy = 2500 * nBudgetMultiplier;
+    else if (nHeight < 302400)
+        nSubsidy = 1250 * nBudgetMultiplier;
+    else
+        nSubsidy = 1000 * nBudgetMultiplier;
+
+    return nSubsidy;
+}
+
+CAmount GetMasternodePaymentBeforeVersion4(int nHeight)
+{
+    return GetBlockRewardBeforeVersion4(nHeight) / COIN * (60 * CENT);
+}
+
 CAmount GetBlockValue(int nHeight)
 {
     /**
@@ -2308,7 +2338,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     nTimeConnect += nTime1 - nTimeStart;
     LogPrint("bench", "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime1 - nTimeStart), 0.001 * (nTime1 - nTimeStart) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime1 - nTimeStart) / (nInputs - 1), nTimeConnect * 0.000001);
 
-    CAmount nExpectedMint = GetBlockValueReward(pindex->pprev->nHeight) + nFees;
+    CAmount nExpectedMint = nFees + GetBlockExpectedMint(pindex->pprev->nHeight, block.GetVersion());
 
     // ----------- masternode payments / budgets -----------
     CBlockIndex* pindexPrev = chainActive.Tip();
@@ -3362,7 +3392,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     for (int i = 2; i <= CBlockHeader::CURRENT_VERSION; ++i) {
         if (block.nVersion < i &&
             CBlockIndex::IsSuperMajority(i, pindexPrev, Params().RejectBlockOutdatedMajority())) {
-                return state.Invalid(error("%s : rejected nVersion=1 block", __func__), REJECT_OBSOLETE, "bad-version");
+                return state.Invalid(error("%s : rejected nVersion=%d block", __func__, block.nVersion), REJECT_OBSOLETE, "bad-version");
         }
     }
 
