@@ -34,7 +34,7 @@ http://www.presstab.pw/phpexplorer/COLX/index.php
 
 ### Social media information: 
 
-Twitter: https://twitter.com/Colossuscoin
+Twitter: https://twitter.com/ColossusCoinXT
 
 Facebook: https://www.facebook.com/Colossuscoin/
 
@@ -44,7 +44,7 @@ Discord Community: https://discord.gg/pRbDzPd
 
 Telegram Community: https://t.me/colossuscoin
 
-Forums: http://www.colossuscointalk.org/
+Forums: https://forum.colossusxt.io/
 
 
 Terms of Service:
