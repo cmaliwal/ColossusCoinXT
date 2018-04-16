@@ -220,8 +220,8 @@ public:
         nMinerThreads = 0;
         nTargetTimespan = 1 * 60; // ColossusCoinXT: 1 day
         nTargetSpacing = 1 * 60;  // ColossusCoinXT: 1 minute
-        nPastBlocksMin = 200;
-        nLastPOWBlock = 200;
+        nPastBlocksMin = 10080;
+        nLastPOWBlock = 10080;
         nMaturity = 15;
         nModifierUpdateBlock = 0; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = int64_t(20000000000) * COIN;
