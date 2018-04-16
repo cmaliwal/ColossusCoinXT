@@ -1,7 +1,6 @@
-Masternode Budget API
-=======================
-
-Pivx now supports full decentralized budgets that are paid directly from the blockchain via superblocks once per month.
+Masternode Budget System
+========================
+COLX now supports full decentralized budgets that are paid directly from the blockchain via superblocks once per budget payment cycle. The total budget of the network can be calculated by taking 10% of the reward over the period of time between two superblocks, which occur every 21600 blocks (budget payment cycle) or approximately 15 days. A voting cutoff occurs before the superblock, and the final votes are tallied at this point (budget finalization). A proposal must satisfy the condition (YES votes - NO votes) > (Total Number of Masternodes / 10) in order to be considered passing. Then, in the superblock, the winning proposals are awarded in the order of the margin by which they are passing until either the entire budget is allocated or no more passing proposals exist. This allows for completely trustless and decentralized allocation of the budget. Since block number `302400` monthly budget size is `21600 * 100 = 2'160'000 COLX`. If there are no proposals in the budget payment cycle full budget burns out. Budget finalization happens 1440 blocks before next superblock or approximately 1 day.
 
 Budgets go through a series of stages before being paid:
 * prepare - create a special transaction that destroys coins in order to make a proposal
@@ -12,10 +11,12 @@ Budgets go through a series of stages before being paid:
 * finalized budget voting - masternodes that agree with the finalization will vote on that budget
 * payment - the winning finalized budget is paid
 
+Budget Finalization
+-------------------
+In order to go through steps: finalization, finalized budget voting and payment, proposals must be finalized. At least one node in the network (or more for reliability) is running in the budget finalization mode (`budgetvotemode=suggest` in the .conf file). Once per budget payment cycle (1440 blocks before superblock) this node makes final budget based on the existing proposals and broadcasts final budget to the network. Special transaction is created that destroys coins in order to make a final proposal, so node must have enough balance. 
 
 Prepare collateral transaction
 ------------------------
-
 mnbudget prepare \<proposal-name\> \<url\> \<payment_count\> \<block_start\> \<colx_address\> \<monthly_payment_colx\> [use_ix(true|false)]
 
 Example:
@@ -31,7 +32,6 @@ In this transaction we prepare collateral for "_cool-project_". This proposal wi
 
 Submit proposal to network
 ------------------------
-
 mnbudget submit \<proposal-name\> \<url\> \<payment_count\> \<block_start\> \<colx_address\> \<monthly_payment_colx\> \<collateral_hash\>
 
 Example:
@@ -43,7 +43,6 @@ Output: `a2b29778ae82e45a973a94309ffa6aa2e2388b8f95b39ab3739f0078835f0491` - Thi
 
 Lobby for votes
 ------------------------
-
 Double check your information:
 
 mnbudget getinfo \<proposal-name\>
@@ -88,7 +87,6 @@ Output: `Voted successfully` - Your vote has been submitted and accepted.
 
 Make it into the budget
 ------------------------
-
 After you get enough votes, execute `mnbudget projection` to see if you made it into the budget. If you the budget was finalized at this moment which proposals would be in it. Note: Proposals must be active at least 1 day on the network and receive 10% of the masternode network in yes votes in order to qualify (E.g. if there is 2500 masternodes, you will need 250 yes votes.)
 
 Example:
@@ -137,13 +135,11 @@ Finalized budget
 
 Get paid
 ------------------------
-
 When block `1000000` is reached you'll receive a payment for `1200` COLX.
 
 
 RPC Commands
 ------------------------
-
 The following new RPC commands are supported:
 - mnbudget "command"... ( "passphrase" )
  * prepare            - Prepare proposal for network by signing and creating tx
