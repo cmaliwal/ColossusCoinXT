@@ -32,8 +32,8 @@ BOOST_AUTO_TEST_CASE(block_value)
 
     // budget amount
     CBudgetManager budget;
-    BOOST_CHECK(budget.GetTotalBudget(302399) == CAmount(125 * 60*60*24*30 / 120) * COIN);
-    BOOST_CHECK(budget.GetTotalBudget(302400) == CAmount(100 * 60*60*24*30 / 120) * COIN);
+    BOOST_CHECK(budget.GetTotalBudget(302399) == CAmount(125 * 60*60*24*30 / 60) * COIN);
+    BOOST_CHECK(budget.GetTotalBudget(302400) == CAmount(100 * 60*60*24*30 / 60) * COIN);
 
     // masternode reward
     const CAmount nMoneySupply = 12000000000*COIN;
