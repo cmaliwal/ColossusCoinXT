@@ -82,6 +82,15 @@ static const Checkpoints::CCheckpointData dataRegtest = {
     0,
     100};
 
+libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
+{
+    assert(this);
+    static CBigNum bnTrustedModulus(zerocoinModulus);
+    static libzerocoin::ZerocoinParams ZCParams = libzerocoin::ZerocoinParams(bnTrustedModulus);
+
+    return &ZCParams;
+}
+
 class CMainParams : public CChainParams
 {
 public:
@@ -110,10 +119,8 @@ public:
         nTargetTimespan = 1 * 120; // ColossusCoinXT: 2 minute
         nTargetSpacing = 1 * 120;  // ColossusCoinXT: 2 minute
         nPastBlocksMin = 24;
-        nLastPOWBlock = 10080;
         nMaturity = 90;
         nMasternodeCountDrift = 20;
-        nModifierUpdateBlock = 0;
         nMaxMoneyOut = int64_t(20000000000) * COIN;
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
@@ -179,6 +186,33 @@ public:
         strSporkKey = "0423f2b48d99f15a0bceedbe9b05a06d028aca587c3a0f0ee4a7dff6b0859181c1225b5842a17e8bb74758b8f1757a82025631f3276bec0734c6f61de71c1e4d28";
         strObfuscationPoolDummyAddress = "D87q2gC9j6nNrnzCsg4aY6bHMLsT9nUhEw";
         nStartMasternodePayments = 1403728576; //Wed, 25 Jun 2014 20:36:16 GMT
+
+        /** Zerocoin */
+        zerocoinModulus = "eea95da0a8c277c6fa63a84ab86e748bd499417feb8bc312e67d4076e6d1bb048d0e60afc42bc04b4f3afb754b35bc2056"
+            "31855dc262811b2f77b8323ece492299e599b8ac048b3335004c63bb115fa1448619741ae4eafd21e59fc41761bf0015fe96fc0300ed78b8"
+            "b050440b093f82bcbdf4d63d9851004d72c71b79506b687a7a12a796813da48baa4ab23708f1d1b5b380ac5cc38529465961a1c098da9f26"
+            "06dcb6d5393e9b9eef43f8eb42c8e3e1634a0d1649337a409fe2b948fd3f5753e258ef855b72a5a83f34f14add3180ffc15e1da6a3d6a147"
+            "ad4ef9da82a9253b39f5ffca4c483d76333c93c1781b2b0e5ccb520ebf58da506da303ea28c975a4463c0fc5b2f8a7421e072d09ef391268"
+            "fd64fcb0f72a736350ae83b394d5f861af8378b348b4a359b5e5e8837aae2ba4b23838610fe65605fd7ef34972b47e773a906b56a60129ce"
+            "04ed78030ff7ad2c2c4f54cc715ee0cccab5f42566829ad507c4bd834cde358ff079f87c0352b3434c059d3df8bcb7e9b19f13f9150b41";
+        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
+        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
+        nRequiredAccumulation = 1;
+        nDefaultSecurityLevel = 100; //full security level for accumulators
+        nZerocoinHeaderVersion = 4; //Block headers must be this version once zerocoin is active
+
+        //FIXME: params must correspond zerocoin release
+        /** Height or Time Based Activations **/
+        nLastPOWBlock = 10080;
+        nModifierUpdateBlock = 0;
+        nZerocoinStartHeight = 863787;
+        nZerocoinStartTime = 1508214600; // October 17, 2017 4:30:00 AM
+        nBlockEnforceSerialRange = 895400; //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = 908000; //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = 891737; //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = 891730; //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = 902850; //Start enforcing the invalid UTXO's
     }
 
     int64_t GetMinStakeAge(int nTargetHeight) const
