@@ -1,7 +1,7 @@
 Contributing to COLX Core
 ============================
 
-The PIVX Core project operates an open contributor model where anyone is
+The COLX Core project operates an open contributor model where anyone is
 welcome to contribute towards development in the form of peer review, testing
 and patches. This document explains the practical process and guidelines for
 contributing.
@@ -188,7 +188,7 @@ request. Typically reviewers will review the code for obvious errors, as well as
 test out the patch set and opine on the technical merits of the patch. Project
 maintainers take into account the peer review when determining if there is
 consensus to merge a pull request (remember that discussions may have been
-spread out over GitHub, forums, email, and Slack discussions). The following
+spread out over GitHub, forums, email, and Discord discussions). The following
 language is used within pull-request comments:
 
   - ACK means "I have tested the code and I agree it should be merged";
@@ -215,7 +215,7 @@ mistakes could be very costly to the wider community. This includes refactoring
 of consensus critical code.
 
 Where a patch set proposes to change the COLX consensus, it must have been
-discussed extensively on the forums and Slack, be accompanied by a widely
+discussed extensively on the forums and Discord, be accompanied by a widely
 discussed Proposal and have a generally widely perceived technical consensus of being
 a worthwhile change based on the judgement of the maintainers.
 
@@ -237,7 +237,7 @@ about:
     that personally, though! Instead, take another critical look at what you are suggesting
     and see if it: changes too much, is too broad, doesn't adhere to the
     [developer notes](doc/developer-notes.md), is dangerous or insecure, is messily written, etc.
-    Identify and address any of the issues you find. Then ask e.g. on Slack if someone could give
+    Identify and address any of the issues you find. Then ask e.g. on Discord if someone could give
     their opinion on the concept itself.
   - It may be because your code is too complex for all but a few people. And those people
     may not have realized your pull request even exists. A great way to find people who
