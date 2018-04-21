@@ -1,4 +1,4 @@
-Contributing to COLX Core
+Contributing to ColossusXT (COLX) Core
 ============================
 
 The COLX Core project operates an open contributor model where anyone is
@@ -245,7 +245,7 @@ about:
     [Git Blame feature](https://help.github.com/articles/tracing-changes-in-a-file/). Simply
     find the person touching the code you are touching before you and see if you can find
     them and give them a nudge. Don't be incessant about the nudging though.
-  - Finally, if all else fails, ask on Slack or elsewhere for someone to give your pull request
+  - Finally, if all else fails, ask on Discord or elsewhere for someone to give your pull request
     a look. If you think you've been waiting an unreasonably long amount of time (month+) for
     no particular reason (few lines changed, etc), this is totally fine. Try to return the favor
     when someone else is asking for feedback on their code, and universe balances out.
