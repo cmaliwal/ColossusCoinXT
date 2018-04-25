@@ -43,6 +43,7 @@ BITCOIN_TESTS =\
   test/Checkpoints_tests.cpp \
   test/coins_tests.cpp \
   test/compress_tests.cpp \
+  test/context_tests.cpp \
   test/crypto_tests.cpp \
   test/curl_tests.cpp \
   test/DoS_tests.cpp \

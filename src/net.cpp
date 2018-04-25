@@ -19,6 +19,8 @@
 #include "primitives/transaction.h"
 #include "ui_interface.h"
 #include "wallet.h"
+#include "curl.h"
+#include "context.h"
 
 #ifdef WIN32
 #include <string.h>
@@ -1558,6 +1560,32 @@ void static Discover(boost::thread_group& threadGroup)
 #endif
 }
 
+// return true if new update is available
+// return false if error or update is not available
+static bool IsUpdateAvailable()
+{
+    DebugPrintf("%s: starting", __func__);
+
+    CUrl redirect;
+    string error;
+    if (!GetRedirect(GITHUB_RELEASE_URL, redirect, error)) {
+        DebugPrintf("%s: error - %s", __func__, error);
+        return false;
+    }
+
+    const string ver = strprintf("v%s", FormatVersion(CLIENT_VERSION));
+    DebugPrintf("%s: redirect is %s, version is %s", __func__, redirect, ver);
+
+    // assume version mismatch means new update is available (downgrage possible)
+    return redirect.find(ver) != string::npos;
+}
+
+static void ThreadCheckForUpdates(CContext& context)
+{
+    boost::this_thread::interruption_point();
+    context.SetUpdateAvailable(IsUpdateAvailable());
+}
+
 void StartNode(boost::thread_group& threadGroup)
 {
     uiInterface.InitMessage(_("Loading addresses..."));
@@ -1613,6 +1641,10 @@ void StartNode(boost::thread_group& threadGroup)
     // ppcoin:mint proof-of-stake blocks in the background
     if (GetBoolArg("-staking", true))
         threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "stakemint", &ThreadStakeMinter));
+
+    // Check for updates once per day
+    threadGroup.create_thread(boost::bind(&LoopForever<void (*)()>, "checkforupdates",
+        [](){ ThreadCheckForUpdates(GetContext()); }, 1000 * 24 * 60 * 60));
 }
 
 bool StopNode()

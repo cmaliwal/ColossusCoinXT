@@ -116,6 +116,9 @@ void openMNConfigfile();
 // Browse backup folder
 void showBackups();
 
+// Open URL in the default browser
+void openURL(const QString& url);
+
 // Replace invalid default fonts with known good ones
 void SubstituteFonts(const QString& language);
 

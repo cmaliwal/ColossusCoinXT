@@ -5,6 +5,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "context.h"
 #include "clientversion.h"
 #include "init.h"
 #include "main.h"
@@ -172,10 +173,22 @@ bool AppInit(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    SetupEnvironment();
+    try {
+        ContextScopeInit context;
 
-    // Connect colxd signal handlers
-    noui_connect();
+        SetupEnvironment();
 
-    return (AppInit(argc, argv) ? 0 : 1);
+        // Connect colxd signal handlers
+        noui_connect();
+
+        return (AppInit(argc, argv) ? 0 : 1);
+    } catch (const boost::thread_interrupted&) {
+        LogPrintf("main thread stop\n");
+    } catch (std::exception& e) {
+        LogPrintf("main thread exception: %s\n", e.what());
+    } catch (...) {
+        LogPrintf("main thread error\n");
+    }
+
+    return 1;
 }

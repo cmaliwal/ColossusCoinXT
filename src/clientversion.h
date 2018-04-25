@@ -31,6 +31,11 @@
 #endif //HAVE_CONFIG_H
 
 /**
+* Point to URL that redirects to the latest update available
+*/
+#define GITHUB_RELEASE_URL "https://github.com/ColossusCoinXT/ColossusCoinXT/releases/latest"
+
+/**
  * Converts the parameter X to a string after macro replacement on X has been performed.
  * Don't merge these into one macro!
  */
@@ -61,7 +66,7 @@ extern const std::string CLIENT_NAME;
 extern const std::string CLIENT_BUILD;
 extern const std::string CLIENT_DATE;
 
-
+std::string FormatVersion(int nVersion);
 std::string FormatFullVersion();
 std::string FormatSubVersion(const std::string& name, int nClientVersion, const std::vector<std::string>& comments);
 

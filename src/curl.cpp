@@ -54,7 +54,7 @@ bool GetRedirect(const CUrl& url, CUrl& redirect, std::string& error)
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
-        error = tfm::format("curl_easy_perform failed: %s", curl_easy_strerror(res));
+        error = strprintf("curl_easy_perform failed: %s", curl_easy_strerror(res));
         return false;
     }
 
@@ -73,7 +73,7 @@ bool GetRedirect(const CUrl& url, CUrl& redirect, std::string& error)
             return true;
         }
         else {
-            error = tfm::format("curl_easy_getinfo failed: %s", curl_easy_strerror(res));
+            error = strprintf("curl_easy_getinfo failed: %s", curl_easy_strerror(res));
             return false;
         }
     }

@@ -385,6 +385,11 @@ void showBackups()
         QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathBackups)));
 }
 
+void openURL(const QString& url)
+{
+    QDesktopServices::openUrl(url);
+}
+
 void SubstituteFonts(const QString& language)
 {
 #if defined(Q_OS_MAC)
