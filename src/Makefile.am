@@ -94,6 +94,7 @@ BITCOIN_CORE_H = \
   compat.h \
   compat/sanity.h \
   compressor.h \
+  context.h \
   primitives/block.h \
   primitives/transaction.h \
   core_io.h \
@@ -337,6 +338,7 @@ libbitcoin_util_a_SOURCES = \
   compat/glibcxx_sanity.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
+  context.cpp \
   curl.cpp \
   random.cpp \
   rpcprotocol.cpp \

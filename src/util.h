@@ -223,7 +223,7 @@ void LoopForever(const char* name, Callable func, int64_t msecs)
             func();
         }
     } catch (boost::thread_interrupted) {
-        LogPrintf("%s thread stop\n", name);
+        LogPrintf("%s thread interrupt\n", name);
         throw;
     } catch (std::exception& e) {
         PrintExceptionContinue(&e, name);
