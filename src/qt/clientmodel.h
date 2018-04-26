@@ -102,11 +102,19 @@ signals:
     // Show progress dialog e.g. for verifychain
     void showProgress(const QString& title, int nProgress);
 
+    //! Fired when a new software update is available for downloading
+    void newVersionAvailable();
+
+    //! Fired when new software update is downloading from the server
+    void refreshDownloadProgress(const QString& title, int progress);
+
 public slots:
     void updateTimer();
     void updateMnTimer();
     void updateNumConnections(int numConnections);
     void updateAlert(const QString& hash, int status);
+    void updateNewVersionAvailable();
+    void updateDownloadProgress(const QString& title, int progress);
 };
 
 #endif // BITCOIN_QT_CLIENTMODEL_H

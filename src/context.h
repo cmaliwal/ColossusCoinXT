@@ -5,6 +5,8 @@
 #ifndef BITCOIN_CONTEXT_H
 #define BITCOIN_CONTEXT_H
 
+#include <string>
+
 class CContext;
 
 /**
@@ -54,16 +56,28 @@ public:
     ~CContext();
 
     /**
+     * Set availability of the update on the server.
+     * @param available true - available, false - not available
+     * @param urlTag base url of the release folder on the server
+     * @param urlFile url of the release file on the server
+     */
+    void SetUpdateAvailable(bool available, const std::string& urlTag, const std::string& urlFile);
+
+    /**
      * Return availability of the update on the server.
      * @return true - available, false - not available
      */
     bool IsUpdateAvailable() const;
 
     /**
-     * Set availability of the update on the server.
-     * @param available true - available, false - not available
+     * Return base url of the release folder on the server.
      */
-    void SetUpdateAvailable(bool available);
+    std::string GetUpdateUrlTag() const;
+
+    /**
+     * Return url of the release file on the server.
+     */
+    std::string GetUpdateUrlFile() const;
 
 private:
     CContext(const CContext&);
@@ -71,6 +85,8 @@ private:
 
 private:
     bool bUpdateAvailable_ = false;
+    std::string sUpdateUrlTag_;
+    std::string sUpdateUrlFile_;
 };
 
 #endif // BITCOIN_CONTEXT_H

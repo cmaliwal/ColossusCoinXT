@@ -218,10 +218,12 @@ void LoopForever(const char* name, Callable func, int64_t msecs)
     RenameThread(s.c_str());
     LogPrintf("%s thread start\n", name);
     try {
-        while (1) {
+        bool run = true;
+        while (run) {
             MilliSleep(msecs);
-            func();
+            run = func();
         }
+        LogPrintf("%s thread exit\n", name);
     } catch (boost::thread_interrupted) {
         LogPrintf("%s thread interrupt\n", name);
         throw;

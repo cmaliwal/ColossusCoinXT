@@ -39,7 +39,7 @@ private:
     CURL *curl_;
 };
 
-bool GetRedirect(const CUrl& url, CUrl& redirect, std::string& error)
+bool CURLGetRedirect(const CUrl& url, CUrl& redirect, std::string& error)
 {
     CurlScopeInit curl;
     CURLcode res;

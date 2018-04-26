@@ -3,13 +3,15 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "context.h"
+#include "sync.h"
 
 #include <memory>
-#include <exception>
+#include <stdexcept>
 
 using namespace std;
 
 static unique_ptr<CContext> context_;
+static CCriticalSection csUpdate_;
 
 void CreateContext()
 {
@@ -36,12 +38,29 @@ CContext::CContext() {}
 
 CContext::~CContext() {}
 
+void CContext::SetUpdateAvailable(bool available, const string& urlTag, const string& urlFile)
+{
+    LOCK(csUpdate_);
+
+    bUpdateAvailable_ = available;
+    sUpdateUrlTag_ = urlTag;
+    sUpdateUrlFile_ = urlFile;
+}
+
 bool CContext::IsUpdateAvailable() const
 {
+    LOCK(csUpdate_);
     return bUpdateAvailable_;
 }
 
-void CContext::SetUpdateAvailable(bool available)
+std::string CContext::GetUpdateUrlTag() const
 {
-    bUpdateAvailable_ = available;
+    LOCK(csUpdate_);
+    return sUpdateUrlTag_;
+}
+
+std::string CContext::GetUpdateUrlFile() const
+{
+    LOCK(csUpdate_);
+    return sUpdateUrlFile_;
 }
