@@ -21,8 +21,10 @@ BOOST_AUTO_TEST_CASE(context_init_test)
 
     BOOST_CHECK(GetContext().IsUpdateAvailable() == false);
 
-    GetContext().SetUpdateAvailable(true);
+    GetContext().SetUpdateAvailable(true, "url", "filename");
     BOOST_CHECK(GetContext().IsUpdateAvailable() == true);
+    BOOST_CHECK(GetContext().GetUpdateUrlFile() == "filename");
+    BOOST_CHECK(GetContext().GetUpdateUrlTag() == "url");
 
     ReleaseContext();
     BOOST_CHECK_THROW(GetContext(), runtime_error);

@@ -15,12 +15,12 @@ BOOST_AUTO_TEST_SUITE(curl_tests)
 BOOST_AUTO_TEST_CASE(curl_getredirect_test)
 {
     string err1, out1;
-    BOOST_CHECK(GetRedirect("https://github.com/ColossusCoinXT/ColossusCoinXT/releases/latest", out1, err1));
+    BOOST_CHECK(CURLGetRedirect("https://github.com/ColossusCoinXT/ColossusCoinXT/releases/latest", out1, err1));
     BOOST_CHECK(err1.empty());
     BOOST_CHECK(!out1.empty());
 
     string err2, out2;
-    BOOST_CHECK(!GetRedirect("https://google.com", out2, err2));
+    BOOST_CHECK(!CURLGetRedirect("https://google.com", out2, err2));
     BOOST_CHECK(!err2.empty());
     BOOST_CHECK(out2.empty());
 }

@@ -16,6 +16,6 @@ typedef std::string CUrl;
  * @param[out] error error description on fail
  * @return true - success, false - fail
  */
-bool GetRedirect(const CUrl& url, CUrl& redirect, std::string& error);
+bool CURLGetRedirect(const CUrl& url, CUrl& redirect, std::string& error);
 
 #endif // BITCOIN_CURL_H

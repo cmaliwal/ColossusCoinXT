@@ -1129,7 +1129,7 @@ void ThreadDNSAddressSeed()
 }
 
 
-void DumpAddresses()
+static bool DumpAddresses()
 {
     int64_t nStart = GetTimeMillis();
 
@@ -1138,6 +1138,8 @@ void DumpAddresses()
 
     LogPrint("net", "Flushed %d addresses to peers.dat  %dms\n",
         addrman.size(), GetTimeMillis() - nStart);
+
+    return true; // never exit thread
 }
 
 void static ProcessOneShot()
@@ -1562,13 +1564,12 @@ void static Discover(boost::thread_group& threadGroup)
 
 // return true if new update is available
 // return false if error or update is not available
-static bool IsUpdateAvailable()
+static bool IsUpdateAvailable(CUrl& redirect)
 {
     DebugPrintf("%s: starting", __func__);
 
-    CUrl redirect;
     string error;
-    if (!GetRedirect(GITHUB_RELEASE_URL, redirect, error)) {
+    if (!CURLGetRedirect(GITHUB_RELEASE_URL, redirect, error)) {
         DebugPrintf("%s: error - %s", __func__, error);
         return false;
     }
@@ -1577,13 +1578,32 @@ static bool IsUpdateAvailable()
     DebugPrintf("%s: redirect is %s, version is %s", __func__, redirect, ver);
 
     // assume version mismatch means new update is available (downgrage possible)
-    return redirect.find(ver) != string::npos;
+    if (redirect.find(ver) == string::npos) {
+        LogPrintf("New version is available, please update your wallet! Go to: %s\n", GITHUB_RELEASE_URL);
+        return true;
+    }
+    else
+        return false;
 }
 
-static void ThreadCheckForUpdates(CContext& context)
+static bool ThreadCheckForUpdates(CContext& context)
 {
     boost::this_thread::interruption_point();
-    context.SetUpdateAvailable(IsUpdateAvailable());
+
+    CUrl redirect;
+    if (IsUpdateAvailable(redirect)) {
+        // FIXME: find update file name
+        // CURLDownloadToString
+        // Util::FindUpdateFileNameForPlatform
+        context.SetUpdateAvailable(true, redirect, "https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.0.3/colx-1.0.3-x86_64-linux-gnu.tar.gz");
+        uiInterface.NotifyUpdateAvailable();
+
+        DebugPrintf("%s: update found, exit thread.", __func__);
+        return false;
+    } else {
+        context.SetUpdateAvailable(false, "", "");
+        return true; // continue thread execution
+    }
 }
 
 void StartNode(boost::thread_group& threadGroup)
@@ -1636,15 +1656,18 @@ void StartNode(boost::thread_group& threadGroup)
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "msghand", &ThreadMessageHandler));
 
     // Dump network addresses
-    threadGroup.create_thread(boost::bind(&LoopForever<void (*)()>, "dumpaddr", &DumpAddresses, DUMP_ADDRESSES_INTERVAL * 1000));
+    threadGroup.create_thread(boost::bind(&LoopForever<bool (*)()>, "dumpaddr", &DumpAddresses, DUMP_ADDRESSES_INTERVAL * 1000));
 
     // ppcoin:mint proof-of-stake blocks in the background
     if (GetBoolArg("-staking", true))
         threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "stakemint", &ThreadStakeMinter));
 
     // Check for updates once per day
-    threadGroup.create_thread(boost::bind(&LoopForever<void (*)()>, "checkforupdates",
-        [](){ ThreadCheckForUpdates(GetContext()); }, 1000 * 24 * 60 * 60));
+    int64_t nCheckForUpdatesInterval = 1000 * GetArg("-checkforupdate", 60 * 60 * 24);
+    if (nCheckForUpdatesInterval > 0) {
+        threadGroup.create_thread(boost::bind(&LoopForever<bool (*)()>, "checkforupdates",
+            [](){ return ThreadCheckForUpdates(GetContext()); }, nCheckForUpdatesInterval));
+    }
 }
 
 bool StopNode()
