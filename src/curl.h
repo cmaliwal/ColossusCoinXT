@@ -6,16 +6,44 @@
 #define BITCOIN_CURL_H
 
 #include <string>
+#include <functional>
 
 typedef std::string CUrl;
 
 /**
+ * Progress callback.
+ * @param[in] total download size
+ * @param[in] now downloded by now
+ * @return 1 - stop download, 0 - continue download
+ */
+typedef std::function<int (double total, double now)> ProgressReport;
+
+/**
  * Extract URL to redirect to.
- * @param[url] input http(s) address
- * @param[redirect] redirect http(s) address
- * @param[out] error error description on fail
+ * @param[in] url input http(s) address
+ * @param[out] redirect output http(s) address
+ * @param[out] error brief description on fail
  * @return true - success, false - fail
  */
 bool CURLGetRedirect(const CUrl& url, CUrl& redirect, std::string& error);
+
+/**
+ * Download content to the memory buffer.
+ * @param[in] url input http(s) address
+ * @param[out] buff output buffer
+ * @param[out] error brief description on fail
+ * @return true - success, false - fail
+ */
+bool CURLDownloadToMem(const CUrl& url, std::string& buff, std::string& error);
+
+/**
+ * Download content to the file by given path.
+ * @param[in] url input http(s) address
+ * @param[in] path path to the file where to save content
+ * @param[in] callback progress report function
+ * @param[out] error brief description on fail
+ * @return true - success, false - fail
+ */
+bool CURLDownloadToFile(const CUrl& url, const std::string& path, ProgressReport callback, std::string& error);
 
 #endif // BITCOIN_CURL_H

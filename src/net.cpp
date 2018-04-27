@@ -37,6 +37,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 // Dump addresses to peers.dat every 15 minutes (900s)
 #define DUMP_ADDRESSES_INTERVAL 900
@@ -1590,19 +1591,36 @@ static bool ThreadCheckForUpdates(CContext& context)
 {
     boost::this_thread::interruption_point();
 
-    CUrl redirect;
-    if (IsUpdateAvailable(redirect)) {
-        // FIXME: find update file name
-        // CURLDownloadToString
-        // Util::FindUpdateFileNameForPlatform
-        context.SetUpdateAvailable(true, redirect, "https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.0.3/colx-1.0.3-x86_64-linux-gnu.tar.gz");
+    CUrl urlRelease;
+    if (!IsUpdateAvailable(urlRelease)) {
+        context.SetUpdateAvailable(false, "", "");
+        return true; // continue thread execution
+    }
+
+    CUrl urlInfo = strprintf("%s/%s", urlRelease, "update.info");
+    boost::algorithm::replace_first(urlInfo, "/tag/", "/download/");
+
+    string error;
+    CUrl urlInfoNew;
+    if (CURLGetRedirect(urlInfo, urlInfoNew, error))
+        urlInfo = urlInfoNew;
+
+    string info;
+    if (!CURLDownloadToMem(urlInfo, info, error)) {
+        LogPrintf("%s: %s", __func__, error);
+        return true; // continue thread execution
+    }
+
+    string urlPath;
+    if (!FindUpdateUrlForThisPlatform(info, urlPath, error)) {
+        LogPrintf("%s: %s", __func__, error);
+        return true; // continue thread execution
+    } else {
+        context.SetUpdateAvailable(true, urlRelease, urlPath);
         uiInterface.NotifyUpdateAvailable();
 
         DebugPrintf("%s: update found, exit thread.", __func__);
         return false;
-    } else {
-        context.SetUpdateAvailable(false, "", "");
-        return true; // continue thread execution
     }
 }
 

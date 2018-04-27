@@ -20,8 +20,14 @@
 #include "utiltime.h"
 
 #include <stdarg.h>
+#include <stdint.h>
 
+#include <boost/predef.h>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/classification.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/crypto.h> // for OPENSSL_cleanse()
@@ -792,4 +798,60 @@ void SetThreadPriority(int nPriority)
     setpriority(PRIO_PROCESS, 0, nPriority);
 #endif // PRIO_THREAD
 #endif // WIN32
+}
+
+bool FindUpdateUrlForThisPlatform(const std::string& info, std::string& url, std::string& error)
+{
+    if (info.empty()) {
+        error = "info is empty";
+        return false;
+    }
+
+    string platform;
+
+#if BOOST_OS_WINDOWS == 1 // win
+  #if (INTPTR_MAX == INT64_MAX)
+    platform = "win64";
+  #else
+    platform = "win32";
+  #endif
+#elif BOOST_OS_MACOS == 1 // mac
+    platform = "osx";
+#elif BOOST_OS_LINUX == 1 // linux
+  #if BOOST_ARCH_ARM == 1
+    #if (INTPTR_MAX == INT64_MAX)
+      platform = "aarch64";
+    #else
+      platform = "arm";
+    #endif
+  #else
+    #if (INTPTR_MAX == INT64_MAX)
+      platform = "linux64";
+    #else
+      platform = "linux32";
+    #endif
+  #endif
+#else
+    #error "unknown platform OS"
+#endif
+
+    DebugPrintf("%s: %s platform detected\n", __func__, platform);
+
+    vector<string> lines;
+    boost::algorithm::split(lines, info, boost::algorithm::is_any_of("\n"));
+    for (string line : lines) {
+        vector<string> platformurl;
+        boost::algorithm::trim(line);
+        boost::algorithm::split(platformurl, line, boost::algorithm::is_any_of("="));
+        if (platformurl.size() != 2) {
+            LogPrintf("%s: invalid line: %s\n", __func__, line);
+        } else if (platformurl.front() == platform) {
+            url = platformurl.back();
+            return true;
+        }
+        else; // continue search
+    }
+
+    error = strprintf("Platform %s was not found in the input: %s", platform, info);
+    return false;
 }

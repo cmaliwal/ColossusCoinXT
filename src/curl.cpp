@@ -3,9 +3,17 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "curl.h"
-#include "tinyformat.h"
+#include "util.h"
+#include "clientversion.h"
 
+#include <stdlib.h>
 #include <curl/curl.h>
+
+using namespace std;
+
+//
+// private section
+//
 
 static void CurlGlobalInit()
 {
@@ -39,12 +47,48 @@ private:
     CURL *curl_;
 };
 
-bool CURLGetRedirect(const CUrl& url, CUrl& redirect, std::string& error)
+struct MemoryBuffer
+{
+  char* memory;
+  size_t size;
+};
+
+static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    size_t realsize = size * nmemb;
+    struct MemoryBuffer *mem = (struct MemoryBuffer*)userp;
+
+    mem->memory = (char*)realloc(mem->memory, mem->size + realsize + 1);
+    if (mem->memory == NULL) {
+        /* out of memory! */
+        error("%s: not enough memory (realloc returned NULL)\n", __func__);
+        return 0;
+    } else {
+        memcpy(&(mem->memory[mem->size]), contents, realsize);
+        mem->size += realsize;
+        mem->memory[mem->size] = 0;
+        return realsize;
+    }
+}
+
+//
+// public API
+//
+
+bool CURLGetRedirect(const CUrl& url, CUrl& redirect, string& error)
 {
     CurlScopeInit curl;
     CURLcode res;
     char *location;
     long response_code;
+
+    redirect.clear();
+    error.clear();
+
+    if (url.empty()) {
+        error = "url is empty";
+        return false;
+    }
 
     if (!curl.instance()) {
         error = "curl init failed";
@@ -77,4 +121,72 @@ bool CURLGetRedirect(const CUrl& url, CUrl& redirect, std::string& error)
             return false;
         }
     }
+}
+
+
+bool CURLDownloadToMem(const CUrl& url, string& buff, string& error)
+{
+    CurlScopeInit curl;
+    CURLcode res;
+    struct MemoryBuffer chunk;
+
+    buff.clear();
+    error.clear();
+
+    if (url.empty()) {
+        error = "url is empty";
+        return false;
+    }
+
+    if (!curl.instance()) {
+        error = "curl init failed";
+        return false;
+    }
+
+    chunk.memory = (char*)malloc(1);  /* will be grown as needed by the realloc above */
+    chunk.size = 0;    /* no data at this point */
+
+    /* specify URL to get */
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+    /* send all data to this function  */
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+
+    /* we pass our 'chunk' struct to the callback function */
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+
+    /* some servers don't like requests that are made without a user-agent */
+    const string agent = FormatFullVersion();
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, agent.c_str());
+
+    /* get it! */
+    res = curl_easy_perform(curl);
+
+    /* check for errors */
+    if (res != CURLE_OK) {
+        error = strprintf("curl_easy_perform failed: %s", curl_easy_strerror(res));
+    } else {
+        long response_code = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+        if (response_code / 100 != 2) {
+            error = strprintf("response code is not OK: %d", response_code);
+            DebugPrintf("%s: response code=%d, response content=%s", __func__, response_code, string(chunk.memory, chunk.size));
+        } else {
+            /*
+            * Now, our chunk.memory points to a memory block that is chunk.size
+            * bytes big and contains the remote file.
+            */
+            DebugPrintf("%s: %lu bytes retrieved\n", __func__, (long)chunk.size);
+            buff.assign(chunk.memory, chunk.size);
+        }
+    }
+
+    free(chunk.memory);
+    return !buff.empty();
+}
+
+bool CURLDownloadToFile(const CUrl& url, const string& path, ProgressReport callback, string& error)
+{
+    error = "not implemented";
+    return false;
 }
