@@ -127,6 +127,7 @@ boost::filesystem::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
 boost::filesystem::path GetTempPath();
 void ShrinkDebugFile();
 void runCommand(std::string strCommand);
+bool FindUpdateUrlForThisPlatform(const std::string& info, std::string& url, std::string& error);
 
 inline bool IsSwitchChar(char c)
 {
