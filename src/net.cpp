@@ -1563,20 +1563,22 @@ void static Discover(boost::thread_group& threadGroup)
 #endif
 }
 
-// return true if new update is available
+// return true and url of the release folder if new update is available
 // return false if error or update is not available
 static bool IsUpdateAvailable(CUrl& redirect)
 {
-    DebugPrintf("%s: starting", __func__);
+    DebugPrintf("%s: starting\n", __func__);
+
+    const string urlRelease = GetArg("-checkforupdateurl", GITHUB_RELEASE_URL);
 
     string error;
-    if (!CURLGetRedirect(GITHUB_RELEASE_URL, redirect, error)) {
-        DebugPrintf("%s: error - %s", __func__, error);
+    if (!CURLGetRedirect(urlRelease, redirect, error)) {
+        DebugPrintf("%s: error - %s\n", __func__, error);
         return false;
     }
 
     const string ver = strprintf("v%s", FormatVersion(CLIENT_VERSION));
-    DebugPrintf("%s: redirect is %s, version is %s", __func__, redirect, ver);
+    DebugPrintf("%s: redirect is %s, version is %s\n", __func__, redirect, ver);
 
     // assume version mismatch means new update is available (downgrage possible)
     if (redirect.find(ver) == string::npos) {
@@ -1607,19 +1609,19 @@ static bool ThreadCheckForUpdates(CContext& context)
 
     string info;
     if (!CURLDownloadToMem(urlInfo, info, error)) {
-        LogPrintf("%s: %s", __func__, error);
+        LogPrintf("%s: %s\n", __func__, error);
         return true; // continue thread execution
     }
 
     string urlPath;
     if (!FindUpdateUrlForThisPlatform(info, urlPath, error)) {
-        LogPrintf("%s: %s", __func__, error);
+        LogPrintf("%s: %s\n", __func__, error);
         return true; // continue thread execution
     } else {
         context.SetUpdateAvailable(true, urlRelease, urlPath);
         uiInterface.NotifyUpdateAvailable();
 
-        DebugPrintf("%s: update found, exit thread.", __func__);
+        DebugPrintf("%s: update found, exit thread.\n", __func__);
         return false;
     }
 }

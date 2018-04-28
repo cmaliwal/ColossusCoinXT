@@ -22,7 +22,6 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#include <boost/predef.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -809,16 +808,16 @@ bool FindUpdateUrlForThisPlatform(const std::string& info, std::string& url, std
 
     string platform;
 
-#if BOOST_OS_WINDOWS == 1 // win
+#if defined(WIN32)
   #if (INTPTR_MAX == INT64_MAX)
     platform = "win64";
   #else
     platform = "win32";
   #endif
-#elif BOOST_OS_MACOS == 1 // mac
+#elif defined(MAC_OSX)
     platform = "osx";
-#elif BOOST_OS_LINUX == 1 // linux
-  #if BOOST_ARCH_ARM == 1
+#elif defined(__linux__)
+  #if defined(__arm__)
     #if (INTPTR_MAX == INT64_MAX)
       platform = "aarch64";
     #else
