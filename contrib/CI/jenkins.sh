@@ -33,15 +33,18 @@ print_log()
 
 copy_build_out()
 {
+    dir="${RELEASEDIR}/$commit/$1" # $1 first param, platform name
+    echo "Creating release directory: $dir"
+    mkdir -p $dir
+
+    echo "Copying log files..."
+    tar cvzf $dir/install.log.tar.gz var/install.log
+    tar cvzf $dir/build.log.tar.gz var/build.log
+
     if [[ 0 -lt $(ls build/out/colx-* 2>/dev/null | wc -w) ]]
     then
-        dir="${RELEASEDIR}/$commit/$1" # $1 first param, platform name
-        echo "Creating release directory: $dir"
-        mkdir -p $dir
         echo "Copying files to release directory..."
         mv build/out/* $dir
-        tar cvzf $dir/install.log.tar.gz var/install.log
-        tar cvzf $dir/build.log.tar.gz var/build.log
     else
         echo "build/out does not contain required files, looks like build failed."
         echo `ls -l build/out`
