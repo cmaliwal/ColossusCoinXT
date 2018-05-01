@@ -119,6 +119,7 @@ public:
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
         nBudgetPercent = 10;
+        nDevFundPercent = 10;
         nBudgetPaymentCycle = 60*60*24*30; // 1 month
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 6;
@@ -183,6 +184,27 @@ public:
         nStartMasternodePayments = 1403728576; //Wed, 25 Jun 2014 20:36:16 GMT
     }
 
+    int GetChainHeight(ChainHeight ch) const
+    {
+        switch (ch) {
+        case ChainHeight::H1:
+            return 1;
+
+        case ChainHeight::H2:
+            return 151201;
+
+        case ChainHeight::H3:
+            return 302400;
+
+        case ChainHeight::H4:
+            return 345600;
+
+        default:
+            assert(false);
+            return -1;
+        }
+    }
+
     int64_t GetMinStakeAge(int nTargetHeight) const
     {
         if (nTargetHeight >= 300000)
@@ -229,6 +251,7 @@ public:
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
         nBudgetPercent = 10;
+        nDevFundPercent = 10;
         nBudgetPaymentCycle = 60*60*2; // 2 hours
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
         nMasternodePaymentSigTotal = 10;
@@ -270,6 +293,11 @@ public:
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
         strObfuscationPoolDummyAddress = "y57cqfGRkekRyDRNeJiLtYVEbvhXrNbmox";
         nStartMasternodePayments = 1420837558; //Fri, 09 Jan 2015 21:05:58 GMT
+    }
+
+    int GetChainHeight(ChainHeight ch) const
+    {
+        return CMainParams::GetChainHeight(ch);
     }
 
     int64_t GetMinStakeAge(int nTargetHeight) const

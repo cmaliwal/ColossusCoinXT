@@ -553,11 +553,7 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int n
     const int nMasternodeCountDrift = nMasternodeCountStable + Params().MasternodeCountDrift();
 
     CAmount nReward = GetBlockValueReward(nBlockHeight);
-    CAmount requiredMasternodePayment = 0;
-    if (nBlockVersion < CBlockHeader::VERSION4)
-        requiredMasternodePayment = GetMasternodePaymentBeforeVersion4(nBlockHeight);
-    else
-        requiredMasternodePayment = GetMasternodePayment(nBlockHeight, nReward, nMasternodeCountDrift, pindexPrev->nMoneySupply);
+    CAmount requiredMasternodePayment = GetMasternodePayment(nBlockHeight, nReward, nMasternodeCountDrift, pindexPrev->nMoneySupply);
 
     DebugPrintf("%s: Height=%d, Reward=%lld, MasternodeCountDrift=%d\n", __func__, nBlockHeight, nReward, nMasternodeCountDrift);
 

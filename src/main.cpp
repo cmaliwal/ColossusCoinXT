@@ -1558,78 +1558,79 @@ double ConvertBitsToDouble(unsigned int nBits)
     return dDiff;
 }
 
-CAmount GetBlockExpectedMint(int nHeight, int nBlockVersion)
+CAmount GetBlockExpectedMint(int nHeight)
 {
-    if (nBlockVersion < CBlockHeader::VERSION4)
-        return GetBlockRewardBeforeVersion4(nHeight);
-    else
-        return GetBlockValueReward(nHeight);
-}
-
-CAmount GetBlockRewardBeforeVersion4(int nHeight)
-{
-    CAmount nSubsidy = 0;
-    CAmount nBudgetMultiplier = COIN - 5 * CENT; // 5% budget before version 4
-
-    if (nHeight == 1)
-        nSubsidy = CAmount(12000000000) * COIN; //premine has no budget allocation
-    else if (nHeight < 151201)
-        nSubsidy = 2500 * nBudgetMultiplier;
-    else if (nHeight < 302400)
-        nSubsidy = 1250 * nBudgetMultiplier;
-    else
-        nSubsidy = 1000 * nBudgetMultiplier;
-
-    return nSubsidy;
-}
-
-CAmount GetMasternodePaymentBeforeVersion4(int nHeight)
-{
-    return GetBlockRewardBeforeVersion4(nHeight) / COIN * (60 * CENT);
+    return GetBlockValueReward(nHeight);
 }
 
 CAmount GetBlockValue(int nHeight)
 {
     /**
      * Block 1: 12 Billions COLX pre-mined
-     Block Reward:
-     Blocks 2 - 151,200 - 2500 COLX
-     Blocks 151,201 - 302,399 - 1250 COLX
-     Blocks 302,400 - Infinite:  1000 COLX
-     Proof of Stake Schedule - 10% to proposals for all phases
-     90% distributed to stake wallet and master node
+     *
+     * Block Reward:
+     * Blocks 2 - 151200 - 2500 COLX
+     * Blocks 151201 - 302399 - 1250 COLX
+     * Blocks 302400 - 345599: 1000 COLX
+     * Blocks 345600 - Infinite: 1250 COLX
+     *
+     * Proof of Stake Schedule before 345600:
+     * 10% to proposals for all phases
+     * 90% to reward distributed to stake wallet and master node
+     *
+     * Proof of Stake Schedule since 345600:
+     * 10% to proposals for all phases
+     * 10% to def fund address
+     * 80% to reward distributed to stake wallet and master node
      */
 
-    if (nHeight < 1)
+    if (nHeight < Params().GetChainHeight(ChainHeight::H1))
         return 0;
-    else if (nHeight == 1)
+    else if (nHeight == Params().GetChainHeight(ChainHeight::H1))
         return CAmount(12000000000) * COIN;
-    else if (nHeight < 151201)
+    else if (nHeight < Params().GetChainHeight(ChainHeight::H2))
         return 2500 * COIN;
-    else if (nHeight < 302400)
+    else if (nHeight < Params().GetChainHeight(ChainHeight::H3))
         return 1250 * COIN;
-    else
+    else if (nHeight < Params().GetChainHeight(ChainHeight::H4))
         return 1000 * COIN;
+    else
+        return 1250 * COIN;
 }
 
 CAmount GetBlockValueReward(int nHeight)
 {
-    if (nHeight == 1)
+    if (nHeight == Params().GetChainHeight(ChainHeight::H1))
         return GetBlockValue(nHeight); //premine has no budget allocation
+    else if (nHeight < Params().GetChainHeight(ChainHeight::H4))
+        return GetBlockValue(nHeight) * (100 - 5) / 100; // 5 is old budget percent
     else
         return GetBlockValue(nHeight) * (100 - Params().GetBudgetPercent()) / 100;
 }
 
 CAmount GetBlockValueBudget(int nHeight)
 {
-    if (nHeight == 1)
+    if (nHeight == Params().GetChainHeight(ChainHeight::H1))
         return 0; //premine has no budget allocation
+    else if (nHeight < Params().GetChainHeight(ChainHeight::H4))
+        return GetBlockValue(nHeight) * 5 / 100; // 5 is old budget percent
     else
         return GetBlockValue(nHeight) * Params().GetBudgetPercent() / 100;
 }
 
+CAmount GetBlockValueDevFund(int nHeight)
+{
+    if (nHeight < Params().GetChainHeight(ChainHeight::H4))
+        return 0; // no dev fund allocation
+    else
+        return GetBlockValue(nHeight) * Params().GetDevFundPercent() / 100;
+}
+
 CAmount GetMasternodePayment(int nHeight, CAmount blockValue, int nMasternodeCount, CAmount nMoneySupply)
 {
+    if (nHeight < Params().GetChainHeight(ChainHeight::H4))
+        return blockValue * 60 / 100; // old rules 60% goes to the masternode
+
     CAmount ret = 0;
     const CAmount mNodeCoins = nMasternodeCount * Params().GetRequiredMasternodeCollateral();
 
@@ -2338,12 +2339,10 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     nTimeConnect += nTime1 - nTimeStart;
     LogPrint("bench", "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime1 - nTimeStart), 0.001 * (nTime1 - nTimeStart) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime1 - nTimeStart) / (nInputs - 1), nTimeConnect * 0.000001);
 
-    CAmount nExpectedMint = nFees + GetBlockExpectedMint(pindex->pprev->nHeight, block.GetVersion());
-
     // ----------- masternode payments / budgets -----------
+    int nHeight = 0;
     CBlockIndex* pindexPrev = chainActive.Tip();
     if (pindexPrev != NULL) {
-        int nHeight = 0;
         if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
             nHeight = pindexPrev->nHeight + 1;
         } else { //out of order
@@ -2370,6 +2369,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         }
     }
 
+    CAmount nExpectedMint = nFees + GetBlockExpectedMint(nHeight);
     if (!IsBlockValueValid(block, nExpectedMint, pindex->nMint)) {
         return state.DoS(100,
             error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",

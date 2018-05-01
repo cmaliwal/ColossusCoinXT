@@ -17,9 +17,21 @@
 
 typedef unsigned char MessageStartChars[MESSAGE_START_SIZE];
 
-struct CDNSSeedData {
+struct CDNSSeedData
+{
     std::string name, host;
     CDNSSeedData(const std::string& strName, const std::string& strHost) : name(strName), host(strHost) {}
+};
+
+/**
+ * ChainHeight defines blockchain height when rules are changed in the network
+ */
+enum class ChainHeight
+{
+    H1, // 1, Premine, Reward 2500 COLX
+    H2, // 151201, Reward 1250 COLX
+    H3, // 302400, Reward 1000 COLX
+    H4  // 345600, Reward 1250 COLX, new budget and dev funds, only block version >= 4 is valid
 };
 
 /**
@@ -100,11 +112,13 @@ public:
     int GetMasternodePaymentSigTotal() const { return nMasternodePaymentSigTotal; }
     int GetMasternodePaymentSigRequired() const { return nMasternodePaymentSigRequired; }
     int64_t GetBudgetPercent() const { return nBudgetPercent; }
+    int64_t GetDevFundPercent() const { return nDevFundPercent; }
     int64_t GetBudgetPaymentCycle() const { return nBudgetPaymentCycle; }
     unsigned int GetModifierInterval() const { return nModifierInterval; }
     unsigned int GetModifierIntervalRatio() const { return nModifierIntervalRatio; }
     CAmount GetRequiredMasternodeCollateral() const { return nRequiredMasternodeCollateral; }
 
+    virtual int GetChainHeight(ChainHeight ch) const = 0;
     virtual int64_t GetMinStakeAge(int nTargetHeight) const = 0;
     virtual const Checkpoints::CCheckpointData& Checkpoints() const = 0;
 
@@ -155,6 +169,7 @@ protected:
     int nMasternodePaymentSigTotal;
     int nMasternodePaymentSigRequired;
     int64_t nBudgetPercent;
+    int64_t nDevFundPercent;
     int64_t nBudgetPaymentCycle;
     unsigned int nModifierInterval;
     unsigned int nModifierIntervalRatio;
