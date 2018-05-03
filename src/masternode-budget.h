@@ -241,7 +241,7 @@ public:
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
     std::string GetRequiredPaymentsString(int nBlockHeight);
     void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
-
+    int GrabHighestCount(int nTargetHeight, CScript& payee, CAmount& nAmount);
     void CheckOrphanVotes();
     void Clear()
     {
@@ -335,12 +335,13 @@ public:
 
     bool IsValid(std::string& strError, bool fCheckCollateral = true);
 
-    std::string GetName() { return strBudgetName; }
+    std::string GetName() const { return strBudgetName; }
     std::string GetProposals();
-    int GetBlockStart() { return nBlockStart; }
-    int GetBlockEnd() { return nBlockStart + (int)(vecBudgetPayments.size() - 1); }
-    int GetVoteCount() { return (int)mapVotes.size(); }
+    int GetBlockStart() const { return nBlockStart; }
+    int GetBlockEnd() const { return nBlockStart + (int)(vecBudgetPayments.size() - 1); }
+    int GetVoteCount() const { return (int)mapVotes.size(); }
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
+
     bool GetBudgetPaymentByBlock(int64_t nBlockHeight, CTxBudgetPayment& payment)
     {
         LOCK(cs);
@@ -351,6 +352,7 @@ public:
         payment = vecBudgetPayments[i];
         return true;
     }
+
     bool GetPayeeAndAmount(int64_t nBlockHeight, CScript& payee, CAmount& nAmount)
     {
         LOCK(cs);

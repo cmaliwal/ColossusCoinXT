@@ -30,13 +30,13 @@ BOOST_AUTO_TEST_CASE(block_value)
     BOOST_CHECK(GetBlockValueReward(302399) == CAmount(1250) * COIN * 95 / 100);
     BOOST_CHECK(GetBlockValueReward(302400) == CAmount(1000) * COIN * 95 / 100);
     BOOST_CHECK(GetBlockValueReward(345599) == CAmount(1000) * COIN * 95 / 100);
-    BOOST_CHECK(GetBlockValueReward(345600) == CAmount(1250) * COIN * 90 / 100);
-    BOOST_CHECK(GetBlockValueReward(500000) == CAmount(1250) * COIN * 90 / 100);
-    BOOST_CHECK(GetBlockValueReward(1000000) == CAmount(1250) * COIN * 90 / 100);
+    BOOST_CHECK(GetBlockValueReward(345600) == CAmount(1500) * COIN * 90 / 100);
+    BOOST_CHECK(GetBlockValueReward(500000) == CAmount(1500) * COIN * 90 / 100);
+    BOOST_CHECK(GetBlockValueReward(1000000) == CAmount(1500) * COIN * 90 / 100);
 
     // dev fund
     BOOST_CHECK(GetBlockValueDevFund(345599) == CAmount(0));
-    BOOST_CHECK(GetBlockValueDevFund(345600) == CAmount(1250) * COIN * 10 / 100);
+    BOOST_CHECK(GetBlockValueDevFund(345600) == CAmount(1500) * COIN * 10 / 100);
 
     // budget amount
     CBudgetManager budget;
@@ -44,18 +44,18 @@ BOOST_AUTO_TEST_CASE(block_value)
     BOOST_CHECK(budget.GetTotalBudget(302399) == CAmount(1250) * COIN * nBlocksPerMonth * 5 / 100);
     BOOST_CHECK(budget.GetTotalBudget(302400) == CAmount(1000) * COIN * nBlocksPerMonth * 5 / 100);
     BOOST_CHECK(budget.GetTotalBudget(345599) == CAmount(1000) * COIN * nBlocksPerMonth * 5 / 100);
-    BOOST_CHECK(budget.GetTotalBudget(345600) == CAmount(1250) * COIN * nBlocksPerMonth * 10 / 100);
+    BOOST_CHECK(budget.GetTotalBudget(345600) == CAmount(1500) * COIN * nBlocksPerMonth * 10 / 100);
 
     // masternode reward fixed 60%
-    BOOST_CHECK(GetMasternodePayment(345599, CAmount(1000) * COIN, 0, 0) == CAmount(1000) * COIN * 60 / 100);
+    BOOST_CHECK(GetMasternodePayment(345599, 0, 0) == GetBlockValueReward(345599) * 60 / 100);
 
     // masternode reward see-saw
     const CAmount nMoneySupply = 12000000000*COIN;
-    const CAmount nBlockValueReward = GetBlockValueReward(345600); // 1125 COIN
-    BOOST_CHECK(GetMasternodePayment(345600, nBlockValueReward, 0, nMoneySupply) == 0);
-    BOOST_CHECK(GetMasternodePayment(345600, nBlockValueReward, 1, nMoneySupply) == nBlockValueReward*0.9);
-    BOOST_CHECK(GetMasternodePayment(345600, nBlockValueReward, 190, nMoneySupply) == nBlockValueReward*0.74);
-    BOOST_CHECK(GetMasternodePayment(345600, nBlockValueReward, 2000, nMoneySupply) == nBlockValueReward*0.01);
+    const CAmount nReward = GetBlockValueReward(345600) - GetBlockValueDevFund(345600);
+    BOOST_CHECK(GetMasternodePayment(345600, 0, nMoneySupply) == 0);
+    BOOST_CHECK(GetMasternodePayment(345600, 1, nMoneySupply) == nReward*0.9);
+    BOOST_CHECK(GetMasternodePayment(345600, 190, nMoneySupply) == nReward*0.74);
+    BOOST_CHECK(GetMasternodePayment(345600, 2000, nMoneySupply) == nReward*0.01);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

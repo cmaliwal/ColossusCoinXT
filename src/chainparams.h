@@ -15,6 +15,8 @@
 
 #include <vector>
 
+class CBitcoinAddress;
+
 typedef unsigned char MessageStartChars[MESSAGE_START_SIZE];
 
 struct CDNSSeedData
@@ -118,6 +120,9 @@ public:
     unsigned int GetModifierIntervalRatio() const { return nModifierIntervalRatio; }
     CAmount GetRequiredMasternodeCollateral() const { return nRequiredMasternodeCollateral; }
 
+    virtual CBitcoinAddress GetDevFundAddress() const = 0;
+    virtual CBitcoinAddress GetTxFeeAddress() const = 0;
+    virtual CBitcoinAddress GetUnallocatedBudgetAddress() const = 0;
     virtual int GetChainHeight(ChainHeight ch) const = 0;
     virtual int64_t GetMinStakeAge(int nTargetHeight) const = 0;
     virtual const Checkpoints::CCheckpointData& Checkpoints() const = 0;

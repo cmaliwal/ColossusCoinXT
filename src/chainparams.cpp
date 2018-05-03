@@ -11,6 +11,7 @@
 #include "random.h"
 #include "util.h"
 #include "utilstrencodings.h"
+#include "base58.h"
 
 #include <assert.h>
 
@@ -184,6 +185,15 @@ public:
         nStartMasternodePayments = 1403728576; //Wed, 25 Jun 2014 20:36:16 GMT
     }
 
+    CBitcoinAddress GetDevFundAddress() const
+    { return CBitcoinAddress("DBKqofwU8QUFYFwNYZetyBbj2Y7oAcWLbX"); }
+
+    CBitcoinAddress GetTxFeeAddress() const
+    { return CBitcoinAddress("DEKP7sVxwwuN1mtCpTXtjua77XqFBBRaKG"); }
+
+    CBitcoinAddress GetUnallocatedBudgetAddress() const
+    { return CBitcoinAddress("DE2nWCnyYyWxoUNRg5gEeA7Kx1kpBs2spB"); }
+
     int GetChainHeight(ChainHeight ch) const
     {
         switch (ch) {
@@ -295,9 +305,30 @@ public:
         nStartMasternodePayments = 1420837558; //Fri, 09 Jan 2015 21:05:58 GMT
     }
 
+    CBitcoinAddress GetDevFundAddress() const
+    { return CBitcoinAddress("y4XhfKjJPwxi42YRQssbdDytJ74W8V1bVt"); }
+
+    CBitcoinAddress GetTxFeeAddress() const
+    { return CBitcoinAddress("yE8w3zvHtbn7mAFxyKk1UJEX92DWrnqzg6"); }
+
+    CBitcoinAddress GetUnallocatedBudgetAddress() const
+    { return CBitcoinAddress("yBtxR3o3uvbtkfeWLuFqa7o7yY9N1ha4Yn"); }
+
     int GetChainHeight(ChainHeight ch) const
     {
-        return CMainParams::GetChainHeight(ch);
+        switch (ch) {
+        case ChainHeight::H1:
+            return 1;
+
+        case ChainHeight::H2:
+        case ChainHeight::H3:
+        case ChainHeight::H4:
+            return 33445; // on testnet
+
+        default:
+            assert(false);
+            return -1;
+        }
     }
 
     int64_t GetMinStakeAge(int nTargetHeight) const

@@ -173,6 +173,20 @@ void DumpMasternodePayments()
     LogPrintf("Budget dump finished  %dms\n", GetTimeMillis() - nStart);
 }
 
+CAmount FindPayment(const CTransaction& tx, const string& address)
+{
+    CAmount nAmount = 0;
+    BOOST_FOREACH(const CTxOut& out, tx.vout) {
+        CTxDestination address1;
+        ExtractDestination(out.scriptPubKey, address1);
+        CBitcoinAddress address2(address1);
+        if (address2.ToString() == address)
+            nAmount += out.nValue;
+    }
+
+    return nAmount;
+}
+
 bool IsBlockValueValid(const CBlock& block, CAmount nExpectedValue, CAmount nMinted)
 {
     CBlockIndex* pindexPrev = chainActive.Tip();
@@ -193,31 +207,16 @@ bool IsBlockValueValid(const CBlock& block, CAmount nExpectedValue, CAmount nMin
 
     if (!masternodeSync.IsSynced()) { //there is no budget data to use to check anything
         //super blocks will always be on these blocks, max 100 per budgeting
-        if (nHeight % GetBudgetPaymentCycleBlocks() < 100) {
+        if (nHeight % GetBudgetPaymentCycleBlocks() < 100)
             return true;
-        } else {
-            if (nMinted > nExpectedValue) {
-                return false;
-            }
-        }
-    } else { // we're synced and have data so check the budget schedule
-
-        //are these blocks even enabled
-        if (!IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS)) {
+        else
             return nMinted <= nExpectedValue;
-        }
-
-        if (budget.IsBudgetPaymentBlock(nHeight)) {
-            //the value of the block is evaluated in CheckBlock
-            return true;
-        } else {
-            if (nMinted > nExpectedValue) {
-                return false;
-            }
-        }
+    } else { // we're synced and have data so check the budget schedule
+        if (budget.IsBudgetPaymentBlock(nHeight))
+            return true; //the value of the block is evaluated in CheckBlock
+        else
+            return nMinted <= nExpectedValue;
     }
-
-    return true;
 }
 
 bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
@@ -229,71 +228,158 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
 
     const CTransaction& txNew = (nBlockHeight > Params().LAST_POW_BLOCK() ? block.vtx[1] : block.vtx[0]);
 
-    //check if it's a budget block
-    if (IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS)) {
-        if (budget.IsBudgetPaymentBlock(nBlockHeight)) {
-            if (budget.IsTransactionValid(txNew, nBlockHeight))
-                return true;
-
-            LogPrintf("Invalid budget payment detected %s\n", txNew.ToString().c_str());
+    bool mnValid = true;
+    bool budgetValid = true;
+    if (budget.IsBudgetPaymentBlock(nBlockHeight)) {
+        budgetValid = budget.IsTransactionValid(txNew, nBlockHeight);
+        if (!budgetValid) {
+            error("%s: invalid budget payment detected %s\n", __func__, txNew.ToString().c_str());
             if (IsSporkActive(SPORK_9_MASTERNODE_BUDGET_ENFORCEMENT))
                 return false;
-
+        } else {
             LogPrintf("Budget enforcement is disabled, accepting block\n");
-            return true;
+            budgetValid = true;
         }
-    }
-
-    //check for masternode payee
-    if (masternodePayments.IsTransactionValid(txNew, block.GetVersion(), nBlockHeight)) {
-        return true;
+    } else if (masternodePayments.IsTransactionValid(txNew, block.GetVersion(), nBlockHeight)) {
+        mnValid = true;
     } else {
-        LogPrintf("Invalid mn payment detected %s\n", txNew.ToString().c_str());
+        mnValid = false;
+        error("%s: invalid mn payment detected %s\n", __func__, txNew.ToString().c_str());
         if (IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)) {
             return false;
         } else {
             LogPrintf("Masternode payment enforcement is disabled, accepting block\n");
-            return true;
+            mnValid = true;
         }
     }
+
+    bool feeValid = true;
+    if (nFees > 0 && nBlockHeight >= Params().GetChainHeight(ChainHeight::H4)) {
+        CAmount nAmount = FindPayment(txNew, Params().GetTxFeeAddress().ToString());
+        if (0 == nAmount) {
+            feeValid = false;
+            error("%s: fee payment to the dev fund address was not found\n", __func__);
+        } else
+            feeValid = nAmount >= nFees;
+
+        if (!feeValid) {
+            error("%s: invalid fee payment detected, expected %s, payed %s, tx:\n%s\n",
+                  __func__, FormatMoney(nFees), FormatMoney(nAmount), txNew.ToString().c_str());
+
+            if (IsSporkActive(SPORK_17_FEE_PAYMENT_ENFORCEMENT))
+                return false;
+        } else {
+            LogPrintf("Fee enforcement is disabled, accepting block\n");
+            feeValid = true;
+        }
+    }
+
+    bool fundValid = true;
+    if (nBlockHeight >= Params().GetChainHeight(ChainHeight::H4)) {
+        CAmount nAmount = FindPayment(txNew, Params().GetDevFundAddress().ToString());
+        if (0 == nAmount) {
+            fundValid = false;
+            error("%s: required payment to the dev fund address was not found\n", __func__);
+        } else
+            fundValid = nAmount >= GetBlockValueDevFund(nBlockHeight);
+
+        if (!fundValid) {
+            error("%s: invalid dev fund payment detected, expected %s, payed %s, tx:\n%s\n",
+                  __func__, FormatMoney(GetBlockValueDevFund(nBlockHeight)), FormatMoney(nAmount), txNew.ToString().c_str());
+
+            if (IsSporkActive(SPORK_18_DEVFUND_PAYMENT_ENFORCEMENT))
+                return false;
+        } else {
+            LogPrintf("Dev fund enforcement is disabled, accepting block\n");
+            fundValid = true;
+        }
+    }
+
+    return budgetValid && mnValid && feeValid && fundValid;
 }
 
+static bool SubtractFromStakeReward(CMutableTransaction& tx, CAmount nAmount, string& error)
+{
+    if (tx.vout.size() < 2) {
+        error = strprintf("invalid vout size: %u", tx.vout.size());
+        return false;
+    }
+
+    if (nAmount <= 0) {
+        error = strprintf("invalid amount: %s", FormatMoney(nAmount));
+        return false;
+    }
+
+    CAmount nValueOut = CTransaction(tx).GetValueOut();
+    if (nValueOut < nAmount) {
+        error = strprintf("amount %s is greater than tx value out %s", FormatMoney(nAmount), FormatMoney(nValueOut));
+        return false;
+    }
+
+    /**
+     * For Proof Of Stake vout[0] must be null
+     * Stake reward can be split into many different outputs, so we must
+     * use vout.size() to align with several different cases.
+     */
+    if (tx.vout.size() > 2) {
+        const CAmount nAmount1 = nAmount / 2;
+        const CAmount nAmount2 = nAmount - nAmount1;
+        tx.vout[1].nValue -= nAmount1;
+        tx.vout[2].nValue -= nAmount2;
+    } else
+        tx.vout[1].nValue -= nAmount;
+
+    return true;
+}
 
 void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake)
 {
     CBlockIndex* pindexPrev = chainActive.Tip();
     if (!pindexPrev) {
-        LogPrintf("%s: pindexPrev is nullptr", __func__);
+        error("%s: pindexPrev is nullptr", __func__);
         return;
     }
 
-    if (IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS) && budget.IsBudgetPaymentBlock(pindexPrev->nHeight + 1)) {
+    const int nTargetHeight = pindexPrev->nHeight + 1;
+    if (budget.IsBudgetPaymentBlock(nTargetHeight))
         budget.FillBlockPayee(txNew, nFees, fProofOfStake, pindexPrev);
-    } else {
+    else
         masternodePayments.FillBlockPayee(txNew, nFees, fProofOfStake, pindexPrev);
+
+    //Append an additional output as the dev fund payment to the official Developer Fund Address
+    const CAmount nDevfundPayment = GetBlockValueDevFund(nTargetHeight);
+    if (nDevfundPayment > 0) {
+        string msg;
+        if (SubtractFromStakeReward(txNew, nDevfundPayment, msg))
+            txNew.vout.push_back(CTxOut(nDevfundPayment, GetScriptForDestination(Params().GetDevFundAddress().Get())));
+        else
+            error("%s: %s", __func__, msg);
     }
+
+    if (nFees > 0) //Append an additional output as the tx fee payment to the official Developer Fund Address
+        txNew.vout.push_back(CTxOut(nFees, GetScriptForDestination(Params().GetTxFeeAddress().Get())));
 }
 
 std::string GetRequiredPaymentsString(int nBlockHeight)
 {
-    if (IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS) && budget.IsBudgetPaymentBlock(nBlockHeight)) {
+    if (budget.IsBudgetPaymentBlock(nBlockHeight))
         return budget.GetRequiredPaymentsString(nBlockHeight);
-    } else {
+    else
         return masternodePayments.GetRequiredPaymentsString(nBlockHeight);
-    }
 }
 
 void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake, CBlockIndex* pindexPrev)
 {
     if (!pindexPrev) {
-        LogPrintf("%s: pindexPrev is nullptr", __func__);
+        error("%s: pindexPrev is nullptr", __func__);
         return;
     }
 
-    bool hasPayment = true;
     CScript payee;
+    bool hasPayment = true;
+    const int nTargetHeight = pindexPrev->nHeight + 1;
 
-    if (!masternodePayments.GetBlockPayee(pindexPrev->nHeight + 1, payee)) {
+    if (!masternodePayments.GetBlockPayee(nTargetHeight, payee)) {
         //no masternode detected
         CMasternode* winningNode = mnodeman.GetCurrentMasterNode(1);
         if (winningNode) {
@@ -308,50 +394,31 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFe
         return;
 
     const int nMasternodeCount = mnodeman.stable_size();
-    CAmount blockValue = GetBlockValueReward(pindexPrev->nHeight + 1);
-    CAmount masternodePayment = GetMasternodePayment(pindexPrev->nHeight + 1, blockValue, nMasternodeCount, pindexPrev->nMoneySupply);
+    const CAmount nBlockValue = GetBlockValueReward(nTargetHeight);
+    const CAmount nMasternodePayment = GetMasternodePayment(nTargetHeight, nMasternodeCount, pindexPrev->nMoneySupply);
 
     if (fProofOfStake) {
-        /**For Proof Of Stake vout[0] must be null
-         * Stake reward can be split into many different outputs, so we must
-         * use vout.size() to align with several different cases.
-         */
-        if (txNew.vout.size() < 2) {
-            error("%s: invalid transaction:\n%s\n", __func__, txNew.ToString());
-        } else {
-            //Add fee to the miner
-            txNew.vout[1].nValue += nFees;
-
+        string msg;
+        if (SubtractFromStakeReward(txNew, nMasternodePayment, msg)) {
             //Append an additional output as the masternode payment
-            txNew.vout.push_back(CTxOut(masternodePayment, payee));
+            txNew.vout.push_back(CTxOut(nMasternodePayment, payee));
 
-            /**Subtract mn payment from the stake reward
-             * There can be 1 or 2 stake outputs so subtract equally
-            */
-            if (txNew.vout.size() > 3) {
-                const CAmount masternodePayment1 = masternodePayment / 2;
-                const CAmount masternodePayment2 = masternodePayment - masternodePayment1;
-                txNew.vout[1].nValue -= masternodePayment1;
-                txNew.vout[2].nValue -= masternodePayment2;
-            } else
-                txNew.vout[1].nValue -= masternodePayment;
-
-            LogPrintf("*** total reward %s masternode %s stake %s\n",
-                      FormatMoney(blockValue), FormatMoney(masternodePayment),
-                      FormatMoney(blockValue - masternodePayment));
+            DebugPrintf("*** total reward %s masternode %s\n", FormatMoney(nBlockValue), FormatMoney(nMasternodePayment));
         }
+        else
+            error("%s: %s", __func__, msg);
     } else {
         txNew.vout.resize(2);
         txNew.vout[1].scriptPubKey = payee;
-        txNew.vout[1].nValue = masternodePayment;
-        txNew.vout[0].nValue -= masternodePayment;
+        txNew.vout[1].nValue = nMasternodePayment;
+        txNew.vout[0].nValue -= nMasternodePayment;
     }
 
     CTxDestination address1;
     ExtractDestination(payee, address1);
     CBitcoinAddress address2(address1);
 
-    LogPrintf("Masternode payment of %s to %s\n", FormatMoney(masternodePayment).c_str(), address2.ToString().c_str());
+    LogPrintf("Masternode payment of %s to %s\n", FormatMoney(nMasternodePayment).c_str(), address2.ToString().c_str());
 }
 
 int CMasternodePayments::GetMinMasternodePaymentsProto()
@@ -553,9 +620,9 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int n
     const int nMasternodeCountDrift = nMasternodeCountStable + Params().MasternodeCountDrift();
 
     CAmount nReward = GetBlockValueReward(nBlockHeight);
-    CAmount requiredMasternodePayment = GetMasternodePayment(nBlockHeight, nReward, nMasternodeCountDrift, pindexPrev->nMoneySupply);
+    CAmount nRequiredMasternodePayment = GetMasternodePayment(nBlockHeight, nMasternodeCountDrift, pindexPrev->nMoneySupply);
 
-    DebugPrintf("%s: Height=%d, Reward=%lld, MasternodeCountDrift=%d\n", __func__, nBlockHeight, nReward, nMasternodeCountDrift);
+    DebugPrintf("%s: Height=%d, Reward=%lld, MasternodePayment=%lld, MasternodeCountDrift=%d\n", __func__, nBlockHeight, nReward, nRequiredMasternodePayment, nMasternodeCountDrift);
 
     //require at least 6 signatures
     BOOST_FOREACH (CMasternodePayee& payee, vecPayments)
@@ -570,10 +637,10 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int n
         bool found = false;
         BOOST_FOREACH (CTxOut out, txNew.vout) {
             if (payee.scriptPubKey == out.scriptPubKey) {
-                if(out.nValue >= requiredMasternodePayment)
+                if(out.nValue >= nRequiredMasternodePayment)
                     found = true;
                 else
-                    LogPrintf("Masternode payment is out of drift range. Paid=%s Min=%s\n", FormatMoney(out.nValue), FormatMoney(requiredMasternodePayment));
+                    LogPrintf("Masternode payment is out of drift range. Paid=%s Min=%s\n", FormatMoney(out.nValue), FormatMoney(nRequiredMasternodePayment));
             }
         }
 
@@ -592,7 +659,7 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int n
         }
     }
 
-    LogPrintf("CMasternodePayments::IsTransactionValid - Missing required payment of %s to %s\n", FormatMoney(requiredMasternodePayment), strPayeesPossible.c_str());
+    LogPrintf("CMasternodePayments::IsTransactionValid - Missing required payment of %s to %s\n", FormatMoney(nRequiredMasternodePayment), strPayeesPossible.c_str());
     return false;
 }
 
