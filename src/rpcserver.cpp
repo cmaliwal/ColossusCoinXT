@@ -298,6 +298,7 @@ static const CRPCCommand vRPCCommands[] =
         {"hidden", "invalidateblock", &invalidateblock, true, true, false},
         {"hidden", "reconsiderblock", &reconsiderblock, true, true, false},
         {"hidden", "setmocktime", &setmocktime, true, false, false},
+        {"hidden", "clearbanned", &clearbanned, true, true, false},
 
         /* Pivx features */
         {"colx", "masternode", &masternode, true, true, false},

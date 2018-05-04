@@ -467,6 +467,17 @@ Value setmocktime(const Array& params, bool fHelp)
     return Value::null;
 }
 
+Value clearbanned(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "clearbanned\n"
+            "\nClear list of banned nodes.\n");
+
+    CNode::ClearBanned();
+    return "success";
+}
+
 #ifdef ENABLE_WALLET
 Value getstakingstatus(const Array& params, bool fHelp)
 {

@@ -323,7 +323,7 @@ public:
         case ChainHeight::H2:
         case ChainHeight::H3:
         case ChainHeight::H4:
-            return 33445; // on testnet
+            return 35500; // on testnet
 
         default:
             assert(false);
