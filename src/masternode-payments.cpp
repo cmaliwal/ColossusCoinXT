@@ -236,20 +236,21 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
             error("%s: invalid budget payment detected %s\n", __func__, txNew.ToString().c_str());
             if (IsSporkActive(SPORK_9_MASTERNODE_BUDGET_ENFORCEMENT))
                 return false;
-        } else {
-            LogPrintf("Budget enforcement is disabled, accepting block\n");
-            budgetValid = true;
+            else {
+                LogPrintf("Budget enforcement is disabled, accepting block\n");
+                budgetValid = true;
+            }
         }
-    } else if (masternodePayments.IsTransactionValid(txNew, block.GetVersion(), nBlockHeight)) {
-        mnValid = true;
     } else {
-        mnValid = false;
-        error("%s: invalid mn payment detected %s\n", __func__, txNew.ToString().c_str());
-        if (IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)) {
-            return false;
-        } else {
-            LogPrintf("Masternode payment enforcement is disabled, accepting block\n");
-            mnValid = true;
+        mnValid = masternodePayments.IsTransactionValid(txNew, block.GetVersion(), nBlockHeight);
+        if (!mnValid) {
+            error("%s: invalid mn payment detected %s\n", __func__, txNew.ToString().c_str());
+            if (IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT))
+                return false;
+            else {
+                LogPrintf("Masternode payment enforcement is disabled, accepting block\n");
+                mnValid = true;
+            }
         }
     }
 
@@ -268,9 +269,10 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
 
             if (IsSporkActive(SPORK_17_FEE_PAYMENT_ENFORCEMENT))
                 return false;
-        } else {
-            LogPrintf("Fee enforcement is disabled, accepting block\n");
-            feeValid = true;
+            else {
+                LogPrintf("Fee enforcement is disabled, accepting block\n");
+                feeValid = true;
+            }
         }
     }
 
@@ -289,9 +291,10 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
 
             if (IsSporkActive(SPORK_18_DEVFUND_PAYMENT_ENFORCEMENT))
                 return false;
-        } else {
-            LogPrintf("Dev fund enforcement is disabled, accepting block\n");
-            fundValid = true;
+            else {
+                LogPrintf("Dev fund enforcement is disabled, accepting block\n");
+                fundValid = true;
+            }
         }
     }
 
