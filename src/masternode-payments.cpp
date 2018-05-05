@@ -301,10 +301,15 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
     return budgetValid && mnValid && feeValid && fundValid;
 }
 
-static bool SubtractFromStakeReward(CMutableTransaction& tx, CAmount nAmount, string& error)
+static bool SubtractFromStakeReward(CMutableTransaction& tx, int nStakeOut, CAmount nAmount, string& error)
 {
-    if (tx.vout.size() < 2) {
-        error = strprintf("invalid vout size: %u", tx.vout.size());
+    if (nStakeOut < 1) {
+        error = strprintf("invalid nStakeOut: %d", nStakeOut);
+        return false;
+    }
+
+    if (tx.vout.size() < 1 + nStakeOut) {
+        error = strprintf("invalid vout size %u, nStakeOut=%d", tx.vout.size(), nStakeOut);
         return false;
     }
 
@@ -324,7 +329,7 @@ static bool SubtractFromStakeReward(CMutableTransaction& tx, CAmount nAmount, st
      * Stake reward can be split into many different outputs, so we must
      * use vout.size() to align with several different cases.
      */
-    if (tx.vout.size() > 2) {
+    if (nStakeOut > 1) {
         const CAmount nAmount1 = nAmount / 2;
         const CAmount nAmount2 = nAmount - nAmount1;
         tx.vout[1].nValue -= nAmount1;
@@ -343,6 +348,7 @@ void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStak
         return;
     }
 
+    const int nStakeOut = txNew.vout.size() > 2 ? 2 : 1;
     const int nTargetHeight = pindexPrev->nHeight + 1;
     if (budget.IsBudgetPaymentBlock(nTargetHeight))
         budget.FillBlockPayee(txNew, nFees, fProofOfStake, pindexPrev);
@@ -353,7 +359,7 @@ void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStak
     const CAmount nDevfundPayment = GetBlockValueDevFund(nTargetHeight);
     if (nDevfundPayment > 0) {
         string msg;
-        if (SubtractFromStakeReward(txNew, nDevfundPayment, msg))
+        if (SubtractFromStakeReward(txNew, nStakeOut, nDevfundPayment, msg))
             txNew.vout.push_back(CTxOut(nDevfundPayment, GetScriptForDestination(Params().GetDevFundAddress().Get())));
         else
             error("%s: %s", __func__, msg);
@@ -402,7 +408,8 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFe
 
     if (fProofOfStake) {
         string msg;
-        if (SubtractFromStakeReward(txNew, nMasternodePayment, msg)) {
+        const int nStakeOut = txNew.vout.size() > 2 ? 2 : 1;
+        if (SubtractFromStakeReward(txNew, nStakeOut, nMasternodePayment, msg)) {
             //Append an additional output as the masternode payment
             txNew.vout.push_back(CTxOut(nMasternodePayment, payee));
 

@@ -634,15 +634,14 @@ bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHei
 
             return found;
         } else
-            return false;
+            return error("%s: block %d is not a budget payment block\n", __func__, nBlockHeight);
     } else {
         LOCK(cs);
         // check the highest finalized budgets (+/- 10% to assist in consensus)
         std::map<uint256, CFinalizedBudget>::iterator it = mapFinalizedBudgets.begin();
         while (it != mapFinalizedBudgets.end()) {
             CFinalizedBudget* pfinalizedBudget = &((*it).second);
-
-            if (pfinalizedBudget->GetVoteCount() > nHighestCount - mnodeman.CountEnabled(ActiveProtocol()) / 10) {
+            if (pfinalizedBudget->GetVoteCount() >= nHighestCount - mnodeman.CountEnabled(ActiveProtocol()) / 10) {
                 if (nBlockHeight >= pfinalizedBudget->GetBlockStart() && nBlockHeight <= pfinalizedBudget->GetBlockEnd()) {
                     if (pfinalizedBudget->IsTransactionValid(txNew, nBlockHeight)) {
                         return true;
@@ -652,7 +651,7 @@ bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHei
             ++it;
         }
         //we looked through all of the known budgets
-        return false;
+        return error("%s: finalized budget was not found\n", __func__);
     }
 }
 
@@ -725,7 +724,7 @@ std::vector<CBudgetProposal*> CBudgetManager::GetBudget()
         //prop start/end should be inside this period
         if (pbudgetProposal->fValid && pbudgetProposal->nBlockStart <= nBlockStart &&
             pbudgetProposal->nBlockEnd >= nBlockEnd &&
-            pbudgetProposal->GetYeas() - pbudgetProposal->GetNays() > mnodeman.CountEnabled(ActiveProtocol()) / 10 &&
+            pbudgetProposal->GetYeas() - pbudgetProposal->GetNays() >= mnodeman.CountEnabled(ActiveProtocol()) / 10 &&
             pbudgetProposal->IsEstablished()) {
             if (pbudgetProposal->GetAmount() + nBudgetAllocated <= nTotalBudget) {
                 pbudgetProposal->SetAllotted(pbudgetProposal->GetAmount());
