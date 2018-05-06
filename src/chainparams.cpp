@@ -201,10 +201,10 @@ public:
             return 1;
 
         case ChainHeight::H2:
-            return 151201;
+            return 151202;
 
         case ChainHeight::H3:
-            return 302400;
+            return 302401;
 
         case ChainHeight::H4:
             return 345600;

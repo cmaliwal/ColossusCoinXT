@@ -1569,9 +1569,9 @@ CAmount GetBlockValue(int nHeight)
      * Block 1: 12 Billions COLX pre-mined
      *
      * Block Reward:
-     * Blocks 2 - 151200 - 2500 COLX
-     * Blocks 151201 - 302399 - 1250 COLX
-     * Blocks 302400 - 345599: 1000 COLX
+     * Blocks 2 - 151201: 2500 COLX
+     * Blocks 151202 - 302400: 1250 COLX
+     * Blocks 302401 - 345599: 1000 COLX
      * Blocks 345600 - Infinite: 1500 COLX
      *
      * Proof of Stake Schedule before 345600:
