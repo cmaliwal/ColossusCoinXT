@@ -35,8 +35,12 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
-TransactionView::TransactionView(QWidget* parent) : QWidget(parent), model(0), transactionProxyModel(0),
-                                                    transactionView(0)
+TransactionView::TransactionView(QWidget* parent) :
+    QWidget(parent),
+    model(0),
+    transactionProxyModel(0),
+    transactionView(0),
+    columnResizingFixer(0)
 {
     QSettings settings;
     // Build filter row
@@ -537,7 +541,8 @@ void TransactionView::focusTransaction(const QModelIndex& idx)
 void TransactionView::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
-    columnResizingFixer->stretchColumnWidth(TransactionTableModel::ToAddress);
+    if (columnResizingFixer)
+        columnResizingFixer->stretchColumnWidth(TransactionTableModel::ToAddress);
 }
 
 // Need to override default Ctrl+C action for amount as default behaviour is just to copy DisplayRole text
