@@ -86,3 +86,31 @@ bool CBasicKeyStore::HaveWatchOnly() const
     LOCK(cs_KeyStore);
     return (!setWatchOnly.empty());
 }
+
+// DRAGAN: pvix additions to support new wallet code (no merge)
+
+bool CBasicKeyStore::AddMultiSig(const CScript& dest)
+{
+    LOCK(cs_KeyStore);
+    setMultiSig.insert(dest);
+    return true;
+}
+
+bool CBasicKeyStore::RemoveMultiSig(const CScript& dest)
+{
+    LOCK(cs_KeyStore);
+    setMultiSig.erase(dest);
+    return true;
+}
+
+bool CBasicKeyStore::HaveMultiSig(const CScript& dest) const
+{
+    LOCK(cs_KeyStore);
+    return setMultiSig.count(dest) > 0;
+}
+
+bool CBasicKeyStore::HaveMultiSig() const
+{
+    LOCK(cs_KeyStore);
+    return (!setMultiSig.empty());
+}

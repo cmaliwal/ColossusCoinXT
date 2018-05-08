@@ -491,9 +491,9 @@ bool ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue, CW
             ssKey >> script;
             char fYes;
             ssValue >> fYes;
-            // FIXME: not implemented
-            // if (fYes == '1')
-            //     pwallet->LoadMultiSig(script);
+            // DRAGAN:
+            if (fYes == '1')
+                pwallet->LoadMultiSig(script);
 
             // MultiSig addresses have no birthday information for now,
             // so set the wallet birthday to the beginning of time.
@@ -761,12 +761,12 @@ DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
     if (wss.fAnyUnordered)
         result = ReorderTransactions(pwallet);
 
-    //FIXME
-    //pwallet->laccentries.clear();
-    //ListAccountCreditDebit("*", pwallet->laccentries);
-    //BOOST_FOREACH(CAccountingEntry& entry, pwallet->laccentries) {
-    //    pwallet->wtxOrdered.insert(make_pair(entry.nOrderPos, CWallet::TxPair((CWalletTx*)0, &entry)));
-    //}
+    // DRAGAN: 
+    pwallet->laccentries.clear();
+    ListAccountCreditDebit("*", pwallet->laccentries);
+    BOOST_FOREACH(CAccountingEntry& entry, pwallet->laccentries) {
+        pwallet->wtxOrdered.insert(make_pair(entry.nOrderPos, CWallet::TxPair((CWalletTx*)0, &entry)));
+    }
 
     return result;
 }

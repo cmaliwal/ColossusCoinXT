@@ -13,7 +13,6 @@
 
 #include <QDebug>
 #include <QList>
-#include <QDateTime>
 
 bool BannedNodeLessThan::operator()(const CCombinedBan& left, const CCombinedBan& right) const
 {
@@ -49,8 +48,8 @@ public:
     void refreshBanlist()
     {
         banmap_t banMap;
-        // FIXME: not implemented
-        // CNode::GetBanned(banMap);
+        // DRAGAN: FIXME: not implemented
+        CNode::GetBanned(banMap);
 
         cachedBanlist.clear();
 #if QT_VERSION >= 0x040700

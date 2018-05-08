@@ -254,6 +254,19 @@ void copyEntryData(QAbstractItemView* view, int column, int role)
     }
 }
 
+QString getEntryData(QAbstractItemView *view, int column, int role)
+{
+    if(!view || !view->selectionModel())
+        return QString();
+    QModelIndexList selection = view->selectionModel()->selectedRows(column);
+
+    if(!selection.isEmpty()) {
+        // Return first item
+        return (selection.at(0).data(role).toString());
+    }
+    return QString();
+}
+
 QString getSaveFileName(QWidget* parent, const QString& caption, const QString& dir, const QString& filter, QString* selectedSuffixOut)
 {
     QString selectedFilter;
@@ -346,6 +359,7 @@ bool isObscured(QWidget* w)
     return !(checkPoint(QPoint(0, 0), w) && checkPoint(QPoint(w->width() - 1, 0), w) && checkPoint(QPoint(0, w->height() - 1), w) && checkPoint(QPoint(w->width() - 1, w->height() - 1), w) && checkPoint(QPoint(w->width() / 2, w->height() / 2), w));
 }
 
+// DRAGAN: Unsure about this merge, this is colx change/fix, and seems the latest one // Q:
 void openLocalFile(const boost::filesystem::path& p)
 {
     if (boost::filesystem::exists(p))
@@ -367,7 +381,7 @@ void openDebugLogfile()
 void openConfigfile()
 {
     /* Open ColossusCoinXT.conf with the associated application */
-     openLocalFile(GetConfigFile());
+    openLocalFile(GetConfigFile());
 }
 
 void openMNConfigfile()
@@ -376,6 +390,33 @@ void openMNConfigfile()
     openLocalFile(GetMasternodeConfigFile());
 }
 
+//void openDebugLogfile()
+//{
+//    boost::filesystem::path pathDebug = GetDataDir() / "debug.log";
+//
+//    /* Open debug.log with the associated application */
+//    if (boost::filesystem::exists(pathDebug))
+//        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathDebug)));
+//}
+//
+//void openConfigfile()
+//{
+//    boost::filesystem::path pathConfig = GetConfigFile();
+//
+//    /* Open colx.conf with the associated application */
+//    if (boost::filesystem::exists(pathConfig))
+//        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathConfig)));
+//}
+//
+//void openMNConfigfile()
+//{
+//    boost::filesystem::path pathConfig = GetMasternodeConfigFile();
+//
+//    /* Open masternode.conf with the associated application */
+//    if (boost::filesystem::exists(pathConfig))
+//        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathConfig)));
+//}
+//
 void showBackups()
 {
     boost::filesystem::path pathBackups = GetDataDir() / "backups";
@@ -713,6 +754,8 @@ bool SetStartOnSystemStartup(bool fAutoStart)
 
 
 #elif defined(Q_OS_MAC)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 // based on: https://github.com/Mozketo/LaunchAtLoginController/blob/master/LaunchAtLoginController.m
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -727,7 +770,18 @@ LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list, CFURLRef
         LSSharedFileListItemRef item = (LSSharedFileListItemRef)CFArrayGetValueAtIndex(listSnapshot, i);
         UInt32 resolutionFlags = kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes;
         CFURLRef currentItemURL = NULL;
+
+#if defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= 10100
+    if(&LSSharedFileListItemCopyResolvedURL)
+        currentItemURL = LSSharedFileListItemCopyResolvedURL(item, resolutionFlags, NULL);
+#if defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED < 10100
+    else
         LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL, NULL);
+#endif
+#else
+    LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL, NULL);
+#endif
+
         if (currentItemURL && CFEqual(currentItemURL, findUrl)) {
             // found
             CFRelease(currentItemURL);
@@ -763,6 +817,7 @@ bool SetStartOnSystemStartup(bool fAutoStart)
     }
     return true;
 }
+#pragma GCC diagnostic pop
 #else
 
 bool GetStartOnSystemStartup()
@@ -917,6 +972,11 @@ QString formatServicesStr(quint64 mask)
 QString formatPingTime(double dPingTime)
 {
     return dPingTime == 0 ? QObject::tr("N/A") : QString(QObject::tr("%1 ms")).arg(QString::number((int)(dPingTime * 1000), 10));
+}
+
+QString formatTimeOffset(int64_t nTimeOffset)
+{
+  return QString(QObject::tr("%1 s")).arg(QString::number((int)nTimeOffset, 10));
 }
 
 } // namespace GUIUtil

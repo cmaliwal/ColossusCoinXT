@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test)
     CAmount nAmount = COIN;
     int nSecurityLevel = 100;
 
-    /* FIXME: not implemented
+    // DRAGAN: FIXME: not implemented
     CZerocoinSpendReceipt receipt;
     cWallet.SpendZerocoin(nAmount, nSecurityLevel, *wtx, receipt, vMints, fMintChange, fMinimizeChange);
 
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test)
     /// BOOST_CHECK_MESSAGE(vString == "Error: Wallet locked, unable to create transaction!"," Locked Wallet Check Failed");
 
     BOOST_CHECK_MESSAGE(receipt2.GetStatus() == ZPIV_TRX_FUNDS_PROBLEMS, "Failed Invalid Amount Check");
-    */
+    // 
 }
 
 BOOST_AUTO_TEST_SUITE_END()

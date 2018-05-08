@@ -1,3 +1,7 @@
+// Copyright (c) 2014-2016 The Dash developers
+// Copyright (c) 2015-2017 The PIVX developers
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "activemasternode.h"
 #include "addrman.h"
@@ -63,17 +67,22 @@ void CActiveMasternode::ManageStatus()
             service = CService(strMasterNodeAddr);
         }
 
-        if (Params().NetworkID() == CBaseChainParams::MAIN) {
-            if (service.GetPort() != Params().GetDefaultPort()) {
-                notCapableReason = strprintf("Invalid port: %u - only Params().GetDefaultPort() is supported on mainnet.", service.GetPort());
-                LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
-                return;
-            }
-        } else if (service.GetPort() == Params().GetDefaultPort()) {
-            notCapableReason = strprintf("Invalid port: %u - Params().GetDefaultPort() is only supported on mainnet.", service.GetPort());
-            LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
+        //if (Params().NetworkID() == CBaseChainParams::MAIN) {
+        //    if (service.GetPort() != Params().GetDefaultPort()) {
+        //        notCapableReason = strprintf("Invalid port: %u - only Params().GetDefaultPort() is supported on mainnet.", service.GetPort());
+        //        LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
+        //        return;
+        //    }
+        //} else if (service.GetPort() == Params().GetDefaultPort()) {
+        //    notCapableReason = strprintf("Invalid port: %u - Params().GetDefaultPort() is only supported on mainnet.", service.GetPort());
+        //    LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
+        //    return;
+        //}
+
+        // DRAGAN: we should use CheckDefaultPort I guess (pvix new), review // Q:
+        // The service needs the correct default port to work properly
+        if (!CMasternodeBroadcast::CheckDefaultPort(strMasterNodeAddr, errorMessage, "CActiveMasternode::ManageStatus()"))
             return;
-        }
 
         LogPrintf("CActiveMasternode::ManageStatus() - Checking inbound connection to '%s'\n", service.ToString());
 
@@ -262,17 +271,22 @@ bool CActiveMasternode::Register(std::string strService, std::string strKeyMaste
     }
 
     CService service = CService(strService);
-    if (Params().NetworkID() == CBaseChainParams::MAIN) {
-        if (service.GetPort() != Params().GetDefaultPort()) {
-            errorMessage = strprintf("Invalid port %u for masternode %s - only Params().GetDefaultPort() is supported on mainnet.", service.GetPort(), strService);
-            LogPrintf("CActiveMasternode::Register() - %s\n", errorMessage);
-            return false;
-        }
-    } else if (service.GetPort() == Params().GetDefaultPort()) {
-        errorMessage = strprintf("Invalid port %u for masternode %s - Params().GetDefaultPort() is only supported on mainnet.", service.GetPort(), strService);
-        LogPrintf("CActiveMasternode::Register() - %s\n", errorMessage);
+    //if (Params().NetworkID() == CBaseChainParams::MAIN) {
+    //    if (service.GetPort() != Params().GetDefaultPort()) {
+    //        errorMessage = strprintf("Invalid port %u for masternode %s - only Params().GetDefaultPort() is supported on mainnet.", service.GetPort(), strService);
+    //        LogPrintf("CActiveMasternode::Register() - %s\n", errorMessage);
+    //        return false;
+    //    }
+    //} else if (service.GetPort() == Params().GetDefaultPort()) {
+    //    errorMessage = strprintf("Invalid port %u for masternode %s - Params().GetDefaultPort() is only supported on mainnet.", service.GetPort(), strService);
+    //    LogPrintf("CActiveMasternode::Register() - %s\n", errorMessage);
+    //    return false;
+    //}
+
+    // DRAGAN: we should use CheckDefaultPort I guess (pvix new), review // Q:
+    // The service needs the correct default port to work properly
+    if(!CMasternodeBroadcast::CheckDefaultPort(strService, errorMessage, "CActiveMasternode::Register()"))
         return false;
-    }
 
     addrman.Add(CAddress(service), CNetAddr("127.0.0.1"), 2 * 60 * 60);
 
