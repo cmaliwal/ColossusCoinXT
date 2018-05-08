@@ -463,7 +463,8 @@ int CBudgetManager::GrabHighestCount(int nTargetHeight, CScript& payee, CAmount&
     std::map<uint256, CFinalizedBudget>::iterator it = mapFinalizedBudgets.begin();
     while (it != mapFinalizedBudgets.end()) {
         CFinalizedBudget* pfinalizedBudget = &((*it).second);
-        if (pfinalizedBudget->GetVoteCount() > nHighestCount &&
+        if (pfinalizedBudget->GetVoteCount() > 0 &&
+            pfinalizedBudget->GetVoteCount() > nHighestCount &&
             nTargetHeight >= pfinalizedBudget->GetBlockStart() &&
             nTargetHeight <= pfinalizedBudget->GetBlockEnd() &&
             pfinalizedBudget->GetPayeeAndAmount(nTargetHeight, payee, nAmount)) {
