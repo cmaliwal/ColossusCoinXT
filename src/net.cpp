@@ -19,6 +19,8 @@
 #include "primitives/transaction.h"
 #include "ui_interface.h"
 #include "wallet.h"
+#include "curl.h"
+#include "context.h"
 
 #ifdef WIN32
 #include <string.h>
@@ -35,6 +37,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 // Dump addresses to peers.dat every 15 minutes (900s)
 #define DUMP_ADDRESSES_INTERVAL 900
@@ -1128,7 +1131,7 @@ void ThreadDNSAddressSeed()
 }
 
 
-void DumpAddresses()
+static bool DumpAddresses()
 {
     int64_t nStart = GetTimeMillis();
 
@@ -1137,6 +1140,8 @@ void DumpAddresses()
 
     LogPrint("net", "Flushed %d addresses to peers.dat  %dms\n",
         addrman.size(), GetTimeMillis() - nStart);
+
+    return true; // never exit thread
 }
 
 void static ProcessOneShot()
@@ -1559,6 +1564,69 @@ void static Discover(boost::thread_group& threadGroup)
 #endif
 }
 
+// return true and url of the release folder if new update is available
+// return false if error or update is not available
+static bool IsUpdateAvailable(CUrl& redirect)
+{
+    DebugPrintf("%s: starting\n", __func__);
+
+    const string urlRelease = GetArg("-checkforupdateurl", GITHUB_RELEASE_URL);
+
+    string error;
+    if (!CURLGetRedirect(urlRelease, redirect, error)) {
+        DebugPrintf("%s: error - %s\n", __func__, error);
+        return false;
+    }
+
+    const string ver = strprintf("v%s", FormatVersion(CLIENT_VERSION));
+    DebugPrintf("%s: redirect is %s, version is %s\n", __func__, redirect, ver);
+
+    // assume version mismatch means new update is available (downgrage possible)
+    if (redirect.find(ver) == string::npos) {
+        LogPrintf("New version is available, please update your wallet! Go to: %s\n", GITHUB_RELEASE_URL);
+        return true;
+    }
+    else
+        return false;
+}
+
+static bool ThreadCheckForUpdates(CContext& context)
+{
+    boost::this_thread::interruption_point();
+
+    CUrl urlRelease;
+    if (!IsUpdateAvailable(urlRelease)) {
+        context.SetUpdateAvailable(false, "", "");
+        return true; // continue thread execution
+    }
+
+    CUrl urlInfo = strprintf("%s/%s", urlRelease, "update.info");
+    boost::algorithm::replace_first(urlInfo, "/tag/", "/download/");
+
+    string error;
+    CUrl urlInfoNew;
+    if (CURLGetRedirect(urlInfo, urlInfoNew, error))
+        urlInfo = urlInfoNew;
+
+    string info;
+    if (!CURLDownloadToMem(urlInfo, info, error)) {
+        LogPrintf("%s: %s\n", __func__, error);
+        return true; // continue thread execution
+    }
+
+    string urlPath;
+    if (!FindUpdateUrlForThisPlatform(info, urlPath, error)) {
+        LogPrintf("%s: %s\n", __func__, error);
+        return true; // continue thread execution
+    } else {
+        context.SetUpdateAvailable(true, urlRelease, urlPath);
+        uiInterface.NotifyUpdateAvailable();
+
+        DebugPrintf("%s: update found, exit thread.\n", __func__);
+        return false;
+    }
+}
+
 void StartNode(boost::thread_group& threadGroup)
 {
     uiInterface.InitMessage(_("Loading addresses..."));
@@ -1609,11 +1677,18 @@ void StartNode(boost::thread_group& threadGroup)
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "msghand", &ThreadMessageHandler));
 
     // Dump network addresses
-    threadGroup.create_thread(boost::bind(&LoopForever<void (*)()>, "dumpaddr", &DumpAddresses, DUMP_ADDRESSES_INTERVAL * 1000));
+    threadGroup.create_thread(boost::bind(&LoopForever<bool (*)()>, "dumpaddr", &DumpAddresses, DUMP_ADDRESSES_INTERVAL * 1000));
 
     // ppcoin:mint proof-of-stake blocks in the background
     if (GetBoolArg("-staking", true))
         threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "stakemint", &ThreadStakeMinter));
+
+    // Check for updates once per day
+    int64_t nCheckForUpdatesInterval = 1000 * GetArg("-checkforupdate", 60 * 60 * 24);
+    if (nCheckForUpdatesInterval > 0) {
+        threadGroup.create_thread(boost::bind(&LoopForever<bool (*)()>, "checkforupdates",
+            [](){ return ThreadCheckForUpdates(GetContext()); }, nCheckForUpdatesInterval));
+    }
 }
 
 bool StopNode()

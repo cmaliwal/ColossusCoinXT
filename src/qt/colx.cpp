@@ -8,6 +8,7 @@
 #include "config/colx-config.h"
 #endif
 
+#include "context.h"
 #include "bitcoingui.h"
 
 #include "clientmodel.h"
@@ -520,6 +521,8 @@ WId BitcoinApplication::getMainWinId() const
 #ifndef BITCOIN_QT_TEST
 int main(int argc, char* argv[])
 {
+    ContextScopeInit context;
+
     SetupEnvironment();
 
     /// 1. Parse command-line options. These take precedence over anything else.

@@ -5,6 +5,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "context.h"
 #include "base58.h"
 #include "clientversion.h"
 #include "init.h"
@@ -26,6 +27,7 @@
 #include "json/json_spirit_utils.h"
 #include "json/json_spirit_value.h"
 #include <boost/assign/list_of.hpp>
+#include <boost/algorithm/string/join.hpp>
 
 using namespace boost;
 using namespace boost::assign;
@@ -118,7 +120,14 @@ Value getinfo(const Array& params, bool fHelp)
     else if (mapHashedBlocks.count(chainActive.Tip()->nHeight - 1) && nLastCoinStakeSearchInterval)
         nStaking = true;
     obj.push_back(Pair("staking status", (nStaking ? "Staking Active" : "Staking Not Active")));
-    obj.push_back(Pair("errors", GetWarnings("statusbar")));
+
+    vector<string> warnings;
+    warnings.push_back(GetWarnings("statusbar"));
+    if (GetContext().IsUpdateAvailable())
+        warnings.push_back(strprintf("New version is available, please update your wallet! Go to: %s", GITHUB_RELEASE_URL));
+
+    obj.push_back(Pair("errors", boost::algorithm::join(warnings, " ")));
+
     return obj;
 }
 

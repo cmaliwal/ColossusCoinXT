@@ -325,6 +325,7 @@ std::string HelpMessage(HelpMessageMode mode)
 #endif
     strUsage += HelpMessageOpt("-txindex", strprintf(_("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)"), 0));
     strUsage += HelpMessageOpt("-forcestart", _("Attempt to force blockchain corruption recovery") + " " + _("on startup"));
+    strUsage += HelpMessageOpt("-checkforupdate=<seconds>", _("Check periodically if new version of the software is available, default: 24h = 86400sec"));
 
     strUsage += HelpMessageGroup(_("Connection options:"));
     strUsage += HelpMessageOpt("-addnode=<ip>", _("Add a node to connect to and attempt to keep the connection open"));

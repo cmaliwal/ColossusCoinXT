@@ -101,6 +101,12 @@ public:
 
     /** New block has been accepted */
     boost::signals2::signal<void(const uint256& hash)> NotifyBlockTip;
+
+    /** Notify user that new version of the software is available for downloading */
+    boost::signals2::signal<void()> NotifyUpdateAvailable;
+
+    /** Show progress e.g. for downloading update */
+    boost::signals2::signal<void(const std::string& title, int nProgress)> NotifyUpdateDownloadProgress;
 };
 
 extern CClientUIInterface uiInterface;

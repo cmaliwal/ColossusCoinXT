@@ -178,6 +178,16 @@ void ClientModel::updateAlert(const QString& hash, int status)
     emit alertsChanged(getStatusBarWarnings());
 }
 
+void ClientModel::updateNewVersionAvailable()
+{
+    emit newVersionAvailable();
+}
+
+void ClientModel::updateDownloadProgress(const QString& title, int progress)
+{
+    emit refreshDownloadProgress(title, progress);
+}
+
 bool ClientModel::inInitialBlockDownload() const
 {
     return IsInitialBlockDownload();
@@ -259,12 +269,28 @@ static void NotifyAlertChanged(ClientModel* clientmodel, const uint256& hash, Ch
         Q_ARG(int, status));
 }
 
+static void NotifyUpdateAvailable(ClientModel* clientmodel)
+{
+    qDebug() << "NotifyUpdateAvailable()";
+    QMetaObject::invokeMethod(clientmodel, "updateNewVersionAvailable", Qt::QueuedConnection);
+}
+
+static void NotifyUpdateDownloadProgress(ClientModel* clientmodel, const std::string& title, int progress)
+{
+    qDebug() << QString::fromStdString(strprintf("NotifyUpdateDownloadProgress(%s, %d)", title, progress));
+    QMetaObject::invokeMethod(clientmodel, "updateDownloadProgress", Qt::QueuedConnection,
+        Q_ARG(QString, QString::fromStdString(title)),
+        Q_ARG(int, progress));
+}
+
 void ClientModel::subscribeToCoreSignals()
 {
     // Connect signals to client
     uiInterface.ShowProgress.connect(boost::bind(ShowProgress, this, _1, _2));
     uiInterface.NotifyNumConnectionsChanged.connect(boost::bind(NotifyNumConnectionsChanged, this, _1));
     uiInterface.NotifyAlertChanged.connect(boost::bind(NotifyAlertChanged, this, _1, _2));
+    uiInterface.NotifyUpdateAvailable.connect(boost::bind(NotifyUpdateAvailable, this));
+    uiInterface.NotifyUpdateDownloadProgress.connect(boost::bind(NotifyUpdateDownloadProgress, this, _1, _2));
 }
 
 void ClientModel::unsubscribeFromCoreSignals()
@@ -273,4 +299,6 @@ void ClientModel::unsubscribeFromCoreSignals()
     uiInterface.ShowProgress.disconnect(boost::bind(ShowProgress, this, _1, _2));
     uiInterface.NotifyNumConnectionsChanged.disconnect(boost::bind(NotifyNumConnectionsChanged, this, _1));
     uiInterface.NotifyAlertChanged.disconnect(boost::bind(NotifyAlertChanged, this, _1, _2));
+    uiInterface.NotifyUpdateAvailable.disconnect(boost::bind(NotifyUpdateAvailable, this));
+    uiInterface.NotifyUpdateDownloadProgress.disconnect(boost::bind(NotifyUpdateDownloadProgress, this, _1, _2));
 }

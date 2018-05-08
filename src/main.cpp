@@ -7,6 +7,7 @@
 
 #include "main.h"
 
+#include "context.h"
 #include "addrman.h"
 #include "alert.h"
 #include "chainparams.h"
@@ -2527,6 +2528,12 @@ void static UpdateTip(CBlockIndex* pindexNew)
             strMiscWarning = _("Warning: This version is obsolete, upgrade required!");
             CAlert::Notify(strMiscWarning, true);
             fWarned = true;
+
+            // Force user update wallet if new version is available
+            if (GetContext().IsUpdateAvailable()) {
+                string msg = strprintf("%s New version is available, please update your wallet! Go to: %s", strMiscWarning, GITHUB_RELEASE_URL);
+                AbortNode(msg, msg);
+            }
         }
     }
 }

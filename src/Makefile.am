@@ -94,10 +94,12 @@ BITCOIN_CORE_H = \
   compat.h \
   compat/sanity.h \
   compressor.h \
+  context.h \
   primitives/block.h \
   primitives/transaction.h \
   core_io.h \
   crypter.h \
+  curl.h \
   obfuscation.h \
   obfuscation-relay.h \
   db.h \
@@ -336,6 +338,8 @@ libbitcoin_util_a_SOURCES = \
   compat/glibcxx_sanity.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
+  context.cpp \
+  curl.cpp \
   random.cpp \
   rpcprotocol.cpp \
   sync.cpp \
@@ -369,7 +373,8 @@ colxd_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBLEVELDB) \
   $(LIBMEMENV) \
-  $(LIBSECP256K1)
+  $(LIBSECP256K1) \
+  $(CURL_LIBS)
 
 if ENABLE_ZMQ
 colxd_LDADD += $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
@@ -385,7 +390,7 @@ if TARGET_WINDOWS
 colxd_SOURCES += colxd-res.rc
 endif
 
-colxd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS)
+colxd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(CURL_LIBS)
 colxd_CPPFLAGS = $(BITCOIN_INCLUDES)
 colxd_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
@@ -396,7 +401,8 @@ colx_cli_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(BOOST_LIBS) \
   $(SSL_LIBS) \
-  $(CRYPTO_LIBS)
+  $(CRYPTO_LIBS) \
+  $(CURL_LIBS)
 
 colx_cli_SOURCES = \
   colx-cli.cpp
@@ -412,7 +418,8 @@ colx_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1) \
   $(BOOST_LIBS) \
-  $(CRYPTO_LIBS)
+  $(CRYPTO_LIBS) \
+  $(CURL_LIBS)
 
 colx_tx_SOURCES = colx-tx.cpp
 colx_tx_CPPFLAGS = $(BITCOIN_INCLUDES)

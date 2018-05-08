@@ -127,6 +127,7 @@ boost::filesystem::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
 boost::filesystem::path GetTempPath();
 void ShrinkDebugFile();
 void runCommand(std::string strCommand);
+bool FindUpdateUrlForThisPlatform(const std::string& info, std::string& url, std::string& error);
 
 inline bool IsSwitchChar(char c)
 {
@@ -218,12 +219,14 @@ void LoopForever(const char* name, Callable func, int64_t msecs)
     RenameThread(s.c_str());
     LogPrintf("%s thread start\n", name);
     try {
-        while (1) {
+        bool run = true;
+        while (run) {
             MilliSleep(msecs);
-            func();
+            run = func();
         }
+        LogPrintf("%s thread exit\n", name);
     } catch (boost::thread_interrupted) {
-        LogPrintf("%s thread stop\n", name);
+        LogPrintf("%s thread interrupt\n", name);
         throw;
     } catch (std::exception& e) {
         PrintExceptionContinue(&e, name);

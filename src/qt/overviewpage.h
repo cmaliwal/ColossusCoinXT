@@ -40,6 +40,7 @@ public:
 public slots:
     void obfuScationStatus();
     void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance, const CAmount& anonymizedBalance, const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
+    void alertLinkActivated(const QString& link);
 
 signals:
     void transactionClicked(const QModelIndex& index);
@@ -56,6 +57,7 @@ private:
     CAmount currentWatchOnlyBalance;
     CAmount currentWatchUnconfBalance;
     CAmount currentWatchImmatureBalance;
+    QString newVersionNotification;
     int nDisplayUnit;
 
     TxViewDelegate* txdelegate;
@@ -69,6 +71,7 @@ private slots:
     void handleTransactionClicked(const QModelIndex& index);
     void updateAlerts(const QString& warnings);
     void updateWatchOnlyLabels(bool showWatchOnly);
+    void updateNewVersionAvailability();
 };
 
 #endif // BITCOIN_QT_OVERVIEWPAGE_H
