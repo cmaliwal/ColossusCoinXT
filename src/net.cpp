@@ -1133,13 +1133,18 @@ void ThreadDNSAddressSeed()
 
 static bool DumpAddresses()
 {
+    static bool bFirstRun = true;
+    if (bFirstRun) {
+        MilliSleep(60 * 1000); // wait 1 min, give wallet time to start
+        bFirstRun = false;
+    }
+
     int64_t nStart = GetTimeMillis();
 
     CAddrDB adb;
     adb.Write(addrman);
 
-    LogPrint("net", "Flushed %d addresses to peers.dat  %dms\n",
-        addrman.size(), GetTimeMillis() - nStart);
+    LogPrint("net", "Flushed %d addresses to peers.dat %dms\n", addrman.size(), GetTimeMillis() - nStart);
 
     return true; // never exit thread
 }
@@ -1592,7 +1597,11 @@ static bool IsUpdateAvailable(CUrl& redirect)
 
 static bool ThreadCheckForUpdates(CContext& context)
 {
-    boost::this_thread::interruption_point();
+    static bool bFirstRun = true;
+    if (bFirstRun) {
+        MilliSleep(60 * 1000); // wait 1 min, give wallet time to start
+        bFirstRun = false;
+    }
 
     CUrl urlRelease;
     if (!IsUpdateAvailable(urlRelease)) {

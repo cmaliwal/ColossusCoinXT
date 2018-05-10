@@ -221,8 +221,8 @@ void LoopForever(const char* name, Callable func, int64_t msecs)
     try {
         bool run = true;
         while (run) {
-            MilliSleep(msecs);
             run = func();
+            MilliSleep(msecs);
         }
         LogPrintf("%s thread exit\n", name);
     } catch (boost::thread_interrupted) {
