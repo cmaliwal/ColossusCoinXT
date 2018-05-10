@@ -208,7 +208,7 @@ public:
             return 302401;
 
         case ChainHeight::H4:
-            return 345600;
+            return 388800;
 
         default:
             assert(false);
