@@ -31,9 +31,9 @@ struct CDNSSeedData
 enum class ChainHeight
 {
     H1, // 1, Premine, Reward 2500 COLX
-    H2, // 151201, Reward 1250 COLX
-    H3, // 302400, Reward 1000 COLX
-    H4  // 345600, Reward 1250 COLX, new budget and dev funds, only block version >= 4 is valid
+    H2, // 151202, Reward 1250 COLX
+    H3, // 302401, Reward 1000 COLX
+    H4  // 388800, Reward 1250 COLX, new budget and dev funds, only block version >= 4 is valid
 };
 
 /**

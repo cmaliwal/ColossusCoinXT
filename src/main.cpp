@@ -1572,14 +1572,14 @@ CAmount GetBlockValue(int nHeight)
      * Block Reward:
      * Blocks 2 - 151201: 2500 COLX
      * Blocks 151202 - 302400: 1250 COLX
-     * Blocks 302401 - 345599: 1000 COLX
-     * Blocks 345600 - Infinite: 1500 COLX
+     * Blocks 302401 - 388799: 1000 COLX
+     * Blocks 388800 - Infinite: 1500 COLX
      *
-     * Proof of Stake Schedule before 345600:
+     * Proof of Stake Schedule before 388800:
      * 5% to proposals for all phases
      * 95% to reward distributed to stake wallet and master node
      *
-     * Proof of Stake Schedule since 345600:
+     * Proof of Stake Schedule since 388800:
      * 10% to proposals for all phases
      * 10% to def fund address
      * 80% to reward distributed to stake wallet and master node
