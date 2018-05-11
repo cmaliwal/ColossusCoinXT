@@ -128,6 +128,7 @@ boost::filesystem::path GetTempPath();
 void ShrinkDebugFile();
 void runCommand(std::string strCommand);
 bool FindUpdateUrlForThisPlatform(const std::string& info, std::string& url, std::string& error);
+void RenameDataDirAndConfFile();
 
 inline bool IsSwitchChar(char c)
 {

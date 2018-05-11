@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(curl_getredirect_test)
     BOOST_CHECK(!out1.empty());
 
     string err2, out2;
-    BOOST_CHECK(!CURLGetRedirect("https://google.com", out2, err2));
+    BOOST_CHECK(!CURLGetRedirect("https://www.google.com", out2, err2));
     BOOST_CHECK(!err2.empty());
     BOOST_CHECK(out2.empty());
 }

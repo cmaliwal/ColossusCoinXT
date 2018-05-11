@@ -50,9 +50,9 @@ Var StartMenuGroup
 # Installer attributes
 OutFile @abs_top_srcdir@/colx-${VERSION}-win@WINDOWS_BITS@-setup.exe
 !if "@WINDOWS_BITS@" == "64"
-InstallDir $PROGRAMFILES64\ColossusCoinXT
+InstallDir $PROGRAMFILES64\ColossusXT
 !else
-InstallDir $PROGRAMFILES\ColossusCoinXT
+InstallDir $PROGRAMFILES\ColossusXT
 !endif
 CRCCheck on
 XPStyle on

@@ -236,7 +236,7 @@ bool LogAcceptCategory(const char* category)
             const vector<string>& categories = mapMultiArgs["-debug"];
             ptrCategory.reset(new set<string>(categories.begin(), categories.end()));
             // thread_specific_ptr automatically deletes the set when the thread ends.
-            // "colx" is a composite category enabling all ColossusCoinXT-related debug output
+            // "colx" is a composite category enabling all ColossusXT-related debug output
             if (ptrCategory->count(string("colx"))) {
                 ptrCategory->insert(string("obfuscation"));
                 ptrCategory->insert(string("swifttx"));
@@ -422,13 +422,13 @@ void PrintExceptionContinue(std::exception* pex, const char* pszThread)
 boost::filesystem::path GetDefaultDataDir()
 {
     namespace fs = boost::filesystem;
-// Windows < Vista: C:\Documents and Settings\Username\Application Data\ColossusCoinXT
-// Windows >= Vista: C:\Users\Username\AppData\Roaming\ColossusCoinXT
-// Mac: ~/Library/Application Support/ColossusCoinXT
+// Windows < Vista: C:\Documents and Settings\Username\Application Data\ColossusXT
+// Windows >= Vista: C:\Users\Username\AppData\Roaming\ColossusXT
+// Mac: ~/Library/Application Support/ColossusXT
 // Unix: ~/.colx
 #ifdef WIN32
     // Windows
-    return GetSpecialFolderPath(CSIDL_APPDATA) / "ColossusCoinXT";
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "ColossusXT";
 #else
     fs::path pathRet;
     char* pszHome = getenv("HOME");
@@ -440,10 +440,10 @@ boost::filesystem::path GetDefaultDataDir()
     // Mac
     pathRet /= "Library/Application Support";
     TryCreateDirectory(pathRet);
-    return pathRet / "ColossusCoinXT";
+    return pathRet / "ColossusXT";
 #else
     // Unix
-    return pathRet / ".ColossusCoinXT";
+    return pathRet / ".ColossusXT";
 #endif
 #endif
 }
@@ -490,7 +490,7 @@ void ClearDatadirCache()
 
 boost::filesystem::path GetConfigFile()
 {
-    boost::filesystem::path pathConfigFile(GetArg("-conf", "ColossusCoinXT.conf"));
+    boost::filesystem::path pathConfigFile(GetArg("-conf", "ColossusXT.conf"));
     if (!pathConfigFile.is_complete())
         pathConfigFile = GetDataDir(false) / pathConfigFile;
 
@@ -853,4 +853,62 @@ bool FindUpdateUrlForThisPlatform(const std::string& info, std::string& url, std
 
     error = strprintf("Platform %s was not found in the input: %s", platform, info);
     return false;
+}
+
+static boost::filesystem::path GetDefaultDataDirLegacy()
+{
+    namespace fs = boost::filesystem;
+// Windows < Vista: C:\Documents and Settings\Username\Application Data\ColossusCoinXT
+// Windows >= Vista: C:\Users\Username\AppData\Roaming\ColossusCoinXT
+// Mac: ~/Library/Application Support/ColossusCoinXT
+// Unix: ~/.colx
+#ifdef WIN32
+    // Windows
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "ColossusCoinXT";
+#else
+    fs::path pathRet;
+    char* pszHome = getenv("HOME");
+    if (pszHome == NULL || strlen(pszHome) == 0)
+        pathRet = fs::path("/");
+    else
+        pathRet = fs::path(pszHome);
+#ifdef MAC_OSX
+    // Mac
+    pathRet /= "Library/Application Support";
+    TryCreateDirectory(pathRet);
+    return pathRet / "ColossusCoinXT";
+#else
+    // Unix
+    return pathRet / ".ColossusCoinXT";
+#endif
+#endif
+}
+
+static void RenameDataDir()
+{
+    namespace fs = boost::filesystem;
+    if (fs::exists(GetDefaultDataDir()))
+        return; // new data dir exists - skip renaming
+
+    fs::path dataDirLegacy = GetDefaultDataDirLegacy();
+    if (fs::exists(dataDirLegacy))
+        fs::rename(dataDirLegacy, GetDefaultDataDir());
+}
+
+static void RenameConfigFile()
+{
+    namespace fs = boost::filesystem;
+    fs::path configFile = GetDefaultDataDir() / fs::path("ColossusXT.conf");
+    if (fs::exists(configFile))
+        return; // new config file exists - skip renaming
+
+    fs::path configFileLegacy = GetDefaultDataDir() / fs::path("ColossusCoinXT.conf");
+    if (fs::exists(configFileLegacy))
+        fs::rename(configFileLegacy, configFile);
+}
+
+void RenameDataDirAndConfFile()
+{
+    RenameDataDir();
+    RenameConfigFile();
 }
