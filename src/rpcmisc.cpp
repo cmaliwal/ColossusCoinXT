@@ -124,7 +124,7 @@ Value getinfo(const Array& params, bool fHelp)
     vector<string> warnings;
     warnings.push_back(GetWarnings("statusbar"));
     if (GetContext().IsUpdateAvailable())
-        warnings.push_back(strprintf("New version is available, please update your wallet! Go to: %s", GITHUB_RELEASE_URL));
+        warnings.push_back(strprintf("New version is available, please update your wallet! Go to: %s", GetContext().GetUpdateUrlTag()));
 
     obj.push_back(Pair("errors", boost::algorithm::join(warnings, " ")));
 

@@ -2531,7 +2531,7 @@ void static UpdateTip(CBlockIndex* pindexNew)
 
             // Force user update wallet if new version is available
             if (GetContext().IsUpdateAvailable()) {
-                string msg = strprintf("%s New version is available, please update your wallet! Go to: %s", strMiscWarning, GITHUB_RELEASE_URL);
+                string msg = strprintf("%s New version is available, please update your wallet! Go to: %s", strMiscWarning, GetContext().GetUpdateUrlTag());
                 AbortNode(msg, msg);
             }
         }

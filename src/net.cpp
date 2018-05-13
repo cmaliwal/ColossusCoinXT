@@ -1575,12 +1575,19 @@ static bool IsUpdateAvailable(CUrl& redirect)
 {
     DebugPrintf("%s: starting\n", __func__);
 
-    const string urlRelease = GetArg("-checkforupdateurl", GITHUB_RELEASE_URL);
+    string urlRelease = GetArg("-checkforupdateurl", GITHUB_RELEASE_URL);
 
     string error;
     if (!CURLGetRedirect(urlRelease, redirect, error)) {
         DebugPrintf("%s: error - %s\n", __func__, error);
-        return false;
+        if (urlRelease == GITHUB_RELEASE_URL) {
+            boost::algorithm::replace_all(urlRelease, "ColossusCoinXT", "ColossusXT");
+            if (!CURLGetRedirect(urlRelease, redirect, error)) {
+                DebugPrintf("%s: error - %s\n", __func__, error);
+                return false;
+            }
+        } else
+            return false;
     }
 
     const string ver = strprintf("v%s", FormatVersion(CLIENT_VERSION));
@@ -1588,7 +1595,7 @@ static bool IsUpdateAvailable(CUrl& redirect)
 
     // assume version mismatch means new update is available (downgrage possible)
     if (redirect.find(ver) == string::npos) {
-        LogPrintf("New version is available, please update your wallet! Go to: %s\n", GITHUB_RELEASE_URL);
+        LogPrintf("New version is available, please update your wallet! Go to: %s\n", redirect);
         return true;
     }
     else
