@@ -7,7 +7,7 @@ SetCompressor /SOLID lzma
 !define REGKEY "SOFTWARE\$(^Name)"
 !define VERSION @CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@
 !define COMPANY "COLX Core project"
-!define URL https://colossuscoinxt.org
+!define URL https://colossusxt.io
 
 # MUI Symbol Definitions
 !define MUI_ICON "@abs_top_srcdir@/share/pixmaps/bitcoin.ico"
@@ -31,6 +31,9 @@ SetCompressor /SOLID lzma
 !if "@WINDOWS_BITS@" == "64"
 !include x64.nsh
 !endif
+
+# Local includes
+!addincludedir .
 !include registry.nsh
 
 # Variables
