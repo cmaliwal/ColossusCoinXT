@@ -33,8 +33,7 @@ SetCompressor /SOLID lzma
 !endif
 
 # Local includes
-!addincludedir .
-!include registry.nsh
+!include @abs_top_srcdir@/share/registry.nsh
 
 # Variables
 Var StartMenuGroup
