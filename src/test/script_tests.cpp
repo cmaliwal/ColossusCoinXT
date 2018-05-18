@@ -971,4 +971,182 @@ BOOST_AUTO_TEST_CASE(script_IsPushOnly_on_invalid_scripts)
     BOOST_CHECK(!CScript(direct, direct+sizeof(direct)).IsPushOnly());
 }
 
+BOOST_AUTO_TEST_CASE(script_GetScriptAsm)
+{
+    BOOST_CHECK_EQUAL("OP_CHECKLOCKTIMEVERIFY", ScriptToAsmStr(CScript() << OP_NOP2, true));
+    BOOST_CHECK_EQUAL("OP_CHECKLOCKTIMEVERIFY", ScriptToAsmStr(CScript() << OP_CHECKLOCKTIMEVERIFY, true));
+    BOOST_CHECK_EQUAL("OP_CHECKLOCKTIMEVERIFY", ScriptToAsmStr(CScript() << OP_NOP2));
+    BOOST_CHECK_EQUAL("OP_CHECKLOCKTIMEVERIFY", ScriptToAsmStr(CScript() << OP_CHECKLOCKTIMEVERIFY));
+
+    string derSig("304502207fa7a6d1e0ee81132a269ad84e68d695483745cde8b541e3bf630749894e342a022100c1f7ab20e13e22fb95281a870f3dcf38d782e53023ee313d741ad0cfbc0c5090");
+    string pubKey("03b0da749730dc9b4b1f4a14d6902877a92541f5368778853d9c4a0cb7802dcfb2");
+    vector<unsigned char> vchPubKey = ToByteVector(ParseHex(pubKey));
+
+    BOOST_CHECK_EQUAL(derSig + "00 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "00")) << vchPubKey, true));
+    BOOST_CHECK_EQUAL(derSig + "80 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "80")) << vchPubKey, true));
+    BOOST_CHECK_EQUAL(derSig + "[ALL] " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "01")) << vchPubKey, true));
+    BOOST_CHECK_EQUAL(derSig + "[NONE] " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "02")) << vchPubKey, true));
+    BOOST_CHECK_EQUAL(derSig + "[SINGLE] " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "03")) << vchPubKey, true));
+    BOOST_CHECK_EQUAL(derSig + "[ALL|ANYONECANPAY] " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "81")) << vchPubKey, true));
+    BOOST_CHECK_EQUAL(derSig + "[NONE|ANYONECANPAY] " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "82")) << vchPubKey, true));
+    BOOST_CHECK_EQUAL(derSig + "[SINGLE|ANYONECANPAY] " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "83")) << vchPubKey, true));
+
+    BOOST_CHECK_EQUAL(derSig + "00 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "00")) << vchPubKey));
+    BOOST_CHECK_EQUAL(derSig + "80 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "80")) << vchPubKey));
+    BOOST_CHECK_EQUAL(derSig + "01 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "01")) << vchPubKey));
+    BOOST_CHECK_EQUAL(derSig + "02 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "02")) << vchPubKey));
+    BOOST_CHECK_EQUAL(derSig + "03 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "03")) << vchPubKey));
+    BOOST_CHECK_EQUAL(derSig + "81 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "81")) << vchPubKey));
+    BOOST_CHECK_EQUAL(derSig + "82 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "82")) << vchPubKey));
+    BOOST_CHECK_EQUAL(derSig + "83 " + pubKey, ScriptToAsmStr(CScript() << ToByteVector(ParseHex(derSig + "83")) << vchPubKey));
+}
+
+static CScript ScriptFromHex(const char* hex)
+{
+    std::vector<unsigned char> data = ParseHex(hex);
+    return CScript(data.begin(), data.end());
+}
+
+BOOST_AUTO_TEST_CASE(script_FindAndDelete)
+{
+    // Exercise the FindAndDelete functionality
+    CScript s;
+    CScript d;
+    CScript expect;
+
+    s = CScript() << OP_1 << OP_2;
+    d = CScript(); // delete nothing should be a no-op
+    expect = s;
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 0);
+    BOOST_CHECK(s == expect);
+
+    s = CScript() << OP_1 << OP_2 << OP_3;
+    d = CScript() << OP_2;
+    expect = CScript() << OP_1 << OP_3;
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 1);
+    BOOST_CHECK(s == expect);
+
+    s = CScript() << OP_3 << OP_1 << OP_3 << OP_3 << OP_4 << OP_3;
+    d = CScript() << OP_3;
+    expect = CScript() << OP_1 << OP_4;
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 4);
+    BOOST_CHECK(s == expect);
+
+    s = ScriptFromHex("0302ff03"); // PUSH 0x02ff03 onto stack
+    d = ScriptFromHex("0302ff03");
+    expect = CScript();
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 1);
+    BOOST_CHECK(s == expect);
+
+    s = ScriptFromHex("0302ff030302ff03"); // PUSH 0x2ff03 PUSH 0x2ff03
+    d = ScriptFromHex("0302ff03");
+    expect = CScript();
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 2);
+    BOOST_CHECK(s == expect);
+
+    s = ScriptFromHex("0302ff030302ff03");
+    d = ScriptFromHex("02");
+    expect = s; // FindAndDelete matches entire opcodes
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 0);
+    BOOST_CHECK(s == expect);
+
+    s = ScriptFromHex("0302ff030302ff03");
+    d = ScriptFromHex("ff");
+    expect = s;
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 0);
+    BOOST_CHECK(s == expect);
+
+    // This is an odd edge case: strip of the push-three-bytes
+    // prefix, leaving 02ff03 which is push-two-bytes:
+    s = ScriptFromHex("0302ff030302ff03");
+    d = ScriptFromHex("03");
+    expect = CScript() << ParseHex("ff03") << ParseHex("ff03");
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 2);
+    BOOST_CHECK(s == expect);
+
+    // Byte sequence that spans multiple opcodes:
+    s = ScriptFromHex("02feed5169"); // PUSH(0xfeed) OP_1 OP_VERIFY
+    d = ScriptFromHex("feed51");
+    expect = s;
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 0); // doesn't match 'inside' opcodes
+    BOOST_CHECK(s == expect);
+
+    s = ScriptFromHex("02feed5169"); // PUSH(0xfeed) OP_1 OP_VERIFY
+    d = ScriptFromHex("02feed51");
+    expect = ScriptFromHex("69");
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 1);
+    BOOST_CHECK(s == expect);
+
+    s = ScriptFromHex("516902feed5169");
+    d = ScriptFromHex("feed51");
+    expect = s;
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 0);
+    BOOST_CHECK(s == expect);
+
+    s = ScriptFromHex("516902feed5169");
+    d = ScriptFromHex("02feed51");
+    expect = ScriptFromHex("516969");
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 1);
+    BOOST_CHECK(s == expect);
+
+    s = CScript() << OP_0 << OP_0 << OP_1 << OP_1;
+    d = CScript() << OP_0 << OP_1;
+    expect = CScript() << OP_0 << OP_1; // FindAndDelete is single-pass
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 1);
+    BOOST_CHECK(s == expect);
+
+    s = CScript() << OP_0 << OP_0 << OP_1 << OP_0 << OP_1 << OP_1;
+    d = CScript() << OP_0 << OP_1;
+    expect = CScript() << OP_0 << OP_1; // FindAndDelete is single-pass
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 2);
+    BOOST_CHECK(s == expect);
+
+    // Another weird edge case:
+    // End with invalid push (not enough data)...
+    s = ScriptFromHex("0003feed");
+    d = ScriptFromHex("03feed"); // ... can remove the invalid push
+    expect = ScriptFromHex("00");
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 1);
+    BOOST_CHECK(s == expect);
+
+    s = ScriptFromHex("0003feed");
+    d = ScriptFromHex("00");
+    expect = ScriptFromHex("03feed");
+    BOOST_CHECK_EQUAL(s.FindAndDelete(d), 1);
+    BOOST_CHECK(s == expect);
+}
+
+
+BOOST_AUTO_TEST_CASE(script_bip65)
+{
+    CBasicKeyStore keystore;
+
+    CKey secret;
+    secret.MakeNewKey(true);
+    keystore.AddKey(secret);
+
+    CScript scriptPubKey = CScript() << CScriptNum(100) << OP_CHECKLOCKTIMEVERIFY << OP_DROP;
+    scriptPubKey += GetScriptForDestination(secret.GetPubKey().GetID());
+
+    CMutableTransaction txFrom = BuildCreditingTransaction(scriptPubKey);
+    CMutableTransaction txTo = BuildSpendingTransaction(CScript(), txFrom);
+    MutableTransactionSignatureChecker checker1(&txTo, 0);
+
+    ScriptError err;
+    vector<vector<unsigned char> > directStack;
+    BOOST_CHECK(!EvalScript(directStack, scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, checker1, &err));
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_UNSATISFIED_LOCKTIME, ScriptErrorString(err));
+
+    txTo.nLockTime = 100;
+    MutableTransactionSignatureChecker checker2(&txTo, 0);
+    BOOST_CHECK(!EvalScript(directStack, scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, checker2, &err));
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_UNSATISFIED_LOCKTIME, ScriptErrorString(err));
+
+    txTo.nLockTime = 100;
+    txTo.vin[0].nSequence = CTxIn::SEQUENCE_FINAL - 1;
+    MutableTransactionSignatureChecker checker3(&txTo, 0);
+    BOOST_CHECK(!EvalScript(directStack, scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, checker3, &err));
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_EQUALVERIFY, ScriptErrorString(err));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
