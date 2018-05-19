@@ -232,8 +232,12 @@ public:
         nTime = block.nTime;
         nBits = block.nBits;
         nNonce = block.nNonce;
-        if(block.nVersion > 3) // FIXME: version must correspond zerocoin release
+
+        // ZCTEST: // ZCMAINNET: 
+        if (block.nVersion > 4) // FIXME: version must correspond zerocoin release
             nAccumulatorCheckpoint = block.nAccumulatorCheckpoint;
+        //if(block.nVersion > 3) // FIXME: version must correspond zerocoin release
+        //    nAccumulatorCheckpoint = block.nAccumulatorCheckpoint;
 
         //Proof of Stake
         bnChainTrust = uint256();
@@ -477,7 +481,9 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
-        if(this->nVersion > 3) { // FIXME: version must correspond zerocoin release
+        // ZCTEST: // ZCMAINNET: 
+        //if (this->nVersion > 3) { // FIXME: version must correspond zerocoin release
+        if (this->nVersion > 4) { // FIXME: version must correspond zerocoin release
             READWRITE(nAccumulatorCheckpoint);
             READWRITE(mapZerocoinSupply);
             READWRITE(vMintDenominationsInBlock);

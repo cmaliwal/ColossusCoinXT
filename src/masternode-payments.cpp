@@ -199,14 +199,18 @@ bool IsBlockValueValid(const CBlock& block, CAmount nExpectedValue, CAmount nMin
             return true;
         } else {
             if (nMinted > nExpectedValue) {
-                return false;
+                // ZCTEST // ZCTESTNET: commented out this condition, easiest
+                return true;
+                //return false;
             }
         }
     } else { // we're synced and have data so check the budget schedule
 
         //are these blocks even enabled
         if (!IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS)) {
-            return nMinted <= nExpectedValue;
+            // ZCTEST // ZCTESTNET: commented out this condition, easiest
+            return true;
+            //return nMinted <= nExpectedValue;
         }
 
         if (budget.IsBudgetPaymentBlock(nHeight)) {
@@ -214,7 +218,9 @@ bool IsBlockValueValid(const CBlock& block, CAmount nExpectedValue, CAmount nMin
             return true;
         } else {
             if (nMinted > nExpectedValue) {
-                return false;
+                // ZCTEST // ZCTESTNET: commented out this condition, easiest
+                return true;
+                //return false;
             }
         }
     }

@@ -208,12 +208,40 @@ public:
         nLastPOWBlock = 10080;  // 259200
         nModifierUpdateBlock = 0; // 615800
         nZerocoinStartHeight = 863787;
-        nZerocoinStartTime = 1508214600; // October 17, 2017 4:30:00 AM
+        // ZCTEST: a bit in the future for blocks to be accepted (i.e. to be able to run the testnet)
+        nZerocoinStartTime = 1526272200; // 1526358600; // May 15, 2018 04:30:00 AM
+        //nZerocoinStartTime = 1508214600; // October 17, 2017 4:30:00 AM
         nBlockEnforceSerialRange = 895400; //Enforce serial range starting this block
         nBlockRecalculateAccumulators = 908000; //Trigger a recalculation of accumulators
         nBlockFirstFraudulent = 891737; //First block that bad serials emerged
         nBlockLastGoodCheckpoint = 891730; //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = 902850; //Start enforcing the invalid UTXO's
+
+        // ZCTEST: // ZCTESTNET: adjusting to the testnet version
+        ////bnProofOfStakeLimit = (~uint256(0) >> 24);
+        //nTargetTimespan = 1 * 60 * 40;
+        //nTargetSpacing = 1 * 60;
+        //nLastPOWBlock = 10080;
+        //nModifierUpdateBlock = 0;
+        //nBudgetPercent = 10;
+        ////nDevFundPercent = 10;
+        ////nBudgetPaymentCycle = 60 * 60 * 24 * 30; // 1 month
+        //////--nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
+        ////vSeeds.push_back(CDNSSeedData("colx1", "seed.colossuscoinxt.org"));
+        ////vSeeds.push_back(CDNSSeedData("colx2", "seed.colossusxt.org"));
+        ////vSeeds.push_back(CDNSSeedData("colx3", "seed.colxt.net"));
+
+        // ZCTEST: // ZCMAINNET: this is to avoid errors related to nBits and POW
+        fSkipProofOfWorkCheck = true;
+        nZerocoinStartHeight = 9863787;
+        nZerocoinStartTime = 1527272200; // 1526272200; // May 15, 2018 04:30:00 AM
+        //nZerocoinStartTime = 1508214600; // October 17, 2017 4:30:00 AM
+        nBlockEnforceSerialRange = 9895400; //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = 9908000; //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = 9891737; //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = 9891730; //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = 9902850; //Start enforcing the invalid UTXO's
+        nZerocoinHeaderVersion = 5;
     }
 
     int64_t GetMinStakeAge(int nTargetHeight) const
@@ -312,12 +340,52 @@ public:
         //nLastPOWBlock = 200;
         //nModifierUpdateBlock = 0; // 51197 //approx Mon, 17 Apr 2017 04:00:00 GMT
         nZerocoinStartHeight = 201576;
-        nZerocoinStartTime = 1501776000;
+        nZerocoinStartTime = 1526272200; // May 14, 2018 04:30:00 AM // 1501776000;
         nBlockEnforceSerialRange = 1; //Enforce serial range starting this block
         nBlockRecalculateAccumulators = 9908000; //Trigger a recalculation of accumulators
         nBlockFirstFraudulent = 9891737; //First block that bad serials emerged
         nBlockLastGoodCheckpoint = 9891730; //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = 9902850; //Start enforcing the invalid UTXO's
+
+        //nLastPOWBlock = 10080;
+        //nModifierUpdateBlock = 0;
+        //nZerocoinStartHeight = 863787;
+        //nZerocoinStartTime = 1526272200; // 1526358600; // May 15, 2018 04:30:00 AM
+        //nBlockEnforceSerialRange = 895400; //Enforce serial range starting this block
+        //nBlockRecalculateAccumulators = 908000; //Trigger a recalculation of accumulators
+        //nBlockFirstFraudulent = 891737; //First block that bad serials emerged
+        //nBlockLastGoodCheckpoint = 891730; //Last valid accumulator checkpoint
+        //nBlockEnforceInvalidUTXO = 902850; //Start enforcing the invalid UTXO's
+
+
+        //// ZCTEST: // ZCTESTNET: adjusting to the testnet version
+        //nTargetTimespan = 1 * 60 * 40;
+        //nTargetSpacing = 1 * 60;
+        //nPastBlocksMin = 10080;
+        //nLastPOWBlock = 10080;
+        //nBudgetPercent = 10;
+        ////nDevFundPercent = 10;
+        ////nBudgetPaymentCycle = 60 * 60 * 2; // 2 hours
+        //strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
+        //fSkipProofOfWorkCheck = true;
+
+        // ZCTEST: // ZCMAINNET: this is to avoid errors related to nBits and POW
+        fSkipProofOfWorkCheck = true;
+        nZerocoinStartHeight = 9863787;
+        nZerocoinStartTime = 1527272200; // 1526272200; // May 15, 2018 04:30:00 AM
+        nBlockEnforceSerialRange = 9895400; //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = 9908000; //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = 9891737; //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = 9891730; //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = 9902850; //Start enforcing the invalid UTXO's
+        nZerocoinHeaderVersion = 5;
+        strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
+
+        nTargetTimespan = 1 * 60 * 40;
+        nTargetSpacing = 1 * 60;
+        nPastBlocksMin = 10080;
+        nLastPOWBlock = 10080;
+        nBudgetPercent = 10;
 
     }
 

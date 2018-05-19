@@ -13,8 +13,11 @@
 #include "uint256.h"
 
 /** The maximum allowed size for a serialized block, in bytes (network rule) */
-static const unsigned int MAX_BLOCK_SIZE_CURRENT = 2000000;
+// ZCTEST: make this legacy for now so we can work with the testnet/old (but we should test w/ it to see if it works) // TODO:
+// CURRENT vs LEGACY == ZEROCOIN vs before
+static const unsigned int MAX_BLOCK_SIZE_CURRENT = 1000000; // 2000000;
 static const unsigned int MAX_BLOCK_SIZE_LEGACY = 1000000;
+// ZC: this isn't used any more (PIVX code is using both current/legacy) // TODO: disentangle those if needed
 static const unsigned int MAX_BLOCK_SIZE = MAX_BLOCK_SIZE_LEGACY; //FIXME: change block size or not?
 
 /** Nodes collect new transactions into a block, hash them into a hash tree,
@@ -28,7 +31,8 @@ class CBlockHeader
 {
 public:
     // header
-    static const int32_t CURRENT_VERSION=4; //FIXME: set proper verion before acutal release
+    // ZCTEST: // ZCMAINNET: this is ok to stay higher (than the testnet/old), it's only used to note down, warn about the obsoleteness (on the other side) and when blocks are created with this version
+    static const int32_t CURRENT_VERSION = 5; // 4; //FIXME: set proper verion before acutal release
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
@@ -55,8 +59,11 @@ public:
         READWRITE(nNonce);
 
         //zerocoin active, header changes to include accumulator checksum
-        if(nVersion > 3) // FIXME: set proper version
+        // ZCTEST: // ZCMAINNET: 
+        if (nVersion > 4) // FIXME: set proper version
             READWRITE(nAccumulatorCheckpoint);
+        //if(nVersion > 3) // FIXME: set proper version
+        //    READWRITE(nAccumulatorCheckpoint);
     }
 
     void SetNull()
@@ -114,8 +121,8 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CBlockHeader*)this);
         READWRITE(vtx);
-	if(vtx.size() > 1 && vtx[1].IsCoinStake())
-		READWRITE(vchBlockSig);
+    if(vtx.size() > 1 && vtx[1].IsCoinStake())
+        READWRITE(vchBlockSig);
     }
 
     void SetNull()
