@@ -145,6 +145,11 @@ QString Intro::getDefaultDataDirectory()
     return GUIUtil::boostPathToQString(GetDefaultDataDir());
 }
 
+QString Intro::getSettingsDirectory()
+{
+    return QSettings().fileName();
+}
+
 bool Intro::pickDataDirectory()
 {
     namespace fs = boost::filesystem;
@@ -156,7 +161,9 @@ bool Intro::pickDataDirectory()
     /* 1) Default data directory for operating system */
     QString dataDir = getDefaultDataDirectory();
     /* 2) Allow QSettings to override default dir */
-    dataDir = settings.value("strDataDir", dataDir).toString();
+    QString dataDirSettings = settings.value("strDataDir", dataDir).toString();
+    if (!fs::exists(GUIUtil::qstringToBoostPath(dataDirSettings)))
+        dataDir = getDefaultDataDirectory();
 
     if (!fs::exists(GUIUtil::qstringToBoostPath(dataDir)) || GetBoolArg("-choosedatadir", false)) {
         /* If current default data directory does not exist, let the user choose one */
@@ -179,15 +186,18 @@ bool Intro::pickDataDirectory()
                 /* fall through, back to choosing screen */
             }
         }
-
-        settings.setValue("strDataDir", dataDir);
     }
+
+    // update settings
+    settings.setValue("strDataDir", dataDir);
+
     /* Only override -datadir if different from the default, to make it possible to
      * override -datadir in the colx.conf file in the default data directory
      * (to be consistent with colxd behavior)
      */
     if (dataDir != getDefaultDataDirectory())
         SoftSetArg("-datadir", GUIUtil::qstringToBoostPath(dataDir).string()); // use OS locale for path setting
+
     return true;
 }
 

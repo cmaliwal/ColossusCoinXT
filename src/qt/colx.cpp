@@ -53,6 +53,8 @@
 #include <QThread>
 #include <QTimer>
 #include <QTranslator>
+#include <QFileInfo>
+#include <QString>
 
 #if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
@@ -586,6 +588,25 @@ int main(int argc, char* argv[])
     }
 
     /// 5. Now that settings and translations are available, ask user for data directory
+    // Rebranding QSettings if needed
+    try {
+        QString newSettingPath = Intro::getSettingsDirectory();
+        QString oldSettingsPath = newSettingPath;
+        oldSettingsPath.replace(QString(QAPP_ORG_NAME), QString("ColossusCoinXT"));
+        if (!newSettingPath.isEmpty() && !oldSettingsPath.isEmpty() &&
+                QFileInfo::exists(oldSettingsPath) && !QFileInfo::exists(newSettingPath)) {
+            namespace fs = boost::filesystem;
+            const fs::path pOldSettings = GUIUtil::qstringToBoostPath(oldSettingsPath);
+            const fs::path pNewSettings = GUIUtil::qstringToBoostPath(newSettingPath);
+            fs::create_directories(pNewSettings.parent_path());
+            fs::copy(pOldSettings, pNewSettings);
+        }
+    } catch (...) {
+        assert(false);
+        // in case of errors user will have to choose data directory again,
+        // so skip error and continue
+    }
+
     // User language is set up: pick a data directory
     if (!Intro::pickDataDirectory())
         return 0;

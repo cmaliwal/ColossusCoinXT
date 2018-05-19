@@ -49,6 +49,11 @@ public:
      */
     static QString getDefaultDataDirectory();
 
+    /**
+     * Determine settings directory for operating system.
+     */
+    static QString getSettingsDirectory();
+
 signals:
     void requestCheck();
     void stopThread();
