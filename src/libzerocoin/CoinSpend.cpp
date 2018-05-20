@@ -60,6 +60,29 @@ bool CoinSpend::Verify(const Accumulator& a) const
     return (a.getDenomination() == this->denomination) && commitmentPoK.Verify(serialCommitmentToCoinValue, accCommitmentToCoinValue) && accumulatorPoK.Verify(a, accCommitmentToCoinValue) && serialNumberSoK.Verify(coinSerialNumber, serialCommitmentToCoinValue, signatureHash());
 }
 
+// ZCTEST: 
+bool CoinSpend::Verify(const Accumulator& a, string& reason) const
+{
+    if (a.getDenomination() != this->denomination) {
+        reason = "denomination";
+        return false;
+    }
+    if (!commitmentPoK.Verify(serialCommitmentToCoinValue, accCommitmentToCoinValue)) {
+        reason = "commitment";
+        return false;
+    }
+    if (!accumulatorPoK.Verify(a, accCommitmentToCoinValue)) {
+        reason = "accumulator";
+        return false;
+    }
+    if (!serialNumberSoK.Verify(coinSerialNumber, serialCommitmentToCoinValue, signatureHash())) {
+        reason = "accumulator";
+        return false;
+    }
+    // Verify both of the sub-proofs using the given meta-data
+    return (a.getDenomination() == this->denomination) && commitmentPoK.Verify(serialCommitmentToCoinValue, accCommitmentToCoinValue) && accumulatorPoK.Verify(a, accCommitmentToCoinValue) && serialNumberSoK.Verify(coinSerialNumber, serialCommitmentToCoinValue, signatureHash());
+}
+
 const uint256 CoinSpend::signatureHash() const
 {
     CHashWriter h(0, 0);

@@ -33,12 +33,41 @@ BOOST_AUTO_TEST_CASE(zcparams_test)
     BOOST_CHECK(fPassed);
 }
 
+
+// ZCTEST: fix, tests should use the same modulus as in the chainparams, otherwise failing
+// ...also, for some reason (unknown, possibly ZerocoinDefines parameters), tests only work for the original moduls/bignum
+// I'm leaving it as it was (pivx/original) as I'm not sure if that may cause ZC-s to fail later on, if tests are running it's safer.
+
+//// original (pivx):
 std::string zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
     "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"
     "6507761337985909570009733045974880842840179742910064245869181719511874612151517265463228221686998754918242243363"
     "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
     "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
     "31438167899885040445364023527381951378636564391212010397122822120720357";
+//std::string zerocoinModulus = "eea95da0a8c277c6fa63a84ab86e748bd499417feb8bc312e67d4076e6d1bb048d0e60afc42bc04b4f3afb754b35bc2056"
+//"31855dc262811b2f77b8323ece492299e599b8ac048b3335004c63bb115fa1448619741ae4eafd21e59fc41761bf0015fe96fc0300ed78b8"
+//"b050440b093f82bcbdf4d63d9851004d72c71b79506b687a7a12a796813da48baa4ab23708f1d1b5b380ac5cc38529465961a1c098da9f26"
+//"06dcb6d5393e9b9eef43f8eb42c8e3e1634a0d1649337a409fe2b948fd3f5753e258ef855b72a5a83f34f14add3180ffc15e1da6a3d6a147"
+//"ad4ef9da82a9253b39f5ffca4c483d76333c93c1781b2b0e5ccb520ebf58da506da303ea28c975a4463c0fc5b2f8a7421e072d09ef391268"
+//"fd64fcb0f72a736350ae83b394d5f861af8378b348b4a359b5e5e8837aae2ba4b23838610fe65605fd7ef34972b47e773a906b56a60129ce"
+//"04ed78030ff7ad2c2c4f54cc715ee0cccab5f42566829ad507c4bd834cde358ff079f87c0352b3434c059d3df8bcb7e9b19f13f9150b41";
+// original (pivx):
+//std::string zerocoinModulus = "2eaae01f7f7db2519b32c0af4eafca150caff18f32e4a5556e9354947ea063a7d53d790b0f4502e9aabfdbb743221a0cfb"
+//"6bfb679387fa689230278e70b3f0a4c7aa4e8d12d0a3361876fba6c38f32d45a66c2e701c31d6af604ccda6a2625becb45e160f17a4faff0"
+//"b0db3b80f512a07c62ee492323b3df46ffecfbdd4c474680243df6b77c2915c8d428a8ae59b0b3514d8e1255eed2802b3b0b7981e9dad913"
+//"88027c6b1baafd88027182f41901fb526f804c1619214bdcbca5abdf15711633e31b17d01362d0257b0fd3af22e24f450b92001541913d96"
+//"5f20808c562cc342ad63a6198bfac3af747efd22a635e90537ca7c4248e2b8578a8d46327a2973e840ab69b21afecbb948486b1782be6f65"
+//"8c058413aab607f38580b7418b094f942cb041dfb073f4412302b32c013405b4a2b0369";
+//std::string zerocoinModulus = "a8518c7ad8e1bb27064ec9dc2d9dbd0200a418ebc0c5d540b3c8cce012a27c33fc7dd38fd0bd617a83f5738cd7f5cf8e50"
+//"5428cf4325380e0cce97a36569ff85ca83cb8ed214ec496ecb76f342cc31f2a39c3eafc77cdc61d1c176f01efb59ad829c9e3f19fffe6477"
+//"cb5037798553f7d61bc70b2a23ebcd56db4a2a070046da83f1406f827c1c8e587824809e8bfb8eb07c1c8521d75dcbd369e3ffe2f1bb534b"
+//"97cbdaaa02a3ae482d3e1c45027d7cec6d55aadc048b2cf57bf846944c9d5d30a8c84f63643a36ed093c18942fe7c136f773e882145934b8"
+//"f8b31e15820c595ac912083de42a6136348c98c6ca841f5f033d91e397f8216e9b126e51fc36c6b2a9a54eb849f5e343871be14201eaf760"
+//"da4bd132a1ae1746eadc1c6f038be47018e646d83cdae67c8e0b97d998620b4643e78010879e723a38cba233de2319e3d0fa2d9139992c52"
+//"2c326fd8278b0863ec2d280e43a519f1d52127ee826a9abc8e5e10e32f5605b401f467b4960f1b155c9c293eb95ea7828536fb250e93c1";
+
+
 CBigNum bnTrustedModulus(zerocoinModulus);
 libzerocoin::ZerocoinParams zerocoinParams = libzerocoin::ZerocoinParams(bnTrustedModulus);
 
@@ -144,6 +173,12 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
 
         //Check that the coin is on the accumulator
         if (!newSpend.Verify(accumulator)) {
+            // ZCTEST: 
+            string reason;
+            //bool isCoinSpendVerify = newSpend.Verify(accumulator, reason);
+            strError = strprintf("CheckZerocoinSpend(): zerocoin spend did not verify, reason: %s", reason.c_str());
+            return false;
+
             strError = "CheckZerocoinSpend(): zerocoin spend did not verify";
             return false;
         }
@@ -222,7 +257,11 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
 
     CoinDenomination denom = coinSpend.getDenomination();
     BOOST_CHECK_MESSAGE(denom == pubCoin.getDenomination(), "Spend denomination must match original pubCoin");
-    BOOST_CHECK_MESSAGE(coinSpend.Verify(accumulator), "CoinSpend object failed to validate");
+    //BOOST_CHECK_MESSAGE(coinSpend.Verify(accumulator), "CoinSpend object failed to validate");
+    // ZCTEST: 
+    string reason;
+    bool isCoinSpendVerify = coinSpend.Verify(accumulator, reason);
+    BOOST_CHECK_MESSAGE(isCoinSpendVerify, strprintf("CoinSpend object failed to validate, reason: %s", reason.c_str()));
 
     //serialize the spend
     CDataStream serializedCoinSpend2(SER_NETWORK, PROTOCOL_VERSION);

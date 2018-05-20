@@ -335,18 +335,27 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     t.vout[0].scriptPubKey = GetScriptForDestination(key.GetPubKey().GetID());
 
     string reason;
-    BOOST_CHECK(IsStandardTx(t, reason));
+    //BOOST_CHECK(IsStandardTx(t, reason));
+    //BOOST_CHECK_MESSAGE(IsStandardTx(t, reason), strprintf("IsStandardTx failed reason: %s", reason.c_str()));
+    // ZCTEST: 
+    bool isStandardTx = IsStandardTx(t, reason);
+    BOOST_CHECK_MESSAGE(isStandardTx, strprintf("IsStandardTx failed reason: %s", reason.c_str()));
 
     t.vout[0].nValue = 5011; // dust
     BOOST_CHECK(!IsStandardTx(t, reason));
 
     t.vout[0].nValue = 6011; // not dust
-    BOOST_CHECK(IsStandardTx(t, reason));
+    //BOOST_CHECK(IsStandardTx(t, reason));
+    //BOOST_CHECK_MESSAGE(IsStandardTx(t, reason), strprintf("IsStandardTx failed reason: %s", reason.c_str()));
+    // ZCTEST: 
+    isStandardTx = IsStandardTx(t, reason);
+    BOOST_CHECK_MESSAGE(isStandardTx, strprintf("IsStandardTx failed reason: %s", reason.c_str()));
 
     t.vout[0].scriptPubKey = CScript() << OP_1;
     BOOST_CHECK(!IsStandardTx(t, reason));
 
     // MAX_OP_RETURN_RELAY-byte TX_NULL_DATA (standard)
+    // ZCTEST: 
     t.vout[0].scriptPubKey = CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef3804678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38");
     BOOST_CHECK_EQUAL(MAX_OP_RETURN_RELAY, t.vout[0].scriptPubKey.size());
     BOOST_CHECK(IsStandardTx(t, reason));

@@ -104,6 +104,7 @@ void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, int flags, bo
     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
     stream << tx2;
     // DRAGAN: FIXME: link error
+    // not sure why it's happening, related to it being extern I guess 
     //BOOST_CHECK_MESSAGE(bitcoinconsensus_verify_script(begin_ptr(scriptPubKey), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), 0, flags, NULL) == expect,message);
 #endif
 }

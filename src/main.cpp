@@ -90,8 +90,11 @@ int64_t nReserveBalance = 0;
  * so it's still 10 times lower comparing to bitcoin.
  */
 // DRAGAN: changed, param
-//CFeeRate minRelayTxFee = CFeeRate(10000);
-CFeeRate minRelayTxFee = CFeeRate(10 * COIN);
+// ZCTEST: fix, the tests are failing cause of this ('dust' reason in the IsStandardTx)
+// ...this is less than the smallest relay fee, COIN (even CENT) is too big here? // Q:
+// ...back to where it was for now
+CFeeRate minRelayTxFee = CFeeRate(10000);
+//CFeeRate minRelayTxFee = CFeeRate(10 * COIN);
 
 CTxMemPool mempool(::minRelayTxFee);
 
@@ -4413,7 +4416,8 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
     // Version 4 header must be used after Params().Zerocoin_StartHeight(). And never before.
     if (block.GetBlockTime() > Params().Zerocoin_StartTime()) {
         if (block.nVersion < Params().Zerocoin_HeaderVersion()) {
-            // ZCTEST: best is to skip complaining about it for now
+            // ZCTEST: // ZCMAINNET: best is to skip complaining about it for now
+            // ...check this out, if we push the params up may not be needed
             LogPrint("debug", "%s: block version must be 4 or above after ZerocoinStartHeight", __func__);
             return true;
 
@@ -4603,7 +4607,8 @@ bool CheckWork(const CBlock block, CBlockIndex* const pindexPrev)
     if (pindexPrev == NULL)
         return error("%s : null pindexPrev for block %s", __func__, block.GetHash().ToString().c_str());
 
-    // ZCTEST: // ZCMAINNET: similarly to pow.cpp and CheckProofOfWork, just skip if set
+    // ZCTEST: // ZCMAINNET: // ZCTESTNET: similarly to pow.cpp and CheckProofOfWork, just skip if set
+    // ...not sure if this is for testnet only? doesn't matter it's ok to stay
     if (Params().SkipProofOfWorkCheck())
         return true;
 

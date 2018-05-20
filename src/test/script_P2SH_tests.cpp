@@ -89,7 +89,11 @@ BOOST_AUTO_TEST_CASE(sign)
         txFrom.vout[i+4].scriptPubKey = standardScripts[i];
         txFrom.vout[i+4].nValue = COIN;
     }
-    BOOST_CHECK(IsStandardTx(txFrom, reason));
+    //BOOST_CHECK(IsStandardTx(txFrom, reason));
+    //BOOST_CHECK_MESSAGE(!reason.empty(), strprintf("IsStandardTx failed reason: %s", reason.c_str()));
+    //BOOST_CHECK_MESSAGE(IsStandardTx(txFrom, reason), strprintf("IsStandardTx failed reason: %s", reason.c_str()));
+    bool isStandardTx = IsStandardTx(txFrom, reason);
+    BOOST_CHECK_MESSAGE(isStandardTx, strprintf("IsStandardTx failed reason: %s", reason.c_str()));
 
     CMutableTransaction txTo[8]; // Spending transactions
     for (int i = 0; i < 8; i++)
@@ -185,7 +189,11 @@ BOOST_AUTO_TEST_CASE(set)
         txFrom.vout[i].scriptPubKey = outer[i];
         txFrom.vout[i].nValue = CENT;
     }
-    BOOST_CHECK(IsStandardTx(txFrom, reason));
+    //BOOST_CHECK(IsStandardTx(txFrom, reason));
+    //BOOST_CHECK_MESSAGE(!reason.empty(), strprintf("IsStandardTx failed reason: %s", reason.c_str()));
+    //BOOST_CHECK_MESSAGE(IsStandardTx(txFrom, reason), strprintf("IsStandardTx failed reason: %s", reason.c_str()));
+    bool isStandardTx = IsStandardTx(txFrom, reason);
+    BOOST_CHECK_MESSAGE(isStandardTx, strprintf("IsStandardTx failed reason: %s", reason.c_str()));
 
     CMutableTransaction txTo[4]; // Spending transactions
     for (int i = 0; i < 4; i++)
@@ -203,7 +211,10 @@ BOOST_AUTO_TEST_CASE(set)
     for (int i = 0; i < 4; i++)
     {
         BOOST_CHECK_MESSAGE(SignSignature(keystore, txFrom, txTo[i], 0), strprintf("SignSignature %d", i));
-        BOOST_CHECK_MESSAGE(IsStandardTx(txTo[i], reason), strprintf("txTo[%d].IsStandard", i));
+        // BOOST_CHECK_MESSAGE(IsStandardTx(txTo[i], reason), strprintf("txTo[%d].IsStandard", i));
+        //BOOST_CHECK_MESSAGE(IsStandardTx(txTo[i], reason), strprintf("txTo[%d].IsStandard - reason: %s", i, reason.c_str()));
+        bool isStandardTx = IsStandardTx(txTo[i], reason);
+        BOOST_CHECK_MESSAGE(isStandardTx, strprintf("txTo[%d].IsStandard - reason: %s", i, reason.c_str()));
     }
 }
 
