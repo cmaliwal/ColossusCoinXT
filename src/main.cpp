@@ -3251,7 +3251,7 @@ bool UpdateZPIVSupply(const CBlock& block, CBlockIndex* pindex)
     std::list<libzerocoin::CoinDenomination> listSpends = ZerocoinSpendListFromBlock(block, fFilterInvalid);
 
     // Initialize zerocoin supply to the supply from previous block
-    // ZCTEST: // ZCMAINNET: 
+    // ZCTEST: // ZCMAINNET: ZC version has to be '5' 
     //if (pindex->pprev && pindex->pprev->GetBlockHeader().nVersion > 3) {
     if (pindex->pprev && pindex->pprev->GetBlockHeader().nVersion > 4) {
         for (auto& denom : zerocoinDenomList) {

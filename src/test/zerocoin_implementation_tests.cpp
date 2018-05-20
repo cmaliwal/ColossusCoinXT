@@ -53,19 +53,6 @@ std::string zerocoinModulus = "2519590847565789349402718324004839857142928212620
 //"fd64fcb0f72a736350ae83b394d5f861af8378b348b4a359b5e5e8837aae2ba4b23838610fe65605fd7ef34972b47e773a906b56a60129ce"
 //"04ed78030ff7ad2c2c4f54cc715ee0cccab5f42566829ad507c4bd834cde358ff079f87c0352b3434c059d3df8bcb7e9b19f13f9150b41";
 // original (pivx):
-//std::string zerocoinModulus = "2eaae01f7f7db2519b32c0af4eafca150caff18f32e4a5556e9354947ea063a7d53d790b0f4502e9aabfdbb743221a0cfb"
-//"6bfb679387fa689230278e70b3f0a4c7aa4e8d12d0a3361876fba6c38f32d45a66c2e701c31d6af604ccda6a2625becb45e160f17a4faff0"
-//"b0db3b80f512a07c62ee492323b3df46ffecfbdd4c474680243df6b77c2915c8d428a8ae59b0b3514d8e1255eed2802b3b0b7981e9dad913"
-//"88027c6b1baafd88027182f41901fb526f804c1619214bdcbca5abdf15711633e31b17d01362d0257b0fd3af22e24f450b92001541913d96"
-//"5f20808c562cc342ad63a6198bfac3af747efd22a635e90537ca7c4248e2b8578a8d46327a2973e840ab69b21afecbb948486b1782be6f65"
-//"8c058413aab607f38580b7418b094f942cb041dfb073f4412302b32c013405b4a2b0369";
-//std::string zerocoinModulus = "a8518c7ad8e1bb27064ec9dc2d9dbd0200a418ebc0c5d540b3c8cce012a27c33fc7dd38fd0bd617a83f5738cd7f5cf8e50"
-//"5428cf4325380e0cce97a36569ff85ca83cb8ed214ec496ecb76f342cc31f2a39c3eafc77cdc61d1c176f01efb59ad829c9e3f19fffe6477"
-//"cb5037798553f7d61bc70b2a23ebcd56db4a2a070046da83f1406f827c1c8e587824809e8bfb8eb07c1c8521d75dcbd369e3ffe2f1bb534b"
-//"97cbdaaa02a3ae482d3e1c45027d7cec6d55aadc048b2cf57bf846944c9d5d30a8c84f63643a36ed093c18942fe7c136f773e882145934b8"
-//"f8b31e15820c595ac912083de42a6136348c98c6ca841f5f033d91e397f8216e9b126e51fc36c6b2a9a54eb849f5e343871be14201eaf760"
-//"da4bd132a1ae1746eadc1c6f038be47018e646d83cdae67c8e0b97d998620b4643e78010879e723a38cba233de2319e3d0fa2d9139992c52"
-//"2c326fd8278b0863ec2d280e43a519f1d52127ee826a9abc8e5e10e32f5605b401f467b4960f1b155c9c293eb95ea7828536fb250e93c1";
 
 
 CBigNum bnTrustedModulus(zerocoinModulus);
@@ -175,7 +162,7 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
         if (!newSpend.Verify(accumulator)) {
             // ZCTEST: 
             string reason;
-            //bool isCoinSpendVerify = newSpend.Verify(accumulator, reason);
+            newSpend.Verify(accumulator, reason);
             strError = strprintf("CheckZerocoinSpend(): zerocoin spend did not verify, reason: %s", reason.c_str());
             return false;
 

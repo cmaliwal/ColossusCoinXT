@@ -13,7 +13,6 @@
 #include "utilstrencodings.h"
 
 #include <assert.h>
-//#include <iostream> // ZCTEST: for asserting/testing only
 
 #include <boost/assign/list_of.hpp>
 
@@ -141,15 +140,13 @@ public:
          *     CTxOut(nValue=50.00000000, scriptPubKey=0xA9037BAC7050C479B121CF)
          *   vMerkleTree: e0028e
          */
-        //// ZCTEST:
+        //// ZCTEST: experimenting w/ the genesis
         //const std::string pszTimestamp = "U.S. News & World Report Jan 28 2016 With His Absence, Trump Dominates Another Debate";
         const std::string pszTimestamp = "2017-09-21 22:01:04 : Bitcoin Block Hash for Height 486382 : 00000000000000000092d15e5b3e6e8269398a84a60ae5a2dbd4e7f431199d03";
         CMutableTransaction txNew;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
         txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << vector<unsigned char>(pszTimestamp.begin(), pszTimestamp.end());
-        // ZCTEST:
-
         txNew.vout[0].nValue = 250 * COIN;
         txNew.vout[0].scriptPubKey = CScript() << ParseHex("04c10e83b2703ccf322f7dbd62dd5855ac7c10bd055814ce121ba32607d573b8810c02c0582aed05b4deb9c4b77b26d92428c61256cd42774babea0a073b2ed0c9") << OP_CHECKSIG;
         genesis.vtx.push_back(txNew);
@@ -161,7 +158,7 @@ public:
         genesis.nNonce = 2402015;
 
         hashGenesisBlock = genesis.GetHash();
-        //// ZCTEST:
+        //// ZCTEST: experimenting w/ the genesis
         //assert(hashGenesisBlock == uint256("0x0000041e482b9b9691d98eefb48473405c0b8ec31b76df3797c74a78680ef818"));
         //assert(genesis.hashMerkleRoot == uint256("0x1b2ef6e2f28be914103a277377ae7729dcd125dfeb8bf97bd5964ba72b6dc39b"));
         assert(hashGenesisBlock == uint256("0xa0ce8206c908357008c1b9a8ba2813aff0989ca7f72d62b14e652c55f02b4f5c"));
@@ -225,24 +222,10 @@ public:
         nBlockLastGoodCheckpoint = 891730; //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = 902850; //Start enforcing the invalid UTXO's
 
-        // ZCTEST: // ZCTESTNET: adjusting to the testnet version
-        ////bnProofOfStakeLimit = (~uint256(0) >> 24);
-        //nTargetTimespan = 1 * 60 * 40;
-        //nTargetSpacing = 1 * 60;
-        //nLastPOWBlock = 10080;
-        //nModifierUpdateBlock = 0;
-        //nBudgetPercent = 10;
-        ////nDevFundPercent = 10;
-        ////nBudgetPaymentCycle = 60 * 60 * 24 * 30; // 1 month
-        //////--nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
-        ////vSeeds.push_back(CDNSSeedData("colx1", "seed.colossuscoinxt.org"));
-        ////vSeeds.push_back(CDNSSeedData("colx2", "seed.colossusxt.org"));
-        ////vSeeds.push_back(CDNSSeedData("colx3", "seed.colxt.net"));
-
-        // ZCTEST: // ZCMAINNET: this is to avoid errors related to nBits and POW
+        // ZCTEST: // ZCMAINNET: this is to avoid errors related to nBits and POW (another layer of changes, still testing)
         fSkipProofOfWorkCheck = true;
         nZerocoinStartHeight = 9863787;
-        nZerocoinStartTime = 1527272200; // 1526272200; // May 15, 2018 04:30:00 AM
+        nZerocoinStartTime = 1527272200; // May 25, 2018 04:30:00 AM
         //nZerocoinStartTime = 1508214600; // October 17, 2017 4:30:00 AM
         nBlockEnforceSerialRange = 9895400; //Enforce serial range starting this block
         nBlockRecalculateAccumulators = 9908000; //Trigger a recalculation of accumulators
@@ -251,55 +234,15 @@ public:
         nBlockEnforceInvalidUTXO = 9902850; //Start enforcing the invalid UTXO's
         nZerocoinHeaderVersion = 5;
 
-        ////size_t len = zerocoinModulus.length();
-        //CBigNum bnZCModulus(zerocoinModulus);
-        //uint32_t NLen = bnZCModulus.bitSize();
-
+        // ZCTEST: // tests are failing due to the modulus change, paramgen generated big#-s don't work for some reason,
+        // ...I'm guessing that tests are hardcoded (some of the tx-s there, modulus's been adjusted). Questions is whether that
+        // will result in some ZC problems? For that reason, leaving the zc modulus to what pivx is using
         zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
             "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"
             "6507761337985909570009733045974880842840179742910064245869181719511874612151517265463228221686998754918242243363"
             "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
             "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
             "31438167899885040445364023527381951378636564391212010397122822120720357";
-
-        //CBigNum bnZCModulusNew(zerocoinModulus);
-        //uint32_t NLenNew = bnZCModulusNew.bitSize();
-        //LogPrintf("zerocoinModulus (old,new): %u - %u", NLen, NLenNew);
-        //std::cout << "zerocoinModulus:\t" << "\n"
-        //    << "original:\t" << NLen << "\n"
-        //    << "new:\t\t" << NLenNew << "\n";
-
-        //zerocoinModulus = "2eaae01f7f7db2519b32c0af4eafca150caff18f32e4a5556e9354947ea063a7d53d790b0f4502e9aabfdbb743221a0cfb"
-        //    "6bfb679387fa689230278e70b3f0a4c7aa4e8d12d0a3361876fba6c38f32d45a66c2e701c31d6af604ccda6a2625becb45e160f17a4faff0"
-        //    "b0db3b80f512a07c62ee492323b3df46ffecfbdd4c474680243df6b77c2915c8d428a8ae59b0b3514d8e1255eed2802b3b0b7981e9dad913"
-        //    "88027c6b1baafd88027182f41901fb526f804c1619214bdcbca5abdf15711633e31b17d01362d0257b0fd3af22e24f450b92001541913d96"
-        //    "5f20808c562cc342ad63a6198bfac3af747efd22a635e90537ca7c4248e2b8578a8d46327a2973e840ab69b21afecbb948486b1782be6f65"
-        //    "8c058413aab607f38580b7418b094f942cb041dfb073f4412302b32c013405b4a2b0369";
-
-        //zerocoinModulus = "a8518c7ad8e1bb27064ec9dc2d9dbd0200a418ebc0c5d540b3c8cce012a27c33fc7dd38fd0bd617a83f5738cd7f5cf8e50"
-        //    "5428cf4325380e0cce97a36569ff85ca83cb8ed214ec496ecb76f342cc31f2a39c3eafc77cdc61d1c176f01efb59ad829c9e3f19fffe6477"
-        //    "cb5037798553f7d61bc70b2a23ebcd56db4a2a070046da83f1406f827c1c8e587824809e8bfb8eb07c1c8521d75dcbd369e3ffe2f1bb534b"
-        //    "97cbdaaa02a3ae482d3e1c45027d7cec6d55aadc048b2cf57bf846944c9d5d30a8c84f63643a36ed093c18942fe7c136f773e882145934b8"
-        //    "f8b31e15820c595ac912083de42a6136348c98c6ca841f5f033d91e397f8216e9b126e51fc36c6b2a9a54eb849f5e343871be14201eaf760"
-        //    "da4bd132a1ae1746eadc1c6f038be47018e646d83cdae67c8e0b97d998620b4643e78010879e723a38cba233de2319e3d0fa2d9139992c52"
-        //    "2c326fd8278b0863ec2d280e43a519f1d52127ee826a9abc8e5e10e32f5605b401f467b4960f1b155c9c293eb95ea7828536fb250e93c1";
-
-        //CBigNum bnZCModulusNew1(zerocoinModulus);
-        //uint32_t NLenNew1 = bnZCModulusNew1.bitSize();
-        //LogPrintf("zerocoinModulus (old,new): %u - %u - %u", NLen, NLenNew, NLenNew1);
-
-        //std::cout << "zerocoinModulus:\t" << "\n"
-        //    << "original:\t" << NLen << "\n"
-        //    << "new:\t\t" << NLenNew << "\n"
-        //    << "new1:\t\t" << NLenNew1 << "\n";
-
-        //CBigNum bnZCModulusNew(zerocoinModulus);
-        //uint32_t NLenNew = bnZCModulusNew.bitSize();
-        //LogPrintf("zerocoinModulus (old,new): %u - %u", NLen, NLenNew);
-
-        //    std::cout << "zerocoinModulus:\t" << "\n"
-        //        << "original:\t" << NLen << "\n"
-        //        << "new:\t\t" << NLenNew << "\n";
 
     }
 
@@ -360,15 +303,9 @@ public:
         genesis.nNonce = 2452017;
 
         hashGenesisBlock = genesis.GetHash();
-        //// ZCTEST:
+        //// ZCTEST: experimenting w/ the genesis
         //assert(hashGenesisBlock == uint256("0xf6b11dff4a93ed81adc9eb0aa2709564f3567cc393831e3ff99d378e7f567b16"));
         assert(hashGenesisBlock == uint256("0x6cd37a546cfaafeee652fd0f3a85ba64c0f539f771a27fca9610cdc2f3278932"));
-        //if (hashGenesisBlock != uint256("0x6cd37a546cfaafeee652fd0f3a85ba64c0f539f771a27fca9610cdc2f3278932")) {
-        //    std::cerr << "Assert failed:\t" << "hashGenesisBlock == uint256(\"0x6cd37a546cfaafeee652fd0f3a85ba64c0f539f771a27fca9610cdc2f3278932\")" << "\n"
-        //        << "Expected:\t" << hashGenesisBlock.ToString().c_str() << "\n"
-        //        << "Source:\t\t" << __FILE__ << ", line " << __LINE__ << "\n";
-        //    abort();
-        //}
 
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -414,28 +351,7 @@ public:
         nBlockLastGoodCheckpoint = 9891730; //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = 9902850; //Start enforcing the invalid UTXO's
 
-        //nLastPOWBlock = 10080;
-        //nModifierUpdateBlock = 0;
-        //nZerocoinStartHeight = 863787;
-        //nZerocoinStartTime = 1526272200; // 1526358600; // May 15, 2018 04:30:00 AM
-        //nBlockEnforceSerialRange = 895400; //Enforce serial range starting this block
-        //nBlockRecalculateAccumulators = 908000; //Trigger a recalculation of accumulators
-        //nBlockFirstFraudulent = 891737; //First block that bad serials emerged
-        //nBlockLastGoodCheckpoint = 891730; //Last valid accumulator checkpoint
-        //nBlockEnforceInvalidUTXO = 902850; //Start enforcing the invalid UTXO's
-
-
         //// ZCTEST: // ZCTESTNET: adjusting to the testnet version
-        //nTargetTimespan = 1 * 60 * 40;
-        //nTargetSpacing = 1 * 60;
-        //nPastBlocksMin = 10080;
-        //nLastPOWBlock = 10080;
-        //nBudgetPercent = 10;
-        ////nDevFundPercent = 10;
-        ////nBudgetPaymentCycle = 60 * 60 * 2; // 2 hours
-        //strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
-        //fSkipProofOfWorkCheck = true;
-
         // ZCTEST: // ZCMAINNET: this is to avoid errors related to nBits and POW
         fSkipProofOfWorkCheck = true;
         nZerocoinStartHeight = 9863787;
@@ -498,7 +414,7 @@ public:
 
         hashGenesisBlock = genesis.GetHash();
         nDefaultPort = 51476;
-        //// ZCTEST:
+        //// ZCTEST: experimenting w/ the genesis
         //assert(hashGenesisBlock == uint256("0x4f023a2120d9127b21bbad01724fdb79b519f593f2a85b60d3d79160ec5f29df"));
         assert(hashGenesisBlock == uint256("0x41d203d900885c5ff18d2c550957743a164060a184182fa17ad1d8cff46c7eac"));
 

@@ -15,8 +15,7 @@
 
 uint256 CBlockHeader::GetHash() const
 {
-    //// ZCTEST: // ZCTESTNET: testnet has ver.4 but different algo.
-    //return HashQuark(BEGIN(nVersion), END(nNonce));
+    // ZCTEST: // ZCTESTNET: temporary solution, testnet has ver.4 but different algo.
     if (nVersion < 5) // FIXME: probably we won't change hash algorithm
         return HashQuark(BEGIN(nVersion), END(nNonce));
 

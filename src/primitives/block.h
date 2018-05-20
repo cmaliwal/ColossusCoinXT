@@ -31,7 +31,10 @@ class CBlockHeader
 {
 public:
     // header
-    // ZCTEST: // ZCMAINNET: this is ok to stay higher (than the testnet/old), it's only used to note down, warn about the obsoleteness (on the other side) and when blocks are created with this version
+    // ZCTEST: // ZCMAINNET: this is ok to stay higher (than the testnet/old), it's only used to note down, 
+    // warn about the obsoleteness (on the other side) and when blocks are created with this version
+    // Problem is that testnet (and some on non-testnet as well) are returning version '4' (logged), so 
+    // we need to raise the bar a bit higher
     static const int32_t CURRENT_VERSION = 5; // 4; //FIXME: set proper verion before acutal release
     int32_t nVersion;
     uint256 hashPrevBlock;
@@ -59,11 +62,10 @@ public:
         READWRITE(nNonce);
 
         //zerocoin active, header changes to include accumulator checksum
-        // ZCTEST: // ZCMAINNET: 
+        //if(nVersion > 3) // FIXME: set proper version
+        // ZCTEST: // ZCMAINNET: ZC version has to be '5'
         if (nVersion > 4) // FIXME: set proper version
             READWRITE(nAccumulatorCheckpoint);
-        //if(nVersion > 3) // FIXME: set proper version
-        //    READWRITE(nAccumulatorCheckpoint);
     }
 
     void SetNull()

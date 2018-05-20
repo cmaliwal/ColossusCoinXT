@@ -336,7 +336,6 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
 
     string reason;
     //BOOST_CHECK(IsStandardTx(t, reason));
-    //BOOST_CHECK_MESSAGE(IsStandardTx(t, reason), strprintf("IsStandardTx failed reason: %s", reason.c_str()));
     // ZCTEST: 
     bool isStandardTx = IsStandardTx(t, reason);
     BOOST_CHECK_MESSAGE(isStandardTx, strprintf("IsStandardTx failed reason: %s", reason.c_str()));
@@ -346,7 +345,6 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
 
     t.vout[0].nValue = 6011; // not dust
     //BOOST_CHECK(IsStandardTx(t, reason));
-    //BOOST_CHECK_MESSAGE(IsStandardTx(t, reason), strprintf("IsStandardTx failed reason: %s", reason.c_str()));
     // ZCTEST: 
     isStandardTx = IsStandardTx(t, reason);
     BOOST_CHECK_MESSAGE(isStandardTx, strprintf("IsStandardTx failed reason: %s", reason.c_str()));

@@ -18,11 +18,11 @@ BOOST_AUTO_TEST_SUITE(Checkpoints_tests)
 
 BOOST_AUTO_TEST_CASE(sanity)
 {
+    // ZCTEST: this was reworked to fit the new checkpoints (tests were failing)
     uint256 p57 = uint256("0x000000e62c81ce3db7a0954ce7573a57f127028cd01dd5bc2c0d31d890b2f46b");
     uint256 p3250 = uint256("0x000000000007e3a1bdc37ba87b9621634b8b99a7f1f35fce1704747b43f47361");
     BOOST_CHECK(Checkpoints::CheckBlock(57, p57));
     BOOST_CHECK(Checkpoints::CheckBlock(3250, p3250));
-
 
     // Wrong hashes at checkpoints should fail:
     BOOST_CHECK(!Checkpoints::CheckBlock(57, p3250));
