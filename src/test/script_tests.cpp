@@ -214,6 +214,9 @@ private:
     }
 
 public:
+    TestBuilder(const CMutableTransaction& credit, const CMutableTransaction& spend, const CScript& redeemScript, int flags_):
+        creditTx(credit), spendTx(spend), scriptPubKey(redeemScript), flags(flags_), havePush(false) {}
+
     TestBuilder(const CScript& redeemScript, const std::string& comment_, int flags_, bool P2SH = false) : scriptPubKey(redeemScript), havePush(false), comment(comment_), flags(flags_)
     {
         if (P2SH) {
@@ -322,6 +325,21 @@ public:
     const CScript& GetScriptPubKey()
     {
         return creditTx.vout[0].scriptPubKey;
+    }
+
+    CTransaction GetCreditTx() const
+    {
+        return creditTx;
+    }
+
+    CMutableTransaction GetSpendTx() const
+    {
+        return spendTx;
+    }
+
+    void Finalize()
+    {
+        DoPush();
     }
 };
 }
@@ -1122,7 +1140,10 @@ BOOST_AUTO_TEST_CASE(script_bip65)
     CBasicKeyStore keystore;
 
     CKey secret;
-    secret.MakeNewKey(true);
+    vector<unsigned char> data = ParseHex("0f492d638799c6812f4bcde8a7aad10d3e5ce11662a7adb0e7f15642ddef133b");
+    secret.Set(data.begin(), data.end(), true);
+    //secret.MakeNewKey(true);
+    //BOOST_CHECK_MESSAGE(false, HexStr(secret.begin(), secret.end()));
     keystore.AddKey(secret);
 
     CScript scriptPubKey = CScript() << CScriptNum(100) << OP_CHECKLOCKTIMEVERIFY << OP_DROP;
@@ -1144,9 +1165,12 @@ BOOST_AUTO_TEST_CASE(script_bip65)
 
     txTo.nLockTime = 100;
     txTo.vin[0].nSequence = CTxIn::SEQUENCE_FINAL - 1;
-    MutableTransactionSignatureChecker checker3(&txTo, 0);
-    BOOST_CHECK(!EvalScript(directStack, scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, checker3, &err));
-    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_EQUALVERIFY, ScriptErrorString(err));
+    TestBuilder tb(txFrom, txTo, scriptPubKey, flags);
+    tb.PushSig(secret).Push(secret.GetPubKey()).Finalize();
+    CMutableTransaction txSpend = tb.GetSpendTx();
+    MutableTransactionSignatureChecker checker3(&txSpend, 0);
+    BOOST_CHECK(VerifyScript(txSpend.vin[0].scriptSig, scriptPubKey, flags, checker3, &err));
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
