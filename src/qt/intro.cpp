@@ -162,9 +162,8 @@ bool Intro::pickDataDirectory()
     QString dataDir = getDefaultDataDirectory();
     /* 2) Allow QSettings to override default dir */
     QString dataDirSettings = settings.value("strDataDir", dataDir).toString();
-    DebugPrintf("%s: dataDir=%s, dataDirSettings = %s\n", __func__, dataDir.toStdString(), dataDirSettings.toStdString());
-    if (!fs::exists(GUIUtil::qstringToBoostPath(dataDirSettings)))
-        dataDir = getDefaultDataDirectory();
+    if (!dataDirSettings.isEmpty() && fs::exists(GUIUtil::qstringToBoostPath(dataDirSettings)))
+        dataDir = dataDirSettings;
 
     if (!fs::exists(GUIUtil::qstringToBoostPath(dataDir)) || GetBoolArg("-choosedatadir", false)) {
         /* If current default data directory does not exist, let the user choose one */
