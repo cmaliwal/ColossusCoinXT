@@ -1,4 +1,5 @@
 ---
+# CONTRIBFIX: this was bumped (3.0 => 3.1), what's that for us?
 name: "ColossusCoinXT-osx-1.0.3"
 enable_cache: true
 suites:
