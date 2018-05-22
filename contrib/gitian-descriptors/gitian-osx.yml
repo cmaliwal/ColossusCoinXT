@@ -1,5 +1,5 @@
 ---
-name: "ColossusCoinXT-osx-1.0.3"
+name: "ColossusXT-osx-1.0.3"
 enable_cache: true
 suites:
 - "trusty"
