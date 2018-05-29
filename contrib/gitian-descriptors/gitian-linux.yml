@@ -1,5 +1,5 @@
 ---
-name: "ColossusXT-linux-1.0.3"
+name: "ColossusXT-linux-1.0.4"
 enable_cache: true
 suites:
 - "trusty"
