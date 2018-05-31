@@ -5,6 +5,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "context.h"
 #include "base58.h"
 #include "clientversion.h"
 #include "init.h"
@@ -24,6 +25,7 @@
 #include <stdint.h>
 
 #include <boost/assign/list_of.hpp>
+#include <boost/algorithm/string/join.hpp>
 
 #include <univalue.h>
 
@@ -144,6 +146,14 @@ UniValue getinfo(const UniValue& params, bool fHelp)
         nStaking = true;
     obj.push_back(Pair("staking status", (nStaking ? "Staking Active" : "Staking Not Active")));
     obj.push_back(Pair("errors", GetWarnings("statusbar")));
+
+    vector<string> warnings;
+    warnings.push_back(GetWarnings("statusbar"));
+    if (GetContext().IsUpdateAvailable())
+        warnings.push_back(strprintf("New version is available, please update your wallet! Go to: %s", GetContext().GetUpdateUrlTag()));
+
+    obj.push_back(Pair("errors", boost::algorithm::join(warnings, " ")));
+
     return obj;
 }
 
@@ -528,6 +538,19 @@ UniValue setmocktime(const UniValue& params, bool fHelp)
 
     return NullUniValue;
 }
+
+// ZCDEV: clearbanned is already defined inside rpcnet.cpp (merged code), and using univalue (not json_spirit)
+//Value clearbanned(const Array& params, bool fHelp)
+//UniValue clearbanned(const UniValue& params, bool fHelp)
+//{
+//    if (fHelp || params.size() != 0)
+//        throw runtime_error(
+//            "clearbanned\n"
+//            "\nClear list of banned nodes.\n");
+//
+//    CNode::ClearBanned();
+//    return "success";
+//}
 
 #ifdef ENABLE_WALLET
 UniValue getstakingstatus(const UniValue& params, bool fHelp)

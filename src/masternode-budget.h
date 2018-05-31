@@ -44,6 +44,9 @@ void DumpBudgets();
 // Define amount of blocks in budget payment cycle
 int GetBudgetPaymentCycleBlocks();
 
+// Define amount of blocks before payment when budget finalization runs
+int GetBudgetFinalizationBlocks();
+
 //Check the collateral transaction for the budget proposal/finalized budget
 bool IsBudgetCollateralValid(uint256 nTxCollateralHash, uint256 nExpectedHash, std::string& strError, int64_t& nTime, int& nConf);
 
@@ -229,14 +232,15 @@ public:
     bool AddProposal(CBudgetProposal& budgetProposal);
     bool AddFinalizedBudget(CFinalizedBudget& finalizedBudget);
     void SubmitFinalBudget();
+    //bool HasNextFinalizedBudget();
 
     bool UpdateProposal(CBudgetVote& vote, CNode* pfrom, std::string& strError);
     bool UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError);
     bool PropExists(uint256 nHash);
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
     std::string GetRequiredPaymentsString(int nBlockHeight);
-    void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake);
-
+    void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
+    int GrabHighestCount(int nTargetHeight, CScript& payee, CAmount& nAmount);
     void CheckOrphanVotes();
     void Clear()
     {
@@ -330,12 +334,13 @@ public:
 
     bool IsValid(std::string& strError, bool fCheckCollateral = true);
 
-    std::string GetName() { return strBudgetName; }
+    std::string GetName() const { return strBudgetName; }
     std::string GetProposals();
-    int GetBlockStart() { return nBlockStart; }
-    int GetBlockEnd() { return nBlockStart + (int)(vecBudgetPayments.size() - 1); }
-    int GetVoteCount() { return (int)mapVotes.size(); }
+    int GetBlockStart() const { return nBlockStart; }
+    int GetBlockEnd() const { return nBlockStart + (int)(vecBudgetPayments.size() - 1); }
+    int GetVoteCount() const { return (int)mapVotes.size(); }
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
+
     bool GetBudgetPaymentByBlock(int64_t nBlockHeight, CTxBudgetPayment& payment)
     {
         LOCK(cs);
@@ -346,6 +351,7 @@ public:
         payment = vecBudgetPayments[i];
         return true;
     }
+
     bool GetPayeeAndAmount(int64_t nBlockHeight, CScript& payee, CAmount& nAmount)
     {
         LOCK(cs);

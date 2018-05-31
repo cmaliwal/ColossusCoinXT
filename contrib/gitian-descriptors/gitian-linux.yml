@@ -1,6 +1,6 @@
 ---
 # CONTRIBFIX: this changed (3.0 => 3.1), what's that for us?
-name: "ColossusCoinXT-linux-1.0.3"
+name: "ColossusXT-linux-1.0.3"
 enable_cache: true
 suites:
 - "trusty"

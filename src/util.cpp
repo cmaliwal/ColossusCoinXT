@@ -20,8 +20,13 @@
 #include "utiltime.h"
 
 #include <stdarg.h>
+#include <stdint.h>
 
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/classification.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/crypto.h> // for OPENSSL_cleanse()
@@ -237,7 +242,7 @@ bool LogAcceptCategory(const char* category)
             const vector<string>& categories = mapMultiArgs["-debug"];
             ptrCategory.reset(new set<string>(categories.begin(), categories.end()));
             // thread_specific_ptr automatically deletes the set when the thread ends.
-            // "colx" is a composite category enabling all ColossusCoinXT-related debug output
+            // "colx" is a composite category enabling all ColossusXT-related debug output
             if (ptrCategory->count(string("colx"))) {
                 ptrCategory->insert(string("obfuscation"));
                 ptrCategory->insert(string("swiftx"));
@@ -424,13 +429,13 @@ void PrintExceptionContinue(std::exception* pex, const char* pszThread)
 boost::filesystem::path GetDefaultDataDir()
 {
     namespace fs = boost::filesystem;
-// Windows < Vista: C:\Documents and Settings\Username\Application Data\ColossusCoinXT
-// Windows >= Vista: C:\Users\Username\AppData\Roaming\ColossusCoinXT
-// Mac: ~/Library/Application Support/ColossusCoinXT
+// Windows < Vista: C:\Documents and Settings\Username\Application Data\ColossusXT
+// Windows >= Vista: C:\Users\Username\AppData\Roaming\ColossusXT
+// Mac: ~/Library/Application Support/ColossusXT
 // Unix: ~/.colx
 #ifdef WIN32
     // Windows
-    return GetSpecialFolderPath(CSIDL_APPDATA) / "ColossusCoinXT";
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "ColossusXT";
 #else
     fs::path pathRet;
     char* pszHome = getenv("HOME");
@@ -442,10 +447,10 @@ boost::filesystem::path GetDefaultDataDir()
     // Mac
     pathRet /= "Library/Application Support";
     TryCreateDirectory(pathRet);
-    return pathRet / "ColossusCoinXT";
+    return pathRet / "ColossusXT";
 #else
     // Unix
-    return pathRet / ".ColossusCoinXT";
+    return pathRet / ".ColossusXT";
 #endif
 #endif
 }
@@ -492,7 +497,7 @@ void ClearDatadirCache()
 
 boost::filesystem::path GetConfigFile()
 {
-    boost::filesystem::path pathConfigFile(GetArg("-conf", "ColossusCoinXT.conf"));
+    boost::filesystem::path pathConfigFile(GetArg("-conf", "ColossusXT.conf"));
     if (!pathConfigFile.is_complete())
         pathConfigFile = GetDataDir(false) / pathConfigFile;
 
@@ -831,4 +836,118 @@ void SetThreadPriority(int nPriority)
     setpriority(PRIO_PROCESS, 0, nPriority);
 #endif // PRIO_THREAD
 #endif // WIN32
+}
+
+bool FindUpdateUrlForThisPlatform(const std::string& info, std::string& url, std::string& error)
+{
+    if (info.empty()) {
+        error = "info is empty";
+        return false;
+    }
+
+    string platform;
+
+#if defined(WIN32)
+  #if (INTPTR_MAX == INT64_MAX)
+    platform = "win64";
+  #else
+    platform = "win32";
+  #endif
+#elif defined(MAC_OSX)
+    platform = "osx";
+#elif defined(__linux__)
+  #if defined(__arm__)
+    #if (INTPTR_MAX == INT64_MAX)
+      platform = "aarch64";
+    #else
+      platform = "arm";
+    #endif
+  #else
+    #if (INTPTR_MAX == INT64_MAX)
+      platform = "linux64";
+    #else
+      platform = "linux32";
+    #endif
+  #endif
+#else
+    #error "unknown platform OS"
+#endif
+
+    DebugPrintf("%s: %s platform detected\n", __func__, platform);
+
+    vector<string> lines;
+    boost::algorithm::split(lines, info, boost::algorithm::is_any_of("\n"));
+    for (string line : lines) {
+        vector<string> platformurl;
+        boost::algorithm::trim(line);
+        boost::algorithm::split(platformurl, line, boost::algorithm::is_any_of("="));
+        if (platformurl.size() != 2) {
+            LogPrintf("%s: invalid line: %s\n", __func__, line);
+        } else if (platformurl.front() == platform) {
+            url = platformurl.back();
+            return true;
+        }
+        else; // continue search
+    }
+
+    error = strprintf("Platform %s was not found in the input: %s", platform, info);
+    return false;
+}
+
+static boost::filesystem::path GetDefaultDataDirLegacy()
+{
+    namespace fs = boost::filesystem;
+// Windows < Vista: C:\Documents and Settings\Username\Application Data\ColossusCoinXT
+// Windows >= Vista: C:\Users\Username\AppData\Roaming\ColossusCoinXT
+// Mac: ~/Library/Application Support/ColossusCoinXT
+// Unix: ~/.colx
+#ifdef WIN32
+    // Windows
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "ColossusCoinXT";
+#else
+    fs::path pathRet;
+    char* pszHome = getenv("HOME");
+    if (pszHome == NULL || strlen(pszHome) == 0)
+        pathRet = fs::path("/");
+    else
+        pathRet = fs::path(pszHome);
+#ifdef MAC_OSX
+    // Mac
+    pathRet /= "Library/Application Support";
+    TryCreateDirectory(pathRet);
+    return pathRet / "ColossusCoinXT";
+#else
+    // Unix
+    return pathRet / ".ColossusCoinXT";
+#endif
+#endif
+}
+
+static void RenameDataDir()
+{
+    namespace fs = boost::filesystem;
+    if (fs::exists(GetDefaultDataDir()))
+        return; // new data dir exists - skip renaming
+
+    fs::path dataDirLegacy = GetDefaultDataDirLegacy();
+    if (fs::exists(dataDirLegacy))
+        fs::rename(dataDirLegacy, GetDefaultDataDir());
+}
+
+static void RenameConfigFile()
+{
+    namespace fs = boost::filesystem;
+    fs::path configFile = GetDefaultDataDir() / fs::path("ColossusXT.conf");
+    if (fs::exists(configFile))
+        return; // new config file exists - skip renaming
+
+    fs::path configFileLegacy = GetDefaultDataDir() / fs::path("ColossusCoinXT.conf");
+    if (fs::exists(configFileLegacy))
+        fs::rename(configFileLegacy, configFile);
+}
+
+void RenameDataDirAndConfFile()
+{
+    RenameDataDir();
+    RenameConfigFile();
 }

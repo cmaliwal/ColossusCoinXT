@@ -110,7 +110,7 @@ void setupAddressWidget(QValidatedLineEdit* widget, QWidget* parent)
 #if QT_VERSION >= 0x040700
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
-    widget->setPlaceholderText(QObject::tr("Enter a ColossusCoinXT address (e.g. %1)").arg("D7VFR83SQbiezrW72hjcWJtcfip5krte2Z"));
+    widget->setPlaceholderText(QObject::tr("Enter a ColossusXT address (e.g. %1)").arg("D7VFR83SQbiezrW72hjcWJtcfip5krte2Z"));
 #endif
     widget->setValidator(new BitcoinAddressEntryValidator(parent));
     widget->setCheckValidator(new BitcoinAddressCheckValidator(parent));
@@ -127,7 +127,7 @@ void setupAmountWidget(QLineEdit* widget, QWidget* parent)
 
 bool parseBitcoinURI(const QUrl& uri, SendCoinsRecipient* out)
 {
-    // return if URI is not valid or is no ColossusCoinXT: URI
+    // return if URI is not valid or is no ColossusXT: URI
     if (!uri.isValid() || uri.scheme() != QString(URI_SCHEME))
         return false;
 
@@ -359,7 +359,7 @@ bool isObscured(QWidget* w)
     return !(checkPoint(QPoint(0, 0), w) && checkPoint(QPoint(w->width() - 1, 0), w) && checkPoint(QPoint(0, w->height() - 1), w) && checkPoint(QPoint(w->width() - 1, w->height() - 1), w) && checkPoint(QPoint(w->width() / 2, w->height() / 2), w));
 }
 
-// DRAGAN: Unsure about this merge, this is colx change/fix, and seems the latest one // Q:
+// ZC: Unsure about this merge, this is colx change/fix, and seems the latest one // Q:
 void openLocalFile(const boost::filesystem::path& p)
 {
     if (boost::filesystem::exists(p))
@@ -380,7 +380,7 @@ void openDebugLogfile()
 
 void openConfigfile()
 {
-    /* Open ColossusCoinXT.conf with the associated application */
+    /* Open ColossusXT.conf with the associated application */
     openLocalFile(GetConfigFile());
 }
 
@@ -424,6 +424,11 @@ void showBackups()
     /* Open folder with default browser */
     if (boost::filesystem::exists(pathBackups))
         QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathBackups)));
+}
+
+void openURL(const QString& url)
+{
+    QDesktopServices::openUrl(url);
 }
 
 void SubstituteFonts(const QString& language)
@@ -625,12 +630,12 @@ bool DHMSTableWidgetItem::operator<(QTableWidgetItem const& item) const
 #ifdef WIN32
 boost::filesystem::path static StartupShortcutPath()
 {
-    return GetSpecialFolderPath(CSIDL_STARTUP) / "ColossusCoinXT.lnk";
+    return GetSpecialFolderPath(CSIDL_STARTUP) / "ColossusXT.lnk";
 }
 
 bool GetStartOnSystemStartup()
 {
-    // check for ColossusCoinXT.lnk
+    // check for ColossusXT.lnk
     return boost::filesystem::exists(StartupShortcutPath());
 }
 
@@ -743,7 +748,7 @@ bool SetStartOnSystemStartup(bool fAutoStart)
         // Write a colx.desktop file to the autostart directory:
         optionFile << "[Desktop Entry]\n";
         optionFile << "Type=Application\n";
-        optionFile << "Name=ColossusCoinXT\n";
+        optionFile << "Name=ColossusXT\n";
         optionFile << "Exec=" << pszExePath << " -min\n";
         optionFile << "Terminal=false\n";
         optionFile << "Hidden=false\n";

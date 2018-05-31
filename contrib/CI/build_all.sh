@@ -7,7 +7,7 @@ cd ../..
 # test if we are in the root directory of repository
 if [[ ! -e "autogen.sh" ]]
 then
-    echo "autogen.sh is not found, not root directory of ColossusCoinXT repository?"
+    echo "autogen.sh is not found, not root directory of the github repository?"
     exit 1
 fi
 

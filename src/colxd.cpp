@@ -7,6 +7,7 @@
 
 // DRAGAN: different thread/start/shutdown handling (Pivx), pretty much no merge
 
+#include "context.h"
 #include "clientversion.h"
 #include "init.h"
 #include "main.h"
@@ -32,8 +33,8 @@
  *
  * \section intro_sec Introduction
  *
- * This is the developer documentation of the reference client for an experimental new digital currency called ColossusCoinXT (http://www.colx.org),
- * which enables instant payments to anyone, anywhere in the world. ColossusCoinXT uses peer-to-peer technology to operate
+ * This is the developer documentation of the reference client for an experimental new digital currency called ColossusXT (http://www.colx.org),
+ * which enables instant payments to anyone, anywhere in the world. ColossusXT uses peer-to-peer technology to operate
  * with no central authority: managing transactions and issuing money are carried out collectively by the network.
  *
  * The software is a community-driven open source project, released under the MIT license.
@@ -77,7 +78,7 @@ bool AppInit(int argc, char* argv[])
 
     // Process help and version before taking care about datadir
     if (mapArgs.count("-?") || mapArgs.count("-help") || mapArgs.count("-version")) {
-        std::string strUsage = _("ColossusCoinXT Core Daemon") + " " + _("version") + " " + FormatFullVersion() + "\n";
+        std::string strUsage = _("ColossusXT Core Daemon") + " " + _("version") + " " + FormatFullVersion() + "\n";
 
         if (mapArgs.count("-version")) {
             strUsage += LicenseInfo();
@@ -129,7 +130,7 @@ bool AppInit(int argc, char* argv[])
 #ifndef WIN32
         fDaemon = GetBoolArg("-daemon", false);
         if (fDaemon) {
-            fprintf(stdout, "ColossusCoinXT server starting\n");
+            fprintf(stdout, "ColossusXT server starting\n");
 
             // Daemonize
             pid_t pid = fork();
@@ -174,10 +175,26 @@ bool AppInit(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    SetupEnvironment();
+    try {
+        ContextScopeInit context;
 
-    // Connect colxd signal handlers
-    noui_connect();
+        // Locale
+        SetupEnvironment();
 
-    return (AppInit(argc, argv) ? 0 : 1);
+        // Connect colxd signal handlers
+        noui_connect();
+
+        // Rebranding if needed
+        RenameDataDirAndConfFile();
+
+        return (AppInit(argc, argv) ? 0 : 1);
+    } catch (const boost::thread_interrupted&) {
+        LogPrintf("main thread interrupted\n");
+    } catch (std::exception& e) {
+        LogPrintf("main thread exception: %s\n", e.what());
+    } catch (...) {
+        LogPrintf("main thread error\n");
+    }
+
+    return 1;
 }

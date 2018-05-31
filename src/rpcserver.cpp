@@ -114,7 +114,7 @@ static inline int64_t roundint64(double d)
 CAmount AmountFromValue(const UniValue& value)
 {
     double dAmount = value.get_real();
-    if (dAmount <= 0.0 || dAmount > 21000000.0)
+    if (dAmount <= 0.0 || dAmount > Params().MaxMoneyOut())
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
     CAmount nAmount = roundint64(dAmount * COIN);
     if (!MoneyRange(nAmount))
@@ -350,6 +350,7 @@ static const CRPCCommand vRPCCommands[] =
         {"hidden", "invalidateblock", &invalidateblock, true, true, false},
         {"hidden", "reconsiderblock", &reconsiderblock, true, true, false},
         {"hidden", "setmocktime", &setmocktime, true, false, false},
+        {"hidden", "clearbanned", &clearbanned, true, true, false},
 
         /* COLX features */
         {"colx", "masternode", &masternode, true, true, false},

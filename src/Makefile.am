@@ -115,11 +115,13 @@ BITCOIN_CORE_H = \
   compat.h \
   compat/sanity.h \
   compressor.h \
+  context.h \
   primitives/block.h \
   primitives/transaction.h \
   primitives/zerocoin.h \
   core_io.h \
   crypter.h \
+  curl.h \
   denomination_functions.h \
   obfuscation.h \
   obfuscation-relay.h \
@@ -396,6 +398,8 @@ libbitcoin_util_a_SOURCES = \
   compat/glibcxx_sanity.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
+  context.cpp \
+  curl.cpp \
   random.cpp \
   rpcprotocol.cpp \
   sync.cpp \
@@ -441,9 +445,11 @@ colxd_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBLEVELDB) \
   $(LIBMEMENV) \
-  $(LIBSECP256K1)
+  $(LIBSECP256K1) \
+  $(CURL_LIBS)
 
-colxd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+# ZCDEV: duplicate? #
+colxd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CURL_LIBS)
 
 # colx-cli binary #
 colx_cli_SOURCES = colx-cli.cpp
@@ -461,7 +467,7 @@ colx_cli_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-colx_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+colx_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS) $(CURL_LIBS)
 #
 
 # colx-tx binary #
@@ -482,7 +488,7 @@ colx_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-colx_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+colx_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(CURL_LIBS)
 #
 
 # bitcoinconsensus library #

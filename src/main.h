@@ -237,11 +237,25 @@ bool DisconnectBlocksAndReprocess(int blocks);
 
 // ***TODO***
 double ConvertBitsToDouble(unsigned int nBits);
-int64_t GetMasternodePayment(CAmount nTotalBlockReward);
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader* pblock, bool fProofOfStake);
+//int64_t GetMasternodePayment(CAmount nTotalBlockReward);
+// ZCDEV: this is nowhere to be found?
+//unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader* pblock, bool fProofOfStake);
 
 bool ActivateBestChain(CValidationState& state, CBlock* pblock = NULL, bool fAlreadyChecked = false);
-int64_t GetBlockValue(int nHeight, CAmount nFees, bool fBudgetBlock);
+//int64_t GetBlockValue(int nHeight, CAmount nFees, bool fBudgetBlock);
+
+// returns expected reward depends on the block height
+CAmount GetBlockExpectedMint(int nHeight);
+// total block value: reward + budget
+CAmount GetBlockValue(int nHeight);
+// reward part of the block value: miner + masternode
+CAmount GetBlockValueReward(int nHeight);
+// budget part of the block value
+CAmount GetBlockValueBudget(int nHeight);
+// dev fund part of the block value
+CAmount GetBlockValueDevFund(int nHeight);
+// masternode part of the block reward using see-saw algorithm
+CAmount GetMasternodePayment(int nHeight, int nMasternodeCount, CAmount nMoneySupply);
 
 /** Create a new block index entry for a given block hash */
 CBlockIndex* InsertBlockIndex(uint256 hash);

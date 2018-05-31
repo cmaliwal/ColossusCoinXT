@@ -20,6 +20,8 @@
 #include "scheduler.h"
 #include "ui_interface.h"
 #include "wallet.h"
+#include "curl.h"
+#include "context.h"
 
 #ifdef WIN32
 #include <string.h>
@@ -36,6 +38,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 // Dump addresses to peers.dat every 15 minutes (900s)
 #define DUMP_ADDRESSES_INTERVAL 900
@@ -78,7 +81,7 @@ bool fListen = true;
 uint64_t nLocalServices = NODE_NETWORK;
 CCriticalSection cs_mapLocalHost;
 map<CNetAddr, LocalServiceInfo> mapLocalHost;
-// DRAGAN: this shouldn't be used any more? review // Q:
+// ZC: this shouldn't be used any more? review // Q:
 static bool vfReachable[NET_MAX] = {};
 static bool vfLimited[NET_MAX] = {};
 static CNode* pnodeLocalHost = NULL;
@@ -239,7 +242,7 @@ void AdvertizeLocal(CNode* pnode)
     }
 }
 
-// DRAGAN: this shouldn't be used any more? review // Q:
+// ZC: this shouldn't be used any more? review // Q:
 void SetReachable(enum Network net, bool fFlag)
 {
     LOCK(cs_mapLocalHost);
@@ -270,7 +273,7 @@ bool AddLocal(const CService& addr, int nScore)
             info.nScore = nScore + (fAlready ? 1 : 0);
             info.nPort = addr.GetPort();
         }
-        // DRAGAN: this shouldn't be used any more? review // Q:
+        // ZC: this shouldn't be used any more? review // Q:
         SetReachable(addr.GetNetwork());
     }
 
@@ -335,7 +338,8 @@ bool IsReachable(enum Network net)
 {
     LOCK(cs_mapLocalHost);
     return !vfLimited[net];
-    // DRAGAN: off - this is where we turn it on/off to test, review // Q:
+    // ZCMASTER: missing some comments, testing only?
+    // ZC: off - this is where we turn it on/off to test, review // Q:
     //return vfReachable[net] && !vfLimited[net];
 }
 
@@ -1282,15 +1286,22 @@ void ThreadDNSAddressSeed()
 }
 
 
-void DumpAddresses()
+static bool DumpAddresses()
 {
+    static bool bFirstRun = true;
+    if (bFirstRun) {
+        MilliSleep(60 * 1000); // wait 1 min, give wallet time to start
+        bFirstRun = false;
+    }
+
     int64_t nStart = GetTimeMillis();
 
     CAddrDB adb;
     adb.Write(addrman);
 
-    LogPrint("net", "Flushed %d addresses to peers.dat  %dms\n",
-        addrman.size(), GetTimeMillis() - nStart);
+    LogPrint("net", "Flushed %d addresses to peers.dat %dms\n", addrman.size(), GetTimeMillis() - nStart);
+
+    return true; // never exit thread
 }
 
 void DumpData()
@@ -1719,6 +1730,80 @@ void static Discover(boost::thread_group& threadGroup)
 #endif
 }
 
+// return true and url of the release folder if new update is available
+// return false if error or update is not available
+static bool IsUpdateAvailable(CUrl& redirect)
+{
+    DebugPrintf("%s: starting\n", __func__);
+
+    string urlRelease = GetArg("-checkforupdateurl", GITHUB_RELEASE_URL);
+
+    string error;
+    if (!CURLGetRedirect(urlRelease, redirect, error)) {
+        DebugPrintf("%s: error - %s\n", __func__, error);
+        if (urlRelease == GITHUB_RELEASE_URL) {
+            boost::algorithm::replace_all(urlRelease, "ColossusCoinXT", "ColossusXT");
+            if (!CURLGetRedirect(urlRelease, redirect, error)) {
+                DebugPrintf("%s: error - %s\n", __func__, error);
+                return false;
+            }
+        } else
+            return false;
+    }
+
+    const string ver = strprintf("v%s", FormatVersion(CLIENT_VERSION));
+    DebugPrintf("%s: redirect is %s, version is %s\n", __func__, redirect, ver);
+
+    // assume version mismatch means new update is available (downgrage possible)
+    if (redirect.find(ver) == string::npos) {
+        LogPrintf("New version is available, please update your wallet! Go to: %s\n", redirect);
+        return true;
+    }
+    else
+        return false;
+}
+
+static bool ThreadCheckForUpdates(CContext& context)
+{
+    static bool bFirstRun = true;
+    if (bFirstRun) {
+        MilliSleep(60 * 1000); // wait 1 min, give wallet time to start
+        bFirstRun = false;
+    }
+
+    CUrl urlRelease;
+    if (!IsUpdateAvailable(urlRelease)) {
+        context.SetUpdateAvailable(false, "", "");
+        return true; // continue thread execution
+    }
+
+    CUrl urlInfo = strprintf("%s/%s", urlRelease, "update.info");
+    boost::algorithm::replace_first(urlInfo, "/tag/", "/download/");
+
+    string error;
+    CUrl urlInfoNew;
+    if (CURLGetRedirect(urlInfo, urlInfoNew, error))
+        urlInfo = urlInfoNew;
+
+    string info;
+    if (!CURLDownloadToMem(urlInfo, info, error)) {
+        LogPrintf("%s: %s\n", __func__, error);
+        return true; // continue thread execution
+    }
+
+    string urlPath;
+    if (!FindUpdateUrlForThisPlatform(info, urlPath, error)) {
+        LogPrintf("%s: %s\n", __func__, error);
+        return true; // continue thread execution
+    } else {
+        context.SetUpdateAvailable(true, urlRelease, urlPath);
+        uiInterface.NotifyUpdateAvailable();
+
+        DebugPrintf("%s: update found, exit thread.\n", __func__);
+        return false;
+    }
+}
+
 void StartNode(boost::thread_group& threadGroup, CScheduler& scheduler)
 {
     uiInterface.InitMessage(_("Loading addresses..."));
@@ -1780,11 +1865,20 @@ void StartNode(boost::thread_group& threadGroup, CScheduler& scheduler)
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "msghand", &ThreadMessageHandler));
 
     // Dump network addresses
+    threadGroup.create_thread(boost::bind(&LoopForever<bool (*)()>, "dumpaddr", &DumpAddresses, DUMP_ADDRESSES_INTERVAL * 1000));
+    // ZCDEV: // TODO: reconcile these (dumps bans as well), ok for now (I don't wish to remove as it may've been released later, look that up)
     scheduler.scheduleEvery(&DumpData, DUMP_ADDRESSES_INTERVAL);
 
     // ppcoin:mint proof-of-stake blocks in the background
     if (GetBoolArg("-staking", true))
         threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "stakemint", &ThreadStakeMinter));
+
+    // Check for updates once per day
+    int64_t nCheckForUpdatesInterval = 1000 * GetArg("-checkforupdate", 60 * 60 * 24);
+    if (nCheckForUpdatesInterval > 0) {
+        threadGroup.create_thread(boost::bind(&LoopForever<bool (*)()>, "checkforupdates",
+            [](){ return ThreadCheckForUpdates(GetContext()); }, nCheckForUpdatesInterval));
+    }
 }
 
 bool StopNode()

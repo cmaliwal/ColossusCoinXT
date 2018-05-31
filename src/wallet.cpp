@@ -80,7 +80,7 @@ const CWalletTx* CWallet::GetWalletTx(const uint256& hash) const
     return &(it->second);
 }
 
-// DRAGAN: colx only, still used in miner.cpp code fix
+// ZC: colx only, still used in miner.cpp code fix
 bool CWallet::SignTx(CMutableTransaction& tx, unsigned int nIn) const
 {
     if (nIn >= tx.vin.size())
@@ -637,7 +637,7 @@ int64_t CWallet::IncOrderPosNext(CWalletDB* pwalletdb)
     return nRet;
 }
 
-// DRAGAN: only used here and colx (removed from pivx, probably not needed in colx either)
+// ZC: only used here and colx (removed from pivx, probably not needed in colx either)
 //CWallet::TxItems CWallet::OrderedTxItems(std::list<CAccountingEntry>& acentries, std::string strAccount)
 //{
 //    AssertLockHeld(cs_wallet); // mapWallet
@@ -1503,7 +1503,7 @@ void CWallet::ReacceptWalletTransactions()
 
         int nDepth = wtx.GetDepthInMainChain();
 
-        if (!wtx.IsCoinBase() && nDepth < 0) {
+        if (!wtx.IsCoinBase() && !wtx.IsCoinStake() && nDepth < 0) {
             // Try to add to memory pool
             LOCK(mempool.cs);
             wtx.AcceptToMemoryPool(false);
@@ -1963,15 +1963,15 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
                 if (nCoinType == ONLY_DENOMINATED) {
                     found = IsDenominatedAmount(pcoin->vout[i].nValue);
                 } else if (nCoinType == ONLY_NOT10000IFMN) {
-                    // DRAGAN: COLX change
+                    // ZC: COLX change
                     found = !(fMasterNode && pcoin->vout[i].nValue == Params().GetRequiredMasternodeCollateral());
                 } else if (nCoinType == ONLY_NONDENOMINATED_NOT10000IFMN) {
                     if (IsCollateralAmount(pcoin->vout[i].nValue)) continue; // do not use collateral amounts
                     found = !IsDenominatedAmount(pcoin->vout[i].nValue);
-                    // DRAGAN: COLX change
+                    // ZC: COLX change
                     if (found && fMasterNode) found = pcoin->vout[i].nValue != Params().GetRequiredMasternodeCollateral(); // do not use Hot MN funds
                 } else if (nCoinType == ONLY_10000) {
-                    // DRAGAN: COLX change
+                    // ZC: COLX change
                     found = pcoin->vout[i].nValue == Params().GetRequiredMasternodeCollateral();
                     //found = pcoin->vout[i].nValue == 10000 * COIN;
                 } else {
@@ -2112,7 +2112,7 @@ bool CWallet::SelectStakeCoins(std::set<std::pair<const CWalletTx*, unsigned int
         }
 
         //check for min age
-        // DRAGAN: tripple change merge - GetAdjustedTime from pivx and param from colx, recheck // Q:
+        // ZC: tripple change merge - GetAdjustedTime from pivx and param from colx, recheck // Q:
         //if (GetTime() - out.tx->GetTxTime() < Params().GetMinStakeAge(nTargetHeight)) // colx
         //if (GetAdjustedTime() - nTxTime < nStakeMinAge) // pivx
         if (GetAdjustedTime() - nTxTime < Params().GetMinStakeAge(nTargetHeight))
@@ -2148,7 +2148,7 @@ bool CWallet::MintableCoins(int nTargetHeight) const
             nTxTime = mapBlockIndex.at(out.tx->hashBlock)->GetBlockTime();
         }
 
-        // DRAGAN: tripple change merge - GetAdjustedTime from pivx and param from colx, recheck // Q:
+        // ZC: tripple change merge - GetAdjustedTime from pivx and param from colx, recheck // Q:
         //if (GetAdjustedTime() - nTxTime > nStakeMinAge)
         //if (GetTime() - out.tx->GetTxTime() > Params().GetMinStakeAge(nTargetHeight))
         if (GetAdjustedTime() - nTxTime > Params().GetMinStakeAge(nTargetHeight))
@@ -3000,7 +3000,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             vwtxPrev.push_back(pcoin.first);
             txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-            // DRAGAN: colx later fix (below if pivx code), review // Q:
+            // ZC: colx later fix (below if pivx code), review // Q:
             //presstab HyperStake - calculate the total size of our new output not including the stake reward to decide whether to split the stake outputs
             uint64_t nSplitSize = pcoin.first->vout[pcoin.second].nValue;
 
@@ -3021,44 +3021,27 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         if (fKernelFound)
             break; // if kernel is found stop searching
     }
-    if (nCredit == 0 || nCredit > nBalance - nReserveBalance)
+
+    if (nCredit == 0 || nCredit > nBalance - nReserveBalance) {
+        DebugPrintf("CreateCoinStake : stake kernel hash was not found\n");
         return false;
-
-    // Calculate reward
-    CAmount nReward;
-    // DRAGAN: colx change
-    nReward = GetBlockValue(chainActive.Height(), 0, false);
-    nCredit += nReward;
-
-    CAmount nMinFee = 0;
-    while (true) {
-        // Set output amount
-        if (txNew.vout.size() == 3) {
-            txNew.vout[1].nValue = ((nCredit - nMinFee) / 2 / CENT) * CENT;
-            txNew.vout[2].nValue = nCredit - nMinFee - txNew.vout[1].nValue;
-        } else
-            txNew.vout[1].nValue = nCredit - nMinFee;
-
-        // Limit size
-        unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
-        if (nBytes >= DEFAULT_BLOCK_MAX_SIZE / 5)
-            return error("CreateCoinStake : exceeded coinstake size limit");
-
-        CAmount nFeeNeeded = GetMinimumFee(nBytes, nTxConfirmTarget, mempool);
-
-        // Check enough fee is paid
-        if (nMinFee < nFeeNeeded) {
-            nMinFee = nFeeNeeded;
-            continue; // try signing again
-        } else {
-            if (fDebug)
-                LogPrintf("CreateCoinStake : fee for coinstake %s\n", FormatMoney(nMinFee).c_str());
-            break;
-        }
     }
 
-    //Masternode payment
-    FillBlockPayee(txNew, nMinFee, true);
+    // Calculate reward
+    // ZC: colx change
+    nCredit += GetBlockValueReward(chainActive.Height() + 1);
+
+    // Set output amount
+    if (txNew.vout.size() == 3) {
+        txNew.vout[1].nValue = nCredit / 2;
+        txNew.vout[2].nValue = nCredit - txNew.vout[1].nValue;
+    } else
+        txNew.vout[1].nValue = nCredit;
+
+    // Limit size
+    unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
+    if (nBytes >= DEFAULT_BLOCK_MAX_SIZE / 5)
+        return error("CreateCoinStake : exceeded coinstake size limit");
 
     // Sign
     int nIn = 0;
@@ -3133,7 +3116,7 @@ bool CWallet::AddAccountingEntry(const CAccountingEntry& acentry, CWalletDB & pw
     laccentries.push_back(acentry);
     CAccountingEntry & entry = laccentries.back();
 
-    // DRAGAN: 
+    // ZC: 
     wtxOrdered.insert(make_pair(entry.nOrderPos, TxPair((CWalletTx*)0, &entry)));
     // FIXME: not implemented
     // wtxOrdered.insert(make_pair(entry.nOrderPos, TxPair((CWalletTx*)0, &entry)));

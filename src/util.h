@@ -68,7 +68,7 @@ bool LogAcceptCategory(const char* category);
 int LogPrintStr(const std::string& str);
 
 #define LogPrintf(...) LogPrint(NULL, __VA_ARGS__)
-// DRAGAN: seems like colx only add, but not used anywhere?
+// ZC: colx only add
 #define DebugPrintf(...) if (fDebug) LogPrint(NULL, __VA_ARGS__)
 
 /**
@@ -133,6 +133,8 @@ boost::filesystem::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
 boost::filesystem::path GetTempPath();
 void ShrinkDebugFile();
 void runCommand(std::string strCommand);
+bool FindUpdateUrlForThisPlatform(const std::string& info, std::string& url, std::string& error);
+void RenameDataDirAndConfFile();
 
 inline bool IsSwitchChar(char c)
 {
@@ -208,7 +210,7 @@ std::string HelpMessageOpt(const std::string& option, const std::string& message
 void SetThreadPriority(int nPriority);
 void RenameThread(const char* name);
 
-// DRAGAN: LoopForever isn't used any more (pivx), just in our net.cpp (also to be reworked probably)
+// ZC: LoopForever used only in net.cpp, I guess it could be replaced w/ scheduler.scheduleEvery (isn't used any more in pivx)
 /**
  * Standard wrapper for do-something-forever thread functions.
  * "Forever" really means until the thread is interrupted.
@@ -225,12 +227,14 @@ void LoopForever(const char* name, Callable func, int64_t msecs)
     RenameThread(s.c_str());
     LogPrintf("%s thread start\n", name);
     try {
-        while (1) {
+        bool run = true;
+        while (run) {
+            run = func();
             MilliSleep(msecs);
-            func();
         }
+        LogPrintf("%s thread exit\n", name);
     } catch (boost::thread_interrupted) {
-        LogPrintf("%s thread stop\n", name);
+        LogPrintf("%s thread interrupt\n", name);
         throw;
     } catch (std::exception& e) {
         PrintExceptionContinue(&e, name);

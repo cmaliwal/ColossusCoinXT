@@ -75,7 +75,7 @@ AskPassphraseDialog::AskPassphraseDialog(Mode mode, QWidget* parent, WalletModel
     }
 
     // Set checkbox "For anonymization, automint, and staking only" depending on from where we were called
-    // DRAGAN: Zpiv => ?? // Q:
+    // ZC: Zpiv => ?? // Q:
     if (context == Context::Unlock_Menu || context == Context::Mint_zPIV || context == Context::BIP_38) {
         ui->anonymizationCheckBox->setChecked(true);
     }
@@ -84,7 +84,7 @@ AskPassphraseDialog::AskPassphraseDialog(Mode mode, QWidget* parent, WalletModel
     }
 
     // It doesn't make sense to show the checkbox for sending COLX because you wouldn't check it anyway.
-    // DRAGAN: Zpiv => ?? // Q:
+    // ZC: Zpiv => ?? // Q:
     if (context == Context::Send_PIV || context == Context::Send_zPIV) {
         ui->anonymizationCheckBox->hide();
     }
@@ -133,7 +133,7 @@ void AskPassphraseDialog::accept()
                 if (model->setWalletEncrypted(true, newpass1)) {
                     QMessageBox::warning(this, tr("Wallet encrypted"),
                         "<qt>" +
-                            tr("ColossusCoinXT will close now to finish the encryption process. "
+                            tr("ColossusXT will close now to finish the encryption process. "
                                "Remember that encrypting your wallet cannot fully protect "
                                "your COLXs from being stolen by malware infecting your computer.") +
                             "<br><br><b>" +

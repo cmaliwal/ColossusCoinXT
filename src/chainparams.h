@@ -18,16 +18,30 @@
 
 #include <vector>
 
+class CBitcoinAddress;
+
 typedef unsigned char MessageStartChars[MESSAGE_START_SIZE];
 
-struct CDNSSeedData {
+struct CDNSSeedData 
+{
     std::string name, host;
     CDNSSeedData(const std::string& strName, const std::string& strHost) : name(strName), host(strHost) {}
 };
 
 /**
+ * ChainHeight defines blockchain height when rules are changed in the network
+ */
+enum class ChainHeight
+{
+    H1, // 1, Premine, Reward 2500 COLX
+    H2, // 151202, Reward 1250 COLX
+    H3, // 302401, Reward 1000 COLX
+    H4  // 388800, Reward 1250 COLX, new budget and dev funds, only block version >= 4 is valid
+};
+
+/**
  * CChainParams defines various tweakable parameters of a given instance of the
- * ColossusCoinXT system. There are three: the main network on which people trade goods
+ * ColossusXT system. There are three: the main network on which people trade goods
  * and services, the public test network which gets reset from time to time and
  * a regression test mode which is intended for private networks only. It has
  * minimal difficulty to ensure that blocks can be found instantly.
@@ -51,6 +65,7 @@ public:
     const std::vector<unsigned char>& AlertKey() const { return vAlertPubKey; }
     int GetDefaultPort() const { return nDefaultPort; }
     const uint256& ProofOfWorkLimit() const { return bnProofOfWorkLimit; }
+    const uint256& ProofOfStakeLimit() const { return bnProofOfStakeLimit; }
     int SubsidyHalvingInterval() const { return nSubsidyHalvingInterval; }
     /** Used to check majorities for block version upgrade */
     int EnforceBlockUpgradeMajority() const { return nEnforceBlockUpgradeMajority; }
@@ -78,7 +93,9 @@ public:
     int64_t TargetSpacing() const { return nTargetSpacing; }
     int64_t Interval() const { return nTargetTimespan / nTargetSpacing; }
     int PastBlocksMin() const { return nPastBlocksMin; }
+    int LAST_POW_BLOCK() const { return nLastPOWBlock; }
     int COINBASE_MATURITY() const { return nMaturity; }
+    int ModifierUpgradeBlock() const { return nModifierUpdateBlock; }
     CAmount MaxMoneyOut() const { return nMaxMoneyOut; }
     /** The masternode count that we will allow the see-saw reward payments to be off by */
     int MasternodeCountDrift() const { return nMasternodeCountDrift; }
@@ -110,8 +127,8 @@ public:
     int Zerocoin_HeaderVersion() const { return nZerocoinHeaderVersion; }
 
     /** Height or Time Based Activations **/
-    int ModifierUpgradeBlock() const { return nModifierUpdateBlock; }
-    int LAST_POW_BLOCK() const { return nLastPOWBlock; }
+    //int ModifierUpgradeBlock() const { return nModifierUpdateBlock; }
+    //int LAST_POW_BLOCK() const { return nLastPOWBlock; }
     int Zerocoin_StartHeight() const { return nZerocoinStartHeight; }
     int Zerocoin_Block_EnforceSerialRange() const { return nBlockEnforceSerialRange; }
     int Zerocoin_Block_RecalculateAccumulators() const { return nBlockRecalculateAccumulators; }
@@ -122,12 +139,18 @@ public:
 
     int GetMasternodePaymentSigTotal() const { return nMasternodePaymentSigTotal; }
     int GetMasternodePaymentSigRequired() const { return nMasternodePaymentSigRequired; }
-    int64_t GetMasternodeRewardPercent() const { return nMasternodeRewardPercent; }
+    //int64_t GetMasternodeRewardPercent() const { return nMasternodeRewardPercent; }
     int64_t GetBudgetPercent() const { return nBudgetPercent; }
+    int64_t GetDevFundPercent() const { return nDevFundPercent; }
+    int64_t GetBudgetPaymentCycle() const { return nBudgetPaymentCycle; }
     unsigned int GetModifierInterval() const { return nModifierInterval; }
     unsigned int GetModifierIntervalRatio() const { return nModifierIntervalRatio; }
     CAmount GetRequiredMasternodeCollateral() const { return nRequiredMasternodeCollateral; }
 
+    virtual CBitcoinAddress GetDevFundAddress() const = 0;
+    virtual CBitcoinAddress GetTxFeeAddress() const = 0;
+    virtual CBitcoinAddress GetUnallocatedBudgetAddress() const = 0;
+    virtual int GetChainHeight(ChainHeight ch) const = 0;
     virtual int64_t GetMinStakeAge(int nTargetHeight) const = 0;
     virtual const Checkpoints::CCheckpointData& Checkpoints() const = 0;
 
@@ -140,6 +163,7 @@ protected:
     std::vector<unsigned char> vAlertPubKey;
     int nDefaultPort;
     uint256 bnProofOfWorkLimit;
+    uint256 bnProofOfStakeLimit;
     int nMaxReorganizationDepth;
     int nSubsidyHalvingInterval;
     int nEnforceBlockUpgradeMajority;
@@ -193,8 +217,10 @@ protected:
 
     int nMasternodePaymentSigTotal;
     int nMasternodePaymentSigRequired;
-    int64_t nMasternodeRewardPercent;
+    //int64_t nMasternodeRewardPercent;
     int64_t nBudgetPercent;
+    int64_t nDevFundPercent;
+    int64_t nBudgetPaymentCycle;
     unsigned int nModifierInterval;
     unsigned int nModifierIntervalRatio;
     CAmount nRequiredMasternodeCollateral;

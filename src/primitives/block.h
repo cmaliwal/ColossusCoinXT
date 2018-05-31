@@ -31,11 +31,17 @@ class CBlockHeader
 {
 public:
     // header
-    // ZCTEST: // ZCMAINNET: this is ok to stay higher (than the testnet/old), it's only used to note down, 
+    static const int32_t VERSION1 = 1; // initial
+    static const int32_t VERSION2 = 2; // coinbase starts with serialized block height
+    static const int32_t VERSION3 = 3; // DERSIG (BIP66) rules
+    static const int32_t VERSION4 = 4; // new budget percent and masternode see-saw reward
+    static const int32_t VERSION5 = 5; // zerocoins
+    static const int32_t CURRENT_VERSION = VERSION5;
+    // ZCTEST: // ZCMAINNET: this is ok to stay higher (when used with older/obsolete code/nodes), it's only used to note down, 
     // warn about the obsoleteness (on the other side) and when blocks are created with this version
-    // Problem is that testnet (and some on non-testnet as well) are returning version '4' (logged), so 
+    // Problem is that testnet node is already returning version '4' (I guess new budget thingy), so 
     // we need to raise the bar a bit higher
-    static const int32_t CURRENT_VERSION = 5; // 4; //FIXME: set proper verion before acutal release
+    //static const int32_t CURRENT_VERSION = 5; // 4; //FIXME: set proper verion before acutal release
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
@@ -89,6 +95,11 @@ public:
     int64_t GetBlockTime() const
     {
         return (int64_t)nTime;
+    }
+
+    int32_t GetVersion() const
+    {
+        return nVersion;
     }
 };
 

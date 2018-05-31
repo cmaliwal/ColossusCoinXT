@@ -48,7 +48,7 @@ Forums: http://www.colossuscointalk.org/
 
 
 Terms of Service:
-https://colossuscoinxt.org/2018/01/colx-terms-of-service-tos/
+https://colossusxt.io/2018/01/colx-terms-of-service-tos/
 ColossusXT software is an experimental software. There is no guarantee given here.
 Use it at your own risk and please do your due diligence when investing.
 

@@ -13,7 +13,7 @@
  * for both colxd and colx-qt, to make it harder for attackers to
  * target servers or GUI users specifically.
  */
-const std::string CLIENT_NAME("ColossusCoinXT Core");
+const std::string CLIENT_NAME("ColossusXT Core");
 
 /**
  * Client version number
@@ -78,7 +78,7 @@ const std::string CLIENT_NAME("ColossusCoinXT Core");
 const std::string CLIENT_BUILD(BUILD_DESC CLIENT_VERSION_SUFFIX);
 const std::string CLIENT_DATE(BUILD_DATE);
 
-static std::string FormatVersion(int nVersion)
+std::string FormatVersion(int nVersion)
 {
     if (nVersion % 100 == 0)
         return strprintf("%d.%d.%d", nVersion / 1000000, (nVersion / 10000) % 100, (nVersion / 100) % 100);

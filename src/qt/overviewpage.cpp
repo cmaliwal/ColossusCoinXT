@@ -7,6 +7,7 @@
 #include "overviewpage.h"
 #include "ui_overviewpage.h"
 
+#include "context.h"
 #include "bitcoinunits.h"
 #include "clientmodel.h"
 #include "guiconstants.h"
@@ -144,6 +145,7 @@ OverviewPage::OverviewPage(QWidget* parent) : QWidget(parent),
     ui->listTransactions->setAttribute(Qt::WA_MacShowFocusRect, false);
 
     connect(ui->listTransactions, SIGNAL(clicked(QModelIndex)), this, SLOT(handleTransactionClicked(QModelIndex)));
+    connect(ui->labelAlerts, SIGNAL(linkActivated(QString)), this, SLOT(alertLinkActivated(QString)));
 
     // init "out of sync" warning labels
     ui->labelWalletStatus->setText("(" + tr("out of sync") + ")");
@@ -342,6 +344,9 @@ void OverviewPage::setClientModel(ClientModel* model)
         // Show warning if this is a prerelease version
         connect(model, SIGNAL(alertsChanged(QString)), this, SLOT(updateAlerts(QString)));
         updateAlerts(model->getStatusBarWarnings());
+
+        connect(model, SIGNAL(newVersionAvailable()), this, SLOT(updateNewVersionAvailability()));
+        updateNewVersionAvailability();
     }
 }
 
@@ -396,8 +401,35 @@ void OverviewPage::updateDisplayUnit()
 
 void OverviewPage::updateAlerts(const QString& warnings)
 {
-    this->ui->labelAlerts->setVisible(!warnings.isEmpty());
-    this->ui->labelAlerts->setText(warnings);
+    QStringList alertList;
+    if (!warnings.isEmpty())
+        alertList << warnings;
+    if (!this->newVersionNotification.isEmpty())
+        alertList << this->newVersionNotification;
+
+    this->ui->labelAlerts->setVisible(!alertList.isEmpty());
+    this->ui->labelAlerts->setText(alertList.join("<br>"));
+}
+
+void OverviewPage::updateNewVersionAvailability()
+{
+    QString msg = "New version is available, please update your wallet! <a href=\"Go\">Go to download page</a> or <a href=\"Download\">Download now</a>";
+    if (GetContext().IsUpdateAvailable()) {
+        this->newVersionNotification = msg;
+        updateAlerts(this->clientModel->getStatusBarWarnings());
+    }
+}
+
+void OverviewPage::alertLinkActivated(const QString& link)
+{
+    assert(GetContext().IsUpdateAvailable());
+
+    if (link == "Go")
+        GUIUtil::openURL(QString::fromStdString(GetContext().GetUpdateUrlTag()));
+    else if (link == "Download")
+        GUIUtil::openURL(QString::fromStdString(GetContext().GetUpdateUrlFile()));
+    else
+        assert(false); // unexpected link
 }
 
 void OverviewPage::showOutOfSyncWarning(bool fShow)

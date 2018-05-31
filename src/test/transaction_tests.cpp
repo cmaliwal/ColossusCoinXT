@@ -329,7 +329,7 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     t.vin[0].prevout.n = 1;
     t.vin[0].scriptSig << std::vector<unsigned char>(65, 0);
     t.vout.resize(1);
-    t.vout[0].nValue = 90*CENT;
+    t.vout[0].nValue = 6*COIN;
     CKey key;
     key.MakeNewKey(true);
     t.vout[0].scriptPubKey = GetScriptForDestination(key.GetPubKey().GetID());
@@ -340,10 +340,10 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     bool isStandardTx = IsStandardTx(t, reason);
     BOOST_CHECK_MESSAGE(isStandardTx, strprintf("IsStandardTx failed reason: %s", reason.c_str()));
 
-    t.vout[0].nValue = 5011; // dust
-    BOOST_CHECK(!IsStandardTx(t, reason));
+    //t.vout[0].nValue = 5*COIN; // dust
+    //BOOST_CHECK(!IsStandardTx(t, reason));
 
-    t.vout[0].nValue = 6011; // not dust
+    t.vout[0].nValue = 6*COIN; // not dust
     //BOOST_CHECK(IsStandardTx(t, reason));
     // ZCTEST: 
     isStandardTx = IsStandardTx(t, reason);

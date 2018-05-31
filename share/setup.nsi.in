@@ -7,7 +7,7 @@ SetCompressor /SOLID lzma
 !define REGKEY "SOFTWARE\$(^Name)"
 !define VERSION @CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@
 !define COMPANY "@PACKAGE_NAME@ project"
-!define URL https://colossuscoinxt.org
+!define URL https://colossusxt.io
 
 # MUI Symbol Definitions
 !define MUI_ICON "@abs_top_srcdir@/share/pixmaps/bitcoin.ico"
@@ -32,6 +32,9 @@ SetCompressor /SOLID lzma
 !include x64.nsh
 !endif
 
+# Local includes
+!include @abs_top_srcdir@/share/registry.nsh
+
 # Variables
 Var StartMenuGroup
 
@@ -47,12 +50,15 @@ Var StartMenuGroup
 # Installer languages
 !insertmacro MUI_LANGUAGE English
 
+# Registry functions
+!insertmacro COPY_REGISTRY_KEY
+
 # Installer attributes
 OutFile @abs_top_srcdir@/@PACKAGE_TARNAME@-${VERSION}-win@WINDOWS_BITS@-setup.exe
 !if "@WINDOWS_BITS@" == "64"
-InstallDir $PROGRAMFILES64\ColossusCoinXT
+InstallDir $PROGRAMFILES64\ColossusXT
 !else
-InstallDir $PROGRAMFILES\ColossusCoinXT
+InstallDir $PROGRAMFILES\ColossusXT
 !endif
 CRCCheck on
 XPStyle on
@@ -107,6 +113,10 @@ Section -post SEC0001
     WriteRegStr HKCR "@PACKAGE_TARNAME@" "" "URL:COLX"
     WriteRegStr HKCR "@PACKAGE_TARNAME@\DefaultIcon" "" $INSTDIR\@BITCOIN_GUI_NAME@@EXEEXT@
     WriteRegStr HKCR "@PACKAGE_TARNAME@\shell\open\command" "" '"$INSTDIR\@BITCOIN_GUI_NAME@@EXEEXT@" "%1"'
+
+    # Rebranding
+    ${COPY_REGISTRY_KEY} HKCU "Software\ColossusCoinXT\ColossusCoinXT-Qt" HKCU "Software\ColossusXT\ColossusXT-Qt"
+    ${COPY_REGISTRY_KEY} HKCU "Software\ColossusCoinXT\ColossusCoinXT-Qt-testnet" HKCU "Software\ColossusXT\ColossusXT-Qt-testnet"	
 SectionEnd
 
 # Macro for selecting uninstaller sections

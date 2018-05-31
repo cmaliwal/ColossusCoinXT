@@ -146,7 +146,7 @@ public:
         return false;
     }
 
-    bool IsTransactionValid(const CTransaction& txNew, CAmount nFees);
+    bool IsTransactionValid(const CTransaction& txNew, int nBlockVersion);
     std::string GetRequiredPaymentsString();
 
     ADD_SERIALIZE_METHODS;
@@ -263,7 +263,7 @@ public:
     int LastPayment(CMasternode& mn);
 
     bool GetBlockPayee(int nBlockHeight, CScript& payee);
-    bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CAmount nFees);
+    bool IsTransactionValid(const CTransaction& txNew, int nBlockVersion, int nBlockHeight);
     bool IsScheduled(CMasternode& mn, int nNotBlockHeight);
 
     bool CanVote(COutPoint outMasternode, int nBlockHeight)
@@ -284,7 +284,7 @@ public:
     int GetMinMasternodePaymentsProto();
     void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     std::string GetRequiredPaymentsString(int nBlockHeight);
-    void FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake);
+    void FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
     std::string ToString() const;
     int GetOldestBlock();
     int GetNewestBlock();

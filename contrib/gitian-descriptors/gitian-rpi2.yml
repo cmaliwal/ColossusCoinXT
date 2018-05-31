@@ -1,5 +1,5 @@
 ---
-name: "ColossusCoinXT-rpi2-1.0.3"
+name: "ColossusXT-rpi2-1.0.3"
 enable_cache: true
 suites:
 - "trusty"

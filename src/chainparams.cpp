@@ -2,7 +2,7 @@
 // Copyright (c) 2009-2014 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015-2017 The PIVX developers
-// Copyright (c) 2017 The ColossusCoinXT developers
+// Copyright (c) 2017 The ColossusXT developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,6 +11,7 @@
 #include "random.h"
 #include "util.h"
 #include "utilstrencodings.h"
+#include "base58.h"
 
 #include <assert.h>
 
@@ -54,16 +55,20 @@ static void convertSeed6(std::vector<CAddress>& vSeedsOut, const SeedSpec6* data
 // + Contains no strange transactions
 static Checkpoints::MapCheckpoints mapCheckpoints =
     boost::assign::map_list_of(1, uint256("00000dc8bfcb3ce2b02ebb378ae409353a4bd31a7f5e46951ac08506d591cbd7")) ///
-        (57, uint256("000000e62c81ce3db7a0954ce7573a57f127028cd01dd5bc2c0d31d890b2f46b")) ///
+        (57, uint256("000000e62c81ce3db7a0954ce7573a57f127028cd01dd5bc2c0d31d890b2f46b"))
         (2050, uint256("000000000097133d6e0b0ce0216a632f84273dc4cafad6ea56d54427a7a62e47"))
         (2090, uint256("00000000001a17b5aaea15479f80b10ace166664e29ae2a575bbdc6126cf0e12"))
-        (3250, uint256("000000000007e3a1bdc37ba87b9621634b8b99a7f1f35fce1704747b43f47361"));
+        (3250, uint256("000000000007e3a1bdc37ba87b9621634b8b99a7f1f35fce1704747b43f47361"))
+        (300006,uint256("cfe4a07b3ba6c57d9b255f0cd55e39753a0a24ff34526aebc120d29e3c62ab69")); // First block with stake min age 8 hours
+
 static const Checkpoints::CCheckpointData data = {
     &mapCheckpoints,
-    1506276192, // * UNIX timestamp of last checkpoint block
-    58,    // * total number of transactions between genesis and last checkpoint
+    1524962546, // * UNIX timestamp of last checkpoint block
+    642772,    // * total number of transactions between genesis and last checkpoint
                 //   (the tx=... number in the SetBestChain debug.log lines)
     2000        // * estimated number of transactions per day after checkpoint
+    //1506276192, // * UNIX timestamp of last checkpoint block
+    //58,    // * total number of transactions between genesis and last checkpoint
 };
 
 static Checkpoints::MapCheckpoints mapCheckpointsTestnet =
@@ -109,25 +114,35 @@ public:
         pchMessageStart[3] = 0xea;
         vAlertPubKey = ParseHex("0000098d3ba6ba6e7423fa5cbd6a89e0a9a5300f88d33000005cb1a8b7ed2c1000335fc8dc4f012cb8241cc0bdafd6ca70c5f5448916e4e6f511ffffffffffffff");
         nDefaultPort = 51572;
-        bnProofOfWorkLimit = ~uint256(0) >> 20; // ColossusCoinXT starting difficulty is 1 / 2^12
+        bnProofOfWorkLimit = ~uint256(0) >> 20; // ColossusXT starting difficulty is 1 / 2^12
+        bnProofOfStakeLimit = (~uint256(0) >> 24);
         nSubsidyHalvingInterval = 210000;
         nMaxReorganizationDepth = 30;
         nEnforceBlockUpgradeMajority = 750;
         nRejectBlockOutdatedMajority = 950;
         nToCheckBlockUpgradeMajority = 1000;
         nMinerThreads = 0;
-        nTargetTimespan = 1 * 120; // ColossusCoinXT: 2 minute
-        nTargetSpacing = 1 * 120;  // ColossusCoinXT: 2 minute
+        nTargetTimespan = 1 * 60 * 40;
+        nTargetSpacing = 1 * 60;
+        //// ZCDEV: 60 * 40 (pow.cpp) - previous value? too different
+        //nTargetTimespan = 1 * 120; // ColossusCoinXT: 2 minute
+        //// ZCDEV: 60 (pow.cpp) - previous value? too different
+        //nTargetSpacing = 1 * 120;  // ColossusCoinXT: 2 minute
         nPastBlocksMin = 24;
+        nLastPOWBlock = 10080;
         nMaturity = 90;
         nMasternodeCountDrift = 20;
+        nModifierUpdateBlock = 0;
         nMaxMoneyOut = int64_t(20000000000) * COIN;
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
-        nBudgetPercent = 5;
+        //nBudgetPercent = 5;
+        nBudgetPercent = 10;
+        nDevFundPercent = 10;
+        nBudgetPaymentCycle = 60*60*24*30; // 1 month
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 6;
-        nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
+        //nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
 
         /**
@@ -164,7 +179,10 @@ public:
         assert(hashGenesisBlock == uint256("0xa0ce8206c908357008c1b9a8ba2813aff0989ca7f72d62b14e652c55f02b4f5c"));
         assert(genesis.hashMerkleRoot == uint256("0xf7c9a0d34fffa0887892dff1f384048b7be854a99937871705283758b727e414"));
 
-        vSeeds.push_back(CDNSSeedData("colx", "seed.colossuscoinxt.org"));
+        //vSeeds.push_back(CDNSSeedData("colx", "seed.colossuscoinxt.org"));
+        vSeeds.push_back(CDNSSeedData("colx1", "seed.colossuscoinxt.org"));
+        vSeeds.push_back(CDNSSeedData("colx2", "seed.colossusxt.org"));
+        vSeeds.push_back(CDNSSeedData("colx3", "seed.colxt.net"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 30);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 13);
@@ -202,37 +220,32 @@ public:
             "04ed78030ff7ad2c2c4f54cc715ee0cccab5f42566829ad507c4bd834cde358ff079f87c0352b3434c059d3df8bcb7e9b19f13f9150b41";
         nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
-        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
-        nRequiredAccumulation = 1;
+        // ZCDEV: confirmations are not allowing us to confirm and spend zc-s.
+        nMintRequiredConfirmations = 0; // 20; //the maximum amount of confirmations until accumulated in 19
+        nRequiredAccumulation = 1; // 0?
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinHeaderVersion = 4; //Block headers must be this version once zerocoin is active
+        nZerocoinHeaderVersion = 5; //Block headers must be this version once zerocoin is active
         nBudget_Fee_Confirmations = 6; // Number of confirmations for the finalization fee
 
         //FIXME: params must correspond zerocoin release
         /** Height or Time Based Activations **/
-        nLastPOWBlock = 10080;  // 259200
-        nModifierUpdateBlock = 0; // 615800
-        nZerocoinStartHeight = 863787;
+        //nLastPOWBlock = 10080;  // 259200
+        //nModifierUpdateBlock = 0; // 615800
+        nZerocoinStartHeight = 333333; // 863787;
         // ZCTEST: a bit in the future for blocks to be accepted (i.e. to be able to run the testnet)
-        nZerocoinStartTime = 1526272200; // 1526358600; // May 15, 2018 04:30:00 AM
-        //nZerocoinStartTime = 1508214600; // October 17, 2017 4:30:00 AM
-        nBlockEnforceSerialRange = 895400; //Enforce serial range starting this block
-        nBlockRecalculateAccumulators = 908000; //Trigger a recalculation of accumulators
-        nBlockFirstFraudulent = 891737; //First block that bad serials emerged
-        nBlockLastGoodCheckpoint = 891730; //Last valid accumulator checkpoint
-        nBlockEnforceInvalidUTXO = 902850; //Start enforcing the invalid UTXO's
+        nZerocoinStartTime = 1527972200; // June 2nd, 2018 8:43:20 PM
+        nBlockEnforceSerialRange = 533333; // 895400; //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = 533333; // 908000; //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = 533333; // 891737; //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = 533333; // 891730; //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = 533333; // 902850; //Start enforcing the invalid UTXO's
 
+        // THIS IS FOR TESTING PURPOSES ONLY
         // ZCTEST: // ZCMAINNET: this is to avoid errors related to nBits and POW (another layer of changes, still testing)
         fSkipProofOfWorkCheck = true;
-        nZerocoinStartHeight = 9863787;
-        nZerocoinStartTime = 1527272200; // May 25, 2018 04:30:00 AM
-        //nZerocoinStartTime = 1508214600; // October 17, 2017 4:30:00 AM
-        nBlockEnforceSerialRange = 9895400; //Enforce serial range starting this block
-        nBlockRecalculateAccumulators = 9908000; //Trigger a recalculation of accumulators
-        nBlockFirstFraudulent = 9891737; //First block that bad serials emerged
-        nBlockLastGoodCheckpoint = 9891730; //Last valid accumulator checkpoint
-        nBlockEnforceInvalidUTXO = 9902850; //Start enforcing the invalid UTXO's
-        nZerocoinHeaderVersion = 5;
+        nZerocoinStartHeight = 9333333;
+        nZerocoinStartTime = 1539999999; // 1529999999;
+        //nZerocoinHeaderVersion = 5;
 
         // ZCTEST: // tests are failing due to the modulus change, paramgen generated big#-s don't work for some reason,
         // ...I'm guessing that tests are hardcoded (some of the tx-s there, modulus's been adjusted). Questions is whether that
@@ -244,6 +257,36 @@ public:
             "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
             "31438167899885040445364023527381951378636564391212010397122822120720357";
 
+    }
+
+    CBitcoinAddress GetDevFundAddress() const
+    { return CBitcoinAddress("DBKqofwU8QUFYFwNYZetyBbj2Y7oAcWLbX"); }
+
+    CBitcoinAddress GetTxFeeAddress() const
+    { return CBitcoinAddress("DEKP7sVxwwuN1mtCpTXtjua77XqFBBRaKG"); }
+
+    CBitcoinAddress GetUnallocatedBudgetAddress() const
+    { return CBitcoinAddress("DE2nWCnyYyWxoUNRg5gEeA7Kx1kpBs2spB"); }
+
+    int GetChainHeight(ChainHeight ch) const
+    {
+        switch (ch) {
+        case ChainHeight::H1:
+            return 1;
+
+        case ChainHeight::H2:
+            return 151202;
+
+        case ChainHeight::H3:
+            return 302401;
+
+        case ChainHeight::H4:
+            return 388800;
+
+        default:
+            assert(false);
+            return -1;
+        }
     }
 
     int64_t GetMinStakeAge(int nTargetHeight) const
@@ -282,18 +325,25 @@ public:
         nRejectBlockOutdatedMajority = 75;
         nToCheckBlockUpgradeMajority = 100;
         nMinerThreads = 0;
-        nTargetTimespan = 1 * 60; // ColossusCoinXT: 1 day
-        nTargetSpacing = 1 * 60;  // ColossusCoinXT: 1 minute
-        nPastBlocksMin = 200;
-        nLastPOWBlock = 200;
+        nTargetTimespan = 1 * 60 * 40;
+        nTargetSpacing = 1 * 60;
+        nPastBlocksMin = 10080;
+        nLastPOWBlock = 10080;
+        //nTargetTimespan = 1 * 60; // ColossusCoinXT: 1 day
+        //nTargetSpacing = 1 * 60;  // ColossusCoinXT: 1 minute
+        //nPastBlocksMin = 200;
+        //nLastPOWBlock = 200;
         nMaturity = 15;
-        nMasternodeCountDrift = 4;
+        //nMasternodeCountDrift = 4;
         nModifierUpdateBlock = 0; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = int64_t(20000000000) * COIN;
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
-        nBudgetPercent = 5;
-        nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
+        //nBudgetPercent = 5;
+        nBudgetPercent = 10;
+        nDevFundPercent = 10;
+        nBudgetPaymentCycle = 60*60*2; // 2 hours
+        //nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 1;
@@ -333,43 +383,62 @@ public:
         fHeadersFirstSyncingActive = false;
 
         nPoolMaxTransactions = 3;
-        strSporkKey = "04348C2F50F90267E64FACC65BFDC9D0EB147D090872FB97ABAE92E9A36E6CA60983E28E741F8E7277B11A7479B626AC115BA31463AC48178A5075C5A9319D4A38";
+        strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
+        //strSporkKey = "04348C2F50F90267E64FACC65BFDC9D0EB147D090872FB97ABAE92E9A36E6CA60983E28E741F8E7277B11A7479B626AC115BA31463AC48178A5075C5A9319D4A38";
         strObfuscationPoolDummyAddress = "y57cqfGRkekRyDRNeJiLtYVEbvhXrNbmox";
         nStartMasternodePayments = 1420837558; //Fri, 09 Jan 2015 21:05:58 GMT
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short
                                        // here because we only have a 8 block finalization window on testnet
 
-        // DRAGAN: 
+        // ZC: 
         /** Height or Time Based Activations **/
+        nZerocoinStartHeight = 333333; // 863787;
+        // ZCTEST: a bit in the future for blocks to be accepted (i.e. to be able to run the testnet)
+        nZerocoinStartTime = 1527972200; // June 2nd, 2018 8:43:20 PM
+        nBlockEnforceSerialRange = 533333; // 895400; //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = 533333; // 908000; //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = 533333; // 891737; //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = 533333; // 891730; //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = 533333; // 902850; //Start enforcing the invalid UTXO's
+        // THIS IS FOR TESTING PURPOSES ONLY
+        // ZCTEST: // ZCTESTNET: this is to avoid errors related to nBits and POW (another layer of changes, still testing)
+        // ZCTEST: // ZCTESTNET: adjusting to the testnet version
+        fSkipProofOfWorkCheck = true;
+        nZerocoinStartHeight = 9333333;
+        nZerocoinStartTime = 1539999999; // 1529999999;
+
+        //strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
         //nLastPOWBlock = 200;
         //nModifierUpdateBlock = 0; // 51197 //approx Mon, 17 Apr 2017 04:00:00 GMT
-        nZerocoinStartHeight = 201576;
-        nZerocoinStartTime = 1526272200; // May 14, 2018 04:30:00 AM // 1501776000;
-        nBlockEnforceSerialRange = 1; //Enforce serial range starting this block
-        nBlockRecalculateAccumulators = 9908000; //Trigger a recalculation of accumulators
-        nBlockFirstFraudulent = 9891737; //First block that bad serials emerged
-        nBlockLastGoodCheckpoint = 9891730; //Last valid accumulator checkpoint
-        nBlockEnforceInvalidUTXO = 9902850; //Start enforcing the invalid UTXO's
+        //nZerocoinStartHeight = 201576;
+        //nZerocoinStartTime = 1526272200; // May 14, 2018 04:30:00 AM // 1501776000;
+        //nBlockEnforceSerialRange = 1; //Enforce serial range starting this block
+    }
 
-        //// ZCTEST: // ZCTESTNET: adjusting to the testnet version
-        // ZCTEST: // ZCMAINNET: this is to avoid errors related to nBits and POW
-        fSkipProofOfWorkCheck = true;
-        nZerocoinStartHeight = 9863787;
-        nZerocoinStartTime = 1527272200; // 1526272200; // May 15, 2018 04:30:00 AM
-        nBlockEnforceSerialRange = 9895400; //Enforce serial range starting this block
-        nBlockRecalculateAccumulators = 9908000; //Trigger a recalculation of accumulators
-        nBlockFirstFraudulent = 9891737; //First block that bad serials emerged
-        nBlockLastGoodCheckpoint = 9891730; //Last valid accumulator checkpoint
-        nBlockEnforceInvalidUTXO = 9902850; //Start enforcing the invalid UTXO's
-        nZerocoinHeaderVersion = 5;
-        strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
+    CBitcoinAddress GetDevFundAddress() const
+    { return CBitcoinAddress("y4XhfKjJPwxi42YRQssbdDytJ74W8V1bVt"); }
 
-        nTargetTimespan = 1 * 60 * 40;
-        nTargetSpacing = 1 * 60;
-        nPastBlocksMin = 10080;
-        nLastPOWBlock = 10080;
-        nBudgetPercent = 10;
+    CBitcoinAddress GetTxFeeAddress() const
+    { return CBitcoinAddress("yE8w3zvHtbn7mAFxyKk1UJEX92DWrnqzg6"); }
 
+    CBitcoinAddress GetUnallocatedBudgetAddress() const
+    { return CBitcoinAddress("yBtxR3o3uvbtkfeWLuFqa7o7yY9N1ha4Yn"); }
+
+    int GetChainHeight(ChainHeight ch) const
+    {
+        switch (ch) {
+        case ChainHeight::H1:
+            return 1;
+
+        case ChainHeight::H2:
+        case ChainHeight::H3:
+        case ChainHeight::H4:
+            return 35500; // on testnet
+
+        default:
+            assert(false);
+            return -1;
+        }
     }
 
     int64_t GetMinStakeAge(int nTargetHeight) const

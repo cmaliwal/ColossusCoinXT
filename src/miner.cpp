@@ -2,7 +2,7 @@
 // Copyright (c) 2009-2014 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015-2017 The PIVX developers
-// Copyright (c) 2017 The ColossusCoinXT developers
+// Copyright (c) 2017 The ColossusXT developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -109,13 +109,14 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     if (Params().MineBlocksOnDemand())
         pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
 
-    // DRAGAN: this are important changes to include zerocoin (CreateNewBlock) // Q: 
+    // ZC: this are important changes to include zerocoin (CreateNewBlock) // Q: 
     // check if the block version change here is ok (vs -blockversion)
 
     // Make sure to create the correct block version after zerocoin is enabled
+    // ZCMASTER: change to 5
     bool fZerocoinActive = GetAdjustedTime() >= Params().Zerocoin_StartTime();
     if (fZerocoinActive)
-        pblock->nVersion = 4;
+        pblock->nVersion = 5; // 4;
     else
         pblock->nVersion = 3;
 
@@ -159,7 +160,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);
     // Limit to betweeen 1K and MAX_BLOCK_SIZE-1K for sanity:
-    // DRAGAN: this is just a macro/param change (done in other places), seems fine 
+    // ZC: this is just a macro/param change (done in other places), seems fine 
     unsigned int nBlockMaxSizeNetwork = MAX_BLOCK_SIZE_CURRENT;
     nBlockMaxSize = std::max((unsigned int)1000, std::min((nBlockMaxSizeNetwork - 1000), nBlockMaxSize));
 
@@ -194,11 +195,11 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         for (map<uint256, CTxMemPoolEntry>::iterator mi = mempool.mapTx.begin();
              mi != mempool.mapTx.end(); ++mi) {
             const CTransaction& tx = mi->second.GetTx();
-            if (tx.IsCoinBase() || tx.IsCoinStake() || !IsFinalTx(tx, nHeight)){
+            if (tx.IsCoinBase() || tx.IsCoinStake() || !IsFinalTx(tx, nHeight)) {
                 continue;
             }
-            // DRAGAN: to check this out // Q: 
-            if(GetAdjustedTime() > GetSporkValue(SPORK_16_ZEROCOIN_MAINTENANCE_MODE) && tx.ContainsZerocoins()){
+            // ZC: to check this out // Q: 
+            if(GetAdjustedTime() > GetSporkValue(SPORK_16_ZEROCOIN_MAINTENANCE_MODE) && tx.ContainsZerocoins()) {
                 continue;
             }
 
@@ -206,7 +207,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             double dPriority = 0;
             CAmount nTotalIn = 0;
             bool fMissingInputs = false;
-            // DRAGAN: check this out, adds zerocoin handling for tx input, priority // Q: 
+            // ZC: check this out, adds zerocoin handling for tx input, priority // Q: 
             uint256 txid = tx.GetHash();
             for (const CTxIn& txin : tx.vin) {
                 //zerocoinspend has special vin
@@ -325,7 +326,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
                 continue;
 
             // Legacy limits on sigOps:
-            // DRAGAN: just limits handling changed
+            // ZC: just limits handling changed
             unsigned int nMaxBlockSigOps = MAX_BLOCK_SIGOPS_CURRENT;
             unsigned int nTxSigOps = GetLegacySigOpCount(tx);
             if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps)
@@ -351,7 +352,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             if (!view.HaveInputs(tx))
                 continue;
 
-            // DRAGAN: just checking for double spending, seems ok
+            // ZC: just checking for double spending, seems ok
 
             // double check that there are no double spent zPiv spends in this block or tx
             if (tx.IsZerocoinSpend()) {
@@ -382,7 +383,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             CAmount nTxFees = view.GetValueIn(tx) - tx.GetValueOut();
 
             nTxSigOps += GetP2SHSigOpCount(tx, view);
-            // DRAGAN: just limits
+            // ZC: just limits
             if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps)
                 continue;
 
@@ -405,7 +406,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             nBlockSigOps += nTxSigOps;
             nFees += nTxFees;
 
-            // DRAGAN: 
+            // ZC: 
             for (const CBigNum bnSerial : vTxSerials)
                 vBlockSerials.emplace_back(bnSerial);
 
@@ -428,16 +429,23 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             }
         }
 
-// DRAGAN: this was removed in colx latest (fix?), still in pivx // Q: 
-//        if (!fProofOfStake) {
-//            //Masternode and general budget payments
-//            FillBlockPayee(txNew, nFees, fProofOfStake);
-//
-//            //Make payee
-//            if (txNew.vout.size() > 1) {
-//                pblock->payee = txNew.vout[1].scriptPubKey;
-//            }
-//        }
+        // ZC: this was removed in colx latest (fix?), still in pivx // Q: 
+        //Masternode and general budget payments
+        if (fProofOfStake) {
+            assert(pblock->vtx.size() > 1);
+            assert(pblock->vtx[1].IsCoinStake());
+            CMutableTransaction txCoinStake = pblock->vtx[1];
+            FillBlockPayee(txCoinStake, nFees, fProofOfStake);
+
+            if (pwallet->SignTx(txCoinStake, 0)) {
+                pblock->vtx[1] = txCoinStake;
+                DebugPrintf("CreateNewBlock(): successfully signed coinstake:\n%s\n", txCoinStake.ToString());
+            }
+            else {
+                LogPrintf("CreateNewBlock(): failed to sign coinstake:\n%s\n", txCoinStake.ToString());
+                return NULL;
+            }
+        }
 
         nLastBlockTx = nBlockTx;
         nLastBlockSize = nBlockSize;
@@ -446,8 +454,8 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         // Compute final coinbase transaction.
         pblock->vtx[0].vin[0].scriptSig = CScript() << nHeight << OP_0;
         if (!fProofOfStake) {
-            // DRAGAN: colx change/fix
-            txNew.vout[0].nValue = GetBlockValue(nHeight, nFees, false);
+            // ZC: colx change/fix
+            txNew.vout[0].nValue = GetBlockValueReward(nHeight) + nFees;
             pblock->vtx[0] = txNew;
             pblocktemplate->vTxFees[0] = -nFees;
         }
@@ -458,7 +466,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             UpdateTime(pblock, pindexPrev);
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
         pblock->nNonce = 0;
-        // DRAGAN: added acc checkpoint
+        // ZC: added acc checkpoint
         uint256 nCheckpoint = 0;
         AccumulatorMap mapAccumulators;
         if(fZerocoinActive && !CalculateAccumulatorCheckpoint(nHeight, nCheckpoint, mapAccumulators)){
@@ -467,49 +475,51 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         pblock->nAccumulatorCheckpoint = nCheckpoint;
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
 
-        // DRAGAN: synced/merged w/ pvix, this was a colx fix and pvix added mempool.clear
+        // ZC: synced/merged w/ pvix, this was a colx fix and pvix added mempool.clear
+        // ZCDEV: // ZCDEVMERGE: this part was entirely removed (in colx/dev), is this intended?? // Q: 
+        // ...this is not zc related as it seems, so leaving it off for now
         if (pblock->IsProofOfStake()) {
-            // We have to verify masternode reward in the coin stake because of
-            // actual fee may be higher than was used in the calculation of the reward.
-            // In that case we have to update masternode reward in the coin stake because
-            // if SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT is active - block will be rejected due to unsufficient reward.
-            assert(pblock->vtx.size() > 1);
-            assert(pblock->vtx[1].IsCoinStake());
-            CMutableTransaction txCoinStake = pblock->vtx[1];
+            //// We have to verify masternode reward in the coin stake because of
+            //// actual fee may be higher than was used in the calculation of the reward.
+            //// In that case we have to update masternode reward in the coin stake because
+            //// if SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT is active - block will be rejected due to unsufficient reward.
+            //assert(pblock->vtx.size() > 1);
+            //assert(pblock->vtx[1].IsCoinStake());
+            //CMutableTransaction txCoinStake = pblock->vtx[1];
 
-            const CAmount nMinFeeReward = txCoinStake.vout.back().nValue;
-            const CAmount nFeesReward = GetMasternodePayment(GetBlockValue(nHeight, nFees, false));
-            if (nFeesReward > nMinFeeReward) {
-                LogPrintf("Drift in the masternode reward detected, it is %s but must be %s\n", FormatMoney(nMinFeeReward), FormatMoney(nFeesReward));
-                const CAmount nRewardDrift = nFeesReward - nMinFeeReward;
+            //const CAmount nMinFeeReward = txCoinStake.vout.back().nValue;
+            //const CAmount nFeesReward = GetMasternodePayment(GetBlockValue(nHeight, nFees, false));
+            //if (nFeesReward > nMinFeeReward) {
+            //    LogPrintf("Drift in the masternode reward detected, it is %s but must be %s\n", FormatMoney(nMinFeeReward), FormatMoney(nFeesReward));
+            //    const CAmount nRewardDrift = nFeesReward - nMinFeeReward;
 
-                bool sign = true;
-                if (txCoinStake.vout.size() == 3) {
-                    // 0 - coin base, 1 - coin stake, 2 - mn reward
-                    txCoinStake.vout[1].nValue -= nRewardDrift;
-                    txCoinStake.vout[2].nValue = nFeesReward;
-                } else if (txCoinStake.vout.size() == 4) {
-                    // 0 - coin base, 1 - coin stake split1, 2 - coin stake split2, 3 - mn reward
-                    const CAmount nDrift1 = nRewardDrift / 2;
-                    const CAmount nDrift2 = nRewardDrift - nDrift1;
-                    txCoinStake.vout[1].nValue -= nDrift1;
-                    txCoinStake.vout[2].nValue -= nDrift2;
-                    txCoinStake.vout[3].nValue = nFeesReward;
-                } else {
-                    sign = false;
-                    LogPrintf("Coin stake tx contains invalid number of vout:\n%s\n", txCoinStake.ToString());
-                }
+            //    bool sign = true;
+            //    if (txCoinStake.vout.size() == 3) {
+            //        // 0 - coin base, 1 - coin stake, 2 - mn reward
+            //        txCoinStake.vout[1].nValue -= nRewardDrift;
+            //        txCoinStake.vout[2].nValue = nFeesReward;
+            //    } else if (txCoinStake.vout.size() == 4) {
+            //        // 0 - coin base, 1 - coin stake split1, 2 - coin stake split2, 3 - mn reward
+            //        const CAmount nDrift1 = nRewardDrift / 2;
+            //        const CAmount nDrift2 = nRewardDrift - nDrift1;
+            //        txCoinStake.vout[1].nValue -= nDrift1;
+            //        txCoinStake.vout[2].nValue -= nDrift2;
+            //        txCoinStake.vout[3].nValue = nFeesReward;
+            //    } else {
+            //        sign = false;
+            //        LogPrintf("Coin stake tx contains invalid number of vout:\n%s\n", txCoinStake.ToString());
+            //    }
 
-                if (sign) {
-                    // we have updated coin stake, so update signature
-                    // DRAGAN: SignTx only used in this place
-                    if (pwallet->SignTx(txCoinStake, 0)) {
-                        pblock->vtx[1] = txCoinStake;
-                        LogPrintf("Masternode reward has been updated, tx:\n%s\n", txCoinStake.ToString());
-                    } else
-                        LogPrintf("Masternode reward has not been updated, failed to update signature, tx:\n%s\n", txCoinStake.ToString());
-                }
-            }
+            //    if (sign) {
+            //        // we have updated coin stake, so update signature
+            //        // ZC: SignTx only used in this place
+            //        if (pwallet->SignTx(txCoinStake, 0)) {
+            //            pblock->vtx[1] = txCoinStake;
+            //            LogPrintf("Masternode reward has been updated, tx:\n%s\n", txCoinStake.ToString());
+            //        } else
+            //            LogPrintf("Masternode reward has not been updated, failed to update signature, tx:\n%s\n", txCoinStake.ToString());
+            //    }
+            //}
 
             CValidationState state;
             if (!TestBlockValidity(state, *pblock, pindexPrev, false, false)) {
@@ -580,7 +590,7 @@ bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
         wallet.mapRequestCount[pblock->GetHash()] = 0;
     }
 
-    // DRAGAN: this is related to signals (new), recheck if consequences // Q: 
+    // ZC: this is related to signals (new), recheck if consequences // Q: 
     // Inform about the new block
     GetMainSignals().BlockFound(pblock->GetHash());
 
@@ -589,7 +599,6 @@ bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
     if (!ProcessNewBlock(state, NULL, pblock))
         return error("COLXMiner : ProcessNewBlock, block not accepted");
 
-    // DRAGAN: this is doubled, implemented in pivx as well
     for (CNode* node : vNodes)
         node->PushInventory(CInv(MSG_BLOCK, pblock->GetHash()));
 
@@ -612,20 +621,18 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
 
     //control the amount of times the client will check for mintable coins
     static bool fMintableCoins = false;
-    static int nMintableLastCheck = 0;
-
-    if (fProofOfStake && (GetTime() - nMintableLastCheck > 5 * 60)) // 5 minute check time
-    {
-        nMintableLastCheck = GetTime();
-        // DRAGAN: this seems to be a (colx) fix, it conflicts w/ pivx // Q: 
-        fMintableCoins = pwallet->MintableCoins(chainActive.Height() + 1);
-        //fMintableCoins = pwallet->MintableCoins();
-    }
+    static int64_t nMintableLastCheck = 0;
 
     while (fGenerateBitcoins || fProofOfStake) {
         if (fProofOfStake) {
+            if (GetTime() - nMintableLastCheck > 5 * 60) // 5 minute check time
+            {
+                nMintableLastCheck = GetTime();
+                // ZC: this seems to be a (colx) fix, it conflicts w/ pivx // Q: // MintableCoins();
+                fMintableCoins = pwallet->MintableCoins(chainActive.Height() + 1);
+            }
 
-            // DRAGAN: this was a colx fix, conflicts w/ pivx // Q: 
+            // ZC: this was a colx fix, conflicts w/ pivx // Q: 
             //while (chainActive.Tip()->nTime < 1471482000 || vNodes.empty() || pwallet->IsLocked() || !fMintableCoins || nReserveBalance >= pwallet->GetBalance() || !masternodeSync.IsSynced()) {
             while (vNodes.empty() || pwallet->IsLocked() || !fMintableCoins || nReserveBalance >= pwallet->GetBalance() || !masternodeSync.IsSynced()) {
                 nLastCoinStakeSearchInterval = 0;

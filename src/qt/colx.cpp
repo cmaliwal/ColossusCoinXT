@@ -8,6 +8,7 @@
 #include "config/colx-config.h"
 #endif
 
+#include "context.h"
 #include "bitcoingui.h"
 
 #include "clientmodel.h"
@@ -53,6 +54,8 @@
 #include <QThread>
 #include <QTimer>
 #include <QTranslator>
+#include <QFileInfo>
+#include <QString>
 
 #if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
@@ -166,7 +169,7 @@ void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, cons
 }
 #endif
 
-/** Class encapsulating ColossusCoinXT Core startup and shutdown.
+/** Class encapsulating ColossusXT Core startup and shutdown.
  * Allows running startup and shutdown in a different thread from the UI thread.
  */
 class BitcoinCore : public QObject
@@ -196,7 +199,7 @@ private:
     void handleRunawayException(std::exception* e);
 };
 
-/** Main ColossusCoinXT application object */
+/** Main ColossusXT application object */
 class BitcoinApplication : public QApplication
 {
     Q_OBJECT
@@ -479,7 +482,7 @@ void BitcoinApplication::initializeResult(int retval)
 
 #ifdef ENABLE_WALLET
         // Now that initialization/startup is done, process any command-line
-        // ColossusCoinXT: URIs or payment requests:
+        // ColossusXT: URIs or payment requests:
         connect(paymentServer, SIGNAL(receivedPaymentRequest(SendCoinsRecipient)),
             window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
         connect(window, SIGNAL(receivedURI(QString)),
@@ -501,7 +504,7 @@ void BitcoinApplication::shutdownResult(int retval)
 
 void BitcoinApplication::handleRunawayException(const QString& message)
 {
-    QMessageBox::critical(0, "Runaway exception", BitcoinGUI::tr("A fatal error occurred. ColossusCoinXT can no longer continue safely and will quit.") + QString("\n\n") + message);
+    QMessageBox::critical(0, "Runaway exception", BitcoinGUI::tr("A fatal error occurred. ColossusXT can no longer continue safely and will quit.") + QString("\n\n") + message);
     ::exit(1);
 }
 
@@ -516,7 +519,13 @@ WId BitcoinApplication::getMainWinId() const
 #ifndef BITCOIN_QT_TEST
 int main(int argc, char* argv[])
 {
+    ContextScopeInit context;
+
+    // Locale
     SetupEnvironment();
+
+    // Rebranding if needed
+    RenameDataDirAndConfFile();
 
     /// 1. Parse command-line options. These take precedence over anything else.
     // Command-line options take precedence:
@@ -575,6 +584,25 @@ int main(int argc, char* argv[])
     }
 
     /// 5. Now that settings and translations are available, ask user for data directory
+    // Rebranding QSettings if needed
+    try {
+        QString newSettingPath = Intro::getSettingsDirectory();
+        QString oldSettingsPath = newSettingPath;
+        oldSettingsPath.replace(QString(QAPP_ORG_NAME), QString("ColossusCoinXT"));
+        if (!newSettingPath.isEmpty() && !oldSettingsPath.isEmpty() &&
+                QFileInfo::exists(oldSettingsPath) && !QFileInfo::exists(newSettingPath)) {
+            namespace fs = boost::filesystem;
+            const fs::path pOldSettings = GUIUtil::qstringToBoostPath(oldSettingsPath);
+            const fs::path pNewSettings = GUIUtil::qstringToBoostPath(newSettingPath);
+            fs::create_directories(pNewSettings.parent_path());
+            fs::copy(pOldSettings, pNewSettings);
+        }
+    } catch (...) {
+        assert(false);
+        // in case of errors user will have to choose data directory again,
+        // so skip error and continue
+    }
+
     // User language is set up: pick a data directory
     if (!Intro::pickDataDirectory())
         return 0;
@@ -582,14 +610,14 @@ int main(int argc, char* argv[])
     /// 6. Determine availability of data directory and parse colx.conf
     /// - Do not call GetDataDir(true) before this step finishes
     if (!boost::filesystem::is_directory(GetDataDir(false))) {
-        QMessageBox::critical(0, QObject::tr("ColossusCoinXT Core"),
+        QMessageBox::critical(0, QObject::tr("ColossusXT Core"),
             QObject::tr("Error: Specified data directory \"%1\" does not exist.").arg(QString::fromStdString(mapArgs["-datadir"])));
         return 1;
     }
     try {
         ReadConfigFile(mapArgs, mapMultiArgs);
     } catch (std::exception& e) {
-        QMessageBox::critical(0, QObject::tr("ColossusCoinXT Core"),
+        QMessageBox::critical(0, QObject::tr("ColossusXT Core"),
             QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
         return 0;
     }
@@ -602,7 +630,7 @@ int main(int argc, char* argv[])
 
     // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
     if (!SelectParamsFromCommandLine()) {
-        QMessageBox::critical(0, QObject::tr("ColossusCoinXT Core"), QObject::tr("Error: Invalid combination of -regtest and -testnet."));
+        QMessageBox::critical(0, QObject::tr("ColossusXT Core"), QObject::tr("Error: Invalid combination of -regtest and -testnet."));
         return 1;
     }
 #ifdef ENABLE_WALLET
@@ -621,7 +649,7 @@ int main(int argc, char* argv[])
     /// 7a. parse masternode.conf
     string strErr;
     if (!masternodeConfig.read(strErr)) {
-        QMessageBox::critical(0, QObject::tr("ColossusCoinXT Core"),
+        QMessageBox::critical(0, QObject::tr("ColossusXT Core"),
             QObject::tr("Error reading masternode configuration file: %1").arg(strErr.c_str()));
         return 0;
     }
@@ -667,7 +695,7 @@ int main(int argc, char* argv[])
         app.createWindow(networkStyle.data());
         app.requestInitialize();
 #if defined(Q_OS_WIN) && QT_VERSION >= 0x050000
-        WinShutdownMonitor::registerShutdownBlockReason(QObject::tr("ColossusCoinXT Core didn't yet exit safely..."), (HWND)app.getMainWinId());
+        WinShutdownMonitor::registerShutdownBlockReason(QObject::tr("ColossusXT Core didn't yet exit safely..."), (HWND)app.getMainWinId());
 #endif
         app.exec();
         app.requestShutdown();
