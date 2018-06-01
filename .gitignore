@@ -42,7 +42,17 @@ share/setup.nsi
 share/qt/Info.plist
 contrib/devtools/split-debug.sh
 
-src/univalue/gen
+# src/univalue/gen
+# univalue temp files need to be ignored
+src/univalue/build-aux/
+src/univalue/pc/libunivalue-uninstalled.pc
+src/univalue/pc/libunivalue.pc
+src/univalue/stamp-h1
+src/univalue/univalue-config.h
+src/univalue/univalue-config.h.in
+#
+
+
 
 src/qt/*.moc
 src/qt/moc_*.cpp
