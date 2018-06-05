@@ -41,7 +41,6 @@ public:
     // warn about the obsoleteness (on the other side) and when blocks are created with this version
     // Problem is that testnet node is already returning version '4' (I guess new budget thingy), so 
     // we need to raise the bar a bit higher
-    //static const int32_t CURRENT_VERSION = 5; // 4; //FIXME: set proper verion before acutal release
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;

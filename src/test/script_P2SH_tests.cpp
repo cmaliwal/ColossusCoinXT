@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(set)
     {
         BOOST_CHECK_MESSAGE(SignSignature(keystore, txFrom, txTo[i], 0), strprintf("SignSignature %d", i));
         BOOST_CHECK_MESSAGE(IsStandardTx(txTo[i], reason), strprintf("txTo[%d].IsStandard, reason=%s", i, reason.c_str()));
-        // ZCTEST: 
+        // ZCTEST: to ensure strprintf's executed after (wasn't working)
         bool isStandardTx = IsStandardTx(txTo[i], reason);
         BOOST_CHECK_MESSAGE(isStandardTx, strprintf("txTo[%d].IsStandard - reason: %s", i, reason.c_str()));
     }

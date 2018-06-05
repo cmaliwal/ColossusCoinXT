@@ -3326,6 +3326,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     bool fStrictPayToScriptHash = (pindex->GetBlockTime() >= nBIP16SwitchTime);
 
     unsigned int flags = fStrictPayToScriptHash ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE;
+    flags |= SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY; // Start enforcing CHECKLOCKTIMEVERIFY (BIP65)
 
     // Start enforcing the DERSIG (BIP66) rules, for block.nVersion=3 blocks, when 75% of the network has upgraded:
     if (block.nVersion >= CBlockHeader::VERSION3 &&

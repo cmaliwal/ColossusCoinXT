@@ -145,7 +145,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
     else if (mapHashedBlocks.count(chainActive.Tip()->nHeight - 1) && nLastCoinStakeSearchInterval)
         nStaking = true;
     obj.push_back(Pair("staking status", (nStaking ? "Staking Active" : "Staking Not Active")));
-    obj.push_back(Pair("errors", GetWarnings("statusbar")));
+    //obj.push_back(Pair("errors", GetWarnings("statusbar")));
 
     vector<string> warnings;
     warnings.push_back(GetWarnings("statusbar"));

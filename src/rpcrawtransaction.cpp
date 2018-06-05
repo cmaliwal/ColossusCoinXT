@@ -315,9 +315,10 @@ UniValue listunspent(const UniValue& params, bool fHelp)
 
 UniValue createrawtransaction(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 2)
+    //if (fHelp || params.size() != 2) // DEVZCMASTER: ?
+    if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
-            "createrawtransaction [{\"txid\":\"id\",\"vout\":n},...] {\"address\":amount,...}\n"
+            "createrawtransaction [{\"txid\":\"id\",\"vout\":n},...] {\"address\":amount,...} (locktime)\n"
             "\nCreate a transaction spending the given inputs and sending to the given addresses.\n"
             "Returns hex-encoded raw transaction.\n"
             "Note that the transaction's inputs are not signed, and\n"
@@ -334,10 +335,10 @@ UniValue createrawtransaction(const UniValue& params, bool fHelp)
             "     ]\n"
             "2. \"addresses\"           (string, required) a json object with addresses as keys and amounts as values\n"
             "    {\n"
-            "      \"address\": x.xxx   (numeric, required) The key is the colx address, the value is the btc amount\n"
+            "      \"address\": x.xxx   (numeric, required) The key is the colx address, the value is the colx amount\n"
             "      ,...\n"
             "    }\n"
-
+            "3. locktime                (numeric, optional, default=0) Raw locktime. Non-0 value also locktime-activates inputs\n"
             "\nResult:\n"
             "\"transaction\"            (string) hex string of the transaction\n"
 
@@ -345,12 +346,21 @@ UniValue createrawtransaction(const UniValue& params, bool fHelp)
             HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":0.01}\"") + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"{\\\"address\\\":0.01}\""));
 
     LOCK(cs_main);
-    RPCTypeCheck(params, boost::assign::list_of(UniValue::VARR)(UniValue::VOBJ));
+    // DEVZCMASTER: // TODO: this needs to be rechecked (univalue wise)
+    RPCTypeCheck(params, boost::assign::list_of(UniValue::VARR)(UniValue::VOBJ)(UniValue::VNUM));
 
     UniValue inputs = params[0].get_array();
     UniValue sendTo = params[1].get_obj();
+    // DEVZCMASTER: // TODO: this needs to be rechecked (univalue wise)
+    int64_t nLockTime = 0;
+    if (params.size() > 2) {
+        nLockTime = params[2].get_int64();
+        if (nLockTime < 0 || nLockTime > std::numeric_limits<uint32_t>::max())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, locktime out of range: %lld", nLockTime));
+    }
 
     CMutableTransaction rawTx;
+    rawTx.nLockTime = static_cast<uint32_t>(nLockTime);
 
     for (unsigned int idx = 0; idx < inputs.size(); idx++) {
         const UniValue& input = inputs[idx];
@@ -365,7 +375,9 @@ UniValue createrawtransaction(const UniValue& params, bool fHelp)
         if (nOutput < 0)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout must be positive");
 
-        CTxIn in(COutPoint(txid, nOutput));
+        // DEVZCMASTER: // TODO: this needs to be rechecked
+        uint32_t nSequence = rawTx.nLockTime > 0 ? CTxIn::SEQUENCE_FINAL - 1 : CTxIn::SEQUENCE_FINAL;
+        CTxIn in(COutPoint(txid, nOutput), CScript(), nSequence);
         rawTx.vin.push_back(in);
     }
 
