@@ -116,9 +116,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     // ZCMASTER: change to 5
     bool fZerocoinActive = GetAdjustedTime() >= Params().Zerocoin_StartTime();
     if (fZerocoinActive)
-        pblock->nVersion = 5; // 4;
+        pblock->nVersion = CBlockHeader::VERSION5;
     else
-        pblock->nVersion = 3;
+        pblock->nVersion = CBlockHeader::VERSION4;
 
     // Create coinbase tx
     CMutableTransaction txNew;
@@ -429,7 +429,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             }
         }
 
-        // ZC: this was removed in colx latest (fix?), still in pivx // Q: 
         //Masternode and general budget payments
         if (fProofOfStake) {
             assert(pblock->vtx.size() > 1);
@@ -475,55 +474,10 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         pblock->nAccumulatorCheckpoint = nCheckpoint;
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
 
-        // ZC: synced/merged w/ pvix, this was a colx fix and pvix added mempool.clear
-        // ZCDEV: // ZCDEVMERGE: this part was entirely removed (in colx/dev), is this intended?? // Q: 
-        // ...this is not zc related as it seems, so leaving it off for now
         if (pblock->IsProofOfStake()) {
-            //// We have to verify masternode reward in the coin stake because of
-            //// actual fee may be higher than was used in the calculation of the reward.
-            //// In that case we have to update masternode reward in the coin stake because
-            //// if SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT is active - block will be rejected due to unsufficient reward.
-            //assert(pblock->vtx.size() > 1);
-            //assert(pblock->vtx[1].IsCoinStake());
-            //CMutableTransaction txCoinStake = pblock->vtx[1];
-
-            //const CAmount nMinFeeReward = txCoinStake.vout.back().nValue;
-            //const CAmount nFeesReward = GetMasternodePayment(GetBlockValue(nHeight, nFees, false));
-            //if (nFeesReward > nMinFeeReward) {
-            //    LogPrintf("Drift in the masternode reward detected, it is %s but must be %s\n", FormatMoney(nMinFeeReward), FormatMoney(nFeesReward));
-            //    const CAmount nRewardDrift = nFeesReward - nMinFeeReward;
-
-            //    bool sign = true;
-            //    if (txCoinStake.vout.size() == 3) {
-            //        // 0 - coin base, 1 - coin stake, 2 - mn reward
-            //        txCoinStake.vout[1].nValue -= nRewardDrift;
-            //        txCoinStake.vout[2].nValue = nFeesReward;
-            //    } else if (txCoinStake.vout.size() == 4) {
-            //        // 0 - coin base, 1 - coin stake split1, 2 - coin stake split2, 3 - mn reward
-            //        const CAmount nDrift1 = nRewardDrift / 2;
-            //        const CAmount nDrift2 = nRewardDrift - nDrift1;
-            //        txCoinStake.vout[1].nValue -= nDrift1;
-            //        txCoinStake.vout[2].nValue -= nDrift2;
-            //        txCoinStake.vout[3].nValue = nFeesReward;
-            //    } else {
-            //        sign = false;
-            //        LogPrintf("Coin stake tx contains invalid number of vout:\n%s\n", txCoinStake.ToString());
-            //    }
-
-            //    if (sign) {
-            //        // we have updated coin stake, so update signature
-            //        // ZC: SignTx only used in this place
-            //        if (pwallet->SignTx(txCoinStake, 0)) {
-            //            pblock->vtx[1] = txCoinStake;
-            //            LogPrintf("Masternode reward has been updated, tx:\n%s\n", txCoinStake.ToString());
-            //        } else
-            //            LogPrintf("Masternode reward has not been updated, failed to update signature, tx:\n%s\n", txCoinStake.ToString());
-            //    }
-            //}
-
             CValidationState state;
             if (!TestBlockValidity(state, *pblock, pindexPrev, false, false)) {
-                LogPrintf("CreateNewBlock() : TestBlockValidity failed\n");
+                error("%s - TestBlockValidity failed\n", __func__);
                 mempool.clear();
                 return NULL;
             }

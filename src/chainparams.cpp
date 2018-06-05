@@ -404,8 +404,8 @@ public:
         // ZCTEST: // ZCTESTNET: this is to avoid errors related to nBits and POW (another layer of changes, still testing)
         // ZCTEST: // ZCTESTNET: adjusting to the testnet version
         fSkipProofOfWorkCheck = true;
-        nZerocoinStartHeight = 9333333;
-        nZerocoinStartTime = 1539999999; // 1529999999;
+        nZerocoinStartHeight = 52000;
+        nZerocoinStartTime = 1528142000; // 1529999999;
 
         //strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
         //nLastPOWBlock = 200;
