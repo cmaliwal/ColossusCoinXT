@@ -1295,6 +1295,21 @@ bool AppInit2(boost::thread_group& threadGroup)
                 return InitError(strLoadError);
             }
         }
+
+        if (!fReindex && Checkpoints::ActiveChainOnFork()) {
+            bool fRet = uiInterface.ThreadSafeMessageBox(
+                strLoadError += _("Looks like you are on a forked chain. Please rebuild the block database now or run -reindex later."),
+                "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
+            if (fRet) {
+                fLoaded = false;
+                fReindex = true;
+                fRequestShutdown = false;
+                CAddrDB().RemoveStorage();
+            } else {
+                LogPrintf("Aborted block database rebuild. Exiting.\n");
+                return false;
+            }
+        }
     }
 
     // As LoadBlockIndex can take several minutes, it's possible the user

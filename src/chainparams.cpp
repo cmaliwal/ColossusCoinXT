@@ -59,12 +59,14 @@ static Checkpoints::MapCheckpoints mapCheckpoints =
         (2050, uint256("000000000097133d6e0b0ce0216a632f84273dc4cafad6ea56d54427a7a62e47"))
         (2090, uint256("00000000001a17b5aaea15479f80b10ace166664e29ae2a575bbdc6126cf0e12"))
         (3250, uint256("000000000007e3a1bdc37ba87b9621634b8b99a7f1f35fce1704747b43f47361"))
-        (300006,uint256("cfe4a07b3ba6c57d9b255f0cd55e39753a0a24ff34526aebc120d29e3c62ab69")); // First block with stake min age 8 hours
+        (300006,uint256("cfe4a07b3ba6c57d9b255f0cd55e39753a0a24ff34526aebc120d29e3c62ab69")) // First block with stake min age 8 hours
+        (351117,uint256("d0b422f62c4856cdbc7d2c21169f67d4dbbe5f7c43622bda0c50d756dc159454")) // Fork correction
+        (356500,uint256("f04f249dd88571539286e1cc8d1d9136ec2733671b8d8294509db59d62030411")); // Fork correction
 
 static const Checkpoints::CCheckpointData data = {
     &mapCheckpoints,
-    1524962546, // * UNIX timestamp of last checkpoint block
-    642772,    // * total number of transactions between genesis and last checkpoint
+    1528393811, // * UNIX timestamp of last checkpoint block
+    761041,     // * total number of transactions between genesis and last checkpoint
                 //   (the tx=... number in the SetBestChain debug.log lines)
     2000        // * estimated number of transactions per day after checkpoint
 };
@@ -106,7 +108,6 @@ public:
         bnProofOfWorkLimit = ~uint256(0) >> 20; // ColossusXT starting difficulty is 1 / 2^12
         bnProofOfStakeLimit = (~uint256(0) >> 24);
         nSubsidyHalvingInterval = 210000;
-        nMaxReorganizationDepth = 30;
         nEnforceBlockUpgradeMajority = 750;
         nRejectBlockOutdatedMajority = 950;
         nToCheckBlockUpgradeMajority = 1000;

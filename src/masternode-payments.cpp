@@ -770,12 +770,11 @@ bool CMasternodePaymentWinner::IsValid(CNode* pnode, std::string& strError)
         if (n > Params().GetMasternodePaymentSigTotal() * 2) {
             strError = strprintf("Masternode not in the top %d (%d)", Params().GetMasternodePaymentSigTotal() * 2, n);
             LogPrintf("CMasternodePaymentWinner::IsValid - %s\n", strError);
-            if (masternodeSync.IsSynced()) Misbehaving(pnode->GetId(), 20);
+            //if (masternodeSync.IsSynced()) Misbehaving(pnode->GetId(), 20); this ban split network and leads to forks
         }
         return false;
-    }
-
-    return true;
+    } else
+        return true;
 }
 
 bool CMasternodePayments::ProcessBlock(int nBlockHeight)
