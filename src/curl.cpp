@@ -96,6 +96,11 @@ bool CURLGetRedirect(const CUrl& url, CUrl& redirect, string& error)
     }
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+    /* disable peer and host verification because of issues on Mac and Win */
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
         error = strprintf("curl_easy_perform failed: %s", curl_easy_strerror(res));
@@ -158,6 +163,10 @@ bool CURLDownloadToMem(const CUrl& url, string& buff, string& error)
     /* some servers don't like requests that are made without a user-agent */
     const string agent = FormatFullVersion();
     curl_easy_setopt(curl, CURLOPT_USERAGENT, agent.c_str());
+
+    /* disable peer and host verification because of issues on Mac and Win */
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
     /* get it! */
     res = curl_easy_perform(curl);
