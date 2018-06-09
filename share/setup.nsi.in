@@ -116,10 +116,6 @@ Section -post SEC0001
     WriteRegStr HKCR "colx" "" "URL:COLX"
     WriteRegStr HKCR "colx\DefaultIcon" "" $INSTDIR\colx-qt.exe
     WriteRegStr HKCR "colx\shell\open\command" "" '"$INSTDIR\colx-qt.exe" "%1"'
-
-    # Rebranding
-    ${COPY_REGISTRY_KEY} HKCU "Software\ColossusCoinXT\ColossusCoinXT-Qt" HKCU "Software\ColossusXT\ColossusXT-Qt"
-    ${COPY_REGISTRY_KEY} HKCU "Software\ColossusCoinXT\ColossusCoinXT-Qt-testnet" HKCU "Software\ColossusXT\ColossusXT-Qt-testnet"	
 SectionEnd
 
 # Macro for selecting uninstaller sections
