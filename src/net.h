@@ -749,6 +749,7 @@ private:
 
 public:
     CAddrDB();
+    void RemoveStorage() const;
     bool Write(const CAddrMan& addr);
     bool Read(CAddrMan& addr);
 };

@@ -89,6 +89,11 @@ Section -Main SEC0000
     File /r @abs_top_srcdir@/doc\*.*
     SetOutPath $INSTDIR
     WriteRegStr HKCU "${REGKEY}\Components" Main 1
+    
+    # ZC105: TYPO: REVIEW: this was removed from zc sync, but is still in COLX master? (see history for zc)
+    # Remove old wxwidgets-based-colx executable and locales:
+    # Delete /REBOOTOK $INSTDIR\colx.exe
+    # RMDir /r /REBOOTOK $INSTDIR\locale
 SectionEnd
 
 Section -post SEC0001
@@ -113,10 +118,6 @@ Section -post SEC0001
     WriteRegStr HKCR "@PACKAGE_TARNAME@" "" "URL:COLX"
     WriteRegStr HKCR "@PACKAGE_TARNAME@\DefaultIcon" "" $INSTDIR\@BITCOIN_GUI_NAME@@EXEEXT@
     WriteRegStr HKCR "@PACKAGE_TARNAME@\shell\open\command" "" '"$INSTDIR\@BITCOIN_GUI_NAME@@EXEEXT@" "%1"'
-
-    # Rebranding
-    ${COPY_REGISTRY_KEY} HKCU "Software\ColossusCoinXT\ColossusCoinXT-Qt" HKCU "Software\ColossusXT\ColossusXT-Qt"
-    ${COPY_REGISTRY_KEY} HKCU "Software\ColossusCoinXT\ColossusCoinXT-Qt-testnet" HKCU "Software\ColossusXT\ColossusXT-Qt-testnet"	
 SectionEnd
 
 # Macro for selecting uninstaller sections
