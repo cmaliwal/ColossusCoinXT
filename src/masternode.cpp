@@ -412,11 +412,8 @@ bool CMasternodeBroadcast::Create(std::string strService, std::string strKeyMast
         return false;
     }
 
-    // DRAGAN: this was reworked (pvix), but colx had a (fAllowLookup = true) added, merged. 
-    // Was that a fix? review // Q:
-
     // The service needs the correct default port to work properly
-    if(!CheckDefaultPort(strService, strErrorRet, "CMasternodeBroadcast::Create", true))
+    if (Params().NetworkID() == CBaseChainParams::MAIN && !CheckDefaultPort(strService, strErrorRet, "CMasternodeBroadcast::Create", true))
         return false;
 
     return Create(txin, CService(strService, true), keyCollateralAddressNew, pubKeyCollateralAddressNew, keyMasternodeNew, pubKeyMasternodeNew, strErrorRet, mnbRet);
