@@ -1304,13 +1304,7 @@ static bool DumpAddresses()
     return true; // never exit thread
 }
 
-void DumpData()
-{
-    DumpAddresses();
-    DumpBanlist();
-}
-
-void static ProcessOneShot()
+static void ProcessOneShot()
 {
     string strDest;
     {
@@ -1866,8 +1860,9 @@ void StartNode(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // Dump network addresses
     threadGroup.create_thread(boost::bind(&LoopForever<bool (*)()>, "dumpaddr", &DumpAddresses, DUMP_ADDRESSES_INTERVAL * 1000));
-    // ZCDEV: // TODO: // Q: // IMPORTANT: reconcile these (dumps bans as well), ok for now (I don't wish to remove as it may've been released later, look that up)
-    scheduler.scheduleEvery(&DumpData, DUMP_ADDRESSES_INTERVAL);
+
+    // Dump banned addresses
+    scheduler.scheduleEvery(&DumpBanlist, DUMP_ADDRESSES_INTERVAL);
 
     // ppcoin:mint proof-of-stake blocks in the background
     if (GetBoolArg("-staking", true))
@@ -1890,7 +1885,8 @@ bool StopNode()
             semOutbound->post();
 
     if (fAddressesInitialized) {
-        DumpData();
+        DumpAddresses();
+        DumpBanlist();
         fAddressesInitialized = false;
     }
 

@@ -89,11 +89,6 @@ Section -Main SEC0000
     File /r @abs_top_srcdir@/doc\*.*
     SetOutPath $INSTDIR
     WriteRegStr HKCU "${REGKEY}\Components" Main 1
-    
-    # ZC105: TYPO: REVIEW: this was removed from zc sync, but is still in COLX master? (see history for zc)
-    # Remove old wxwidgets-based-colx executable and locales:
-    # Delete /REBOOTOK $INSTDIR\colx.exe
-    # RMDir /r /REBOOTOK $INSTDIR\locale
 SectionEnd
 
 Section -post SEC0001
