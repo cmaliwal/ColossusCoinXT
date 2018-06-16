@@ -130,5 +130,8 @@ qa/pull-tester/test.*/*
 .cproject
 .project
 /doc/doxygen/
+/doc/Doxyfile
 /nbproject/
 .idea/
+
+libbitcoinconsensus.pc

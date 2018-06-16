@@ -68,7 +68,7 @@ public:
 	 * @param b the second commitment
 	 */
 	CommitmentProofOfKnowledge(const IntegerGroupParams* aParams, const IntegerGroupParams* bParams, const Commitment& a, const Commitment& b);
-	//FIXME: is it best practice that this is here?
+
 	template<typename Stream>
 	CommitmentProofOfKnowledge(const IntegerGroupParams* aParams,
 	                           const IntegerGroupParams* bParams, Stream& strm): ap(aParams), bp(bParams)

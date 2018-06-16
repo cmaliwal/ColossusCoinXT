@@ -1395,7 +1395,7 @@ bool CheckZerocoinSpend(const CTransaction tx, bool fVerifySignature, CValidatio
     return fValidated;
 }
 
-bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fRejectBadUTXO, CValidationState& state)
+bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, CValidationState& state)
 {
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
@@ -1555,7 +1555,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
     if (GetAdjustedTime() > GetSporkValue(SPORK_16_ZEROCOIN_MAINTENANCE_MODE) && tx.ContainsZerocoins())
         return state.DoS(10, error("AcceptToMemoryPool : Zerocoin transactions are temporarily disabled for maintenance"), REJECT_INVALID, "bad-tx");
 
-    if (!CheckTransaction(tx, chainActive.Height() >= Params().Zerocoin_StartHeight(), true, state))
+    if (!CheckTransaction(tx, chainActive.Height() >= Params().Zerocoin_StartHeight(), state))
         return state.DoS(100, error("AcceptToMemoryPool: : CheckTransaction failed"), REJECT_INVALID, "bad-tx");
 
     // Coinbase is only valid in a block, not as a loose transaction
@@ -1785,7 +1785,7 @@ bool AcceptableInputs(CTxMemPool& pool, CValidationState& state, const CTransact
         *pfMissingInputs = false;
 
 
-    if (!CheckTransaction(tx, chainActive.Height() >= Params().Zerocoin_StartHeight(), true, state))
+    if (!CheckTransaction(tx, chainActive.Height() >= Params().Zerocoin_StartHeight(), state))
         return error("AcceptableInputs: : CheckTransaction failed");
 
     // Coinbase is only valid in a block, not as a loose transaction
@@ -3217,9 +3217,7 @@ bool UpdateZPIVSupply(const CBlock& block, CBlockIndex* pindex)
     std::list<libzerocoin::CoinDenomination> listSpends = ZerocoinSpendListFromBlock(block, fFilterInvalid);
 
     // Initialize zerocoin supply to the supply from previous block
-    // ZCTEST: // ZCMAINNET: ZC version has to be '5' 
-    //if (pindex->pprev && pindex->pprev->GetBlockHeader().nVersion > 3) {
-    if (pindex->pprev && pindex->pprev->GetBlockHeader().nVersion > 4) {
+    if (pindex->pprev && pindex->pprev->GetBlockHeader().nVersion > CBlockHeader::VERSION4) {
         for (auto& denom : zerocoinDenomList) {
             pindex->mapZerocoinSupply.at(denom) = pindex->pprev->mapZerocoinSupply.at(denom);
         }
@@ -4561,7 +4559,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     bool fZerocoinActive = block.GetBlockTime() > Params().Zerocoin_StartTime();
     vector<CBigNum> vBlockSerials;
     for (const CTransaction& tx : block.vtx) {
-        if (!CheckTransaction(tx, fZerocoinActive, chainActive.Height() + 1 >= Params().Zerocoin_Block_EnforceSerialRange(), state))
+        if (!CheckTransaction(tx, fZerocoinActive, state))
             return error("CheckBlock() : CheckTransaction failed");
 
         // double check that there are no double spent zPiv spends in this block
@@ -4597,8 +4595,6 @@ bool CheckWork(const CBlock block, CBlockIndex* const pindexPrev)
     if (pindexPrev == NULL)
         return error("%s : null pindexPrev for block %s", __func__, block.GetHash().ToString().c_str());
 
-    // ZCTEST: // ZCMAINNET: // ZCTESTNET: similarly to pow.cpp and CheckProofOfWork, just skip if set
-    // ...not sure if this is for testnet only? doesn't matter it's ok to stay
     if (Params().SkipProofOfWorkCheck())
         return true;
 

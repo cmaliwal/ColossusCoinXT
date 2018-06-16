@@ -201,33 +201,21 @@ bool IsBlockValueValid(const CBlock& block, CAmount nExpectedValue, CAmount nMin
             nHeight = (*mi).second->nHeight + 1;
     }
 
-    if (nHeight == 0) {
+    if (nHeight == 0)
         LogPrint("masternode","IsBlockValueValid() : WARNING: Couldn't find previous block\n");
-    }
-
-    //LogPrintf("XX69----------> IsBlockValueValid(): nMinted: %d, nExpectedValue: %d\n", FormatMoney(nMinted), FormatMoney(nExpectedValue));
 
     if (!masternodeSync.IsSynced()) { //there is no budget data to use to check anything
         //super blocks will always be on these blocks, max 100 per budgeting
-        if (nHeight % GetBudgetPaymentCycleBlocks() < 100) {
+        if (nHeight % GetBudgetPaymentCycleBlocks() < 100)
             return true;
-        } else {
-            //// ZCTEST // ZCTESTNET: commented out this condition, easiest
-            //return true;
+        else
             return nMinted <= nExpectedValue;
-        }
     } else { // we're synced and have data so check the budget schedule
-        if (budget.IsBudgetPaymentBlock(nHeight)) {
-            //the value of the block is evaluated in CheckBlock
-            return true;
-        } else {
-            //// ZCTEST // ZCTESTNET: commented out this condition, easiest
-            //return true;
+        if (budget.IsBudgetPaymentBlock(nHeight))
+            return true; //the value of the block is evaluated in CheckBlock
+        else
             return nMinted <= nExpectedValue;
-        }
     }
-
-    //return true;
 }
 
 bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)

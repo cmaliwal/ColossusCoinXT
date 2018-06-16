@@ -656,7 +656,7 @@ protected:
 */
 
 /** Context-independent validity checks */
-bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fRejectBadUTXO, CValidationState& state);
+bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, CValidationState& state);
 bool CheckZerocoinMint(const uint256& txHash, const CTxOut& txout, CValidationState& state, bool fCheckOnly = false);
 bool CheckZerocoinSpend(const CTransaction tx, bool fVerifySignature, CValidationState& state);
 bool ContextualCheckCoinSpend(const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& txid);

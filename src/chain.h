@@ -233,9 +233,7 @@ public:
         nBits = block.nBits;
         nNonce = block.nNonce;
 
-        // if(block.nVersion > 3)
-        // ZCTEST: // ZCMAINNET: ZC version has to be '5'. Version must correspond zerocoin release
-        if (block.nVersion > 4)
+        if (block.nVersion > CBlockHeader::VERSION4)
             nAccumulatorCheckpoint = block.nAccumulatorCheckpoint;
 
         //Proof of Stake
@@ -480,14 +478,12 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
-        //if(this->nVersion > 3) { // FIXME: version must correspond zerocoin release
-        // ZCTEST: // ZCMAINNET: ZC version has to be '5'. Version must correspond zerocoin release
-        if (this->nVersion > 4) {
+
+        if (this->nVersion > CBlockHeader::VERSION4) {
             READWRITE(nAccumulatorCheckpoint);
             READWRITE(mapZerocoinSupply);
             READWRITE(vMintDenominationsInBlock);
         }
-
     }
 
     uint256 GetBlockHash() const

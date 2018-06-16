@@ -15,14 +15,10 @@
 
 uint256 CBlockHeader::GetHash() const
 {
-    // ZCTEST: // ZCTESTNET: temporary solution, testnet has ver.4 but different algo.
-    if (nVersion < 5) // FIXME: probably we won't change hash algorithm
+    if (nVersion < VERSION5) // FIXME: probably we won't change hash algorithm
         return HashQuark(BEGIN(nVersion), END(nNonce));
-
-    if(nVersion < 4) // FIXME: probably we won't change hash algorithm
-        return HashQuark(BEGIN(nVersion), END(nNonce));
-
-    return Hash(BEGIN(nVersion), END(nAccumulatorCheckpoint));
+    else
+        return Hash(BEGIN(nVersion), END(nAccumulatorCheckpoint));
 }
 
 uint256 CBlock::BuildMerkleTree(bool* fMutated) const

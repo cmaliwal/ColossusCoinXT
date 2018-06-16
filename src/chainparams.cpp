@@ -123,10 +123,6 @@ public:
         nMinerThreads = 0;
         nTargetTimespan = 1 * 60 * 40;
         nTargetSpacing = 1 * 60;
-        //// ZCDEV: 60 * 40 (pow.cpp) - previous value? too different
-        //nTargetTimespan = 1 * 120; // ColossusCoinXT: 2 minute
-        //// ZCDEV: 60 (pow.cpp) - previous value? too different
-        //nTargetSpacing = 1 * 120;  // ColossusCoinXT: 2 minute
         nPastBlocksMin = 24;
         nLastPOWBlock = 10080;
         nMaturity = 90;
@@ -135,13 +131,11 @@ public:
         nMaxMoneyOut = int64_t(20000000000) * COIN;
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
-        //nBudgetPercent = 5;
         nBudgetPercent = 10;
         nDevFundPercent = 10;
         nBudgetPaymentCycle = 60*60*24*30; // 1 month
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 6;
-        //nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
 
         /**
@@ -178,7 +172,6 @@ public:
         assert(hashGenesisBlock == uint256("0xa0ce8206c908357008c1b9a8ba2813aff0989ca7f72d62b14e652c55f02b4f5c"));
         assert(genesis.hashMerkleRoot == uint256("0xf7c9a0d34fffa0887892dff1f384048b7be854a99937871705283758b727e414"));
 
-        //vSeeds.push_back(CDNSSeedData("colx", "seed.colossuscoinxt.org"));
         vSeeds.push_back(CDNSSeedData("colx1", "seed.colossuscoinxt.org"));
         vSeeds.push_back(CDNSSeedData("colx2", "seed.colossusxt.org"));
         vSeeds.push_back(CDNSSeedData("colx3", "seed.colxt.net"));
@@ -223,7 +216,7 @@ public:
         nMintRequiredConfirmations = 0; // 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1; // 0?
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinHeaderVersion = 5; //Block headers must be this version once zerocoin is active
+        nZerocoinHeaderVersion = CBlockHeader::VERSION5; //Block headers must be this version once zerocoin is active
         nBudget_Fee_Confirmations = 6; // Number of confirmations for the finalization fee
 
         //FIXME: params must correspond zerocoin release
@@ -328,21 +321,14 @@ public:
         nTargetSpacing = 1 * 60;
         nPastBlocksMin = 10080;
         nLastPOWBlock = 10080;
-        //nTargetTimespan = 1 * 60; // ColossusCoinXT: 1 day
-        //nTargetSpacing = 1 * 60;  // ColossusCoinXT: 1 minute
-        //nPastBlocksMin = 200;
-        //nLastPOWBlock = 200;
         nMaturity = 15;
-        //nMasternodeCountDrift = 4;
         nModifierUpdateBlock = 0; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = int64_t(20000000000) * COIN;
         nModifierInterval = 60;
         nModifierIntervalRatio = 3;
-        //nBudgetPercent = 5;
         nBudgetPercent = 10;
         nDevFundPercent = 10;
         nBudgetPaymentCycle = 60*60*2; // 2 hours
-        //nMasternodeRewardPercent = 60; // % of block reward that goes to masternodes
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 1;
@@ -383,7 +369,6 @@ public:
 
         nPoolMaxTransactions = 3;
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
-        //strSporkKey = "04348C2F50F90267E64FACC65BFDC9D0EB147D090872FB97ABAE92E9A36E6CA60983E28E741F8E7277B11A7479B626AC115BA31463AC48178A5075C5A9319D4A38";
         strObfuscationPoolDummyAddress = "y57cqfGRkekRyDRNeJiLtYVEbvhXrNbmox";
         nStartMasternodePayments = 1420837558; //Fri, 09 Jan 2015 21:05:58 GMT
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short

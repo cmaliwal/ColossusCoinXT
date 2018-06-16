@@ -66,10 +66,7 @@ public:
         READWRITE(nBits);
         READWRITE(nNonce);
 
-        //zerocoin active, header changes to include accumulator checksum
-        //if(nVersion > 3) // FIXME: set proper version
-        // ZCTEST: // ZCMAINNET: ZC version has to be '5'
-        if (nVersion > 4) // FIXME: set proper version
+        if (nVersion > CBlockHeader::VERSION4)
             READWRITE(nAccumulatorCheckpoint);
     }
 
