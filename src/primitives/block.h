@@ -15,7 +15,7 @@
 /** The maximum allowed size for a serialized block, in bytes (network rule) */
 // ZCTEST: make this legacy for now so we can work with the testnet/old (but we should test w/ it to see if it works) // TODO:
 // CURRENT vs LEGACY == ZEROCOIN vs before
-static const unsigned int MAX_BLOCK_SIZE_CURRENT = 1000000; // 2000000;
+static const unsigned int MAX_BLOCK_SIZE_CURRENT = 2000000; // 1000000; 
 static const unsigned int MAX_BLOCK_SIZE_LEGACY = 1000000;
 // ZC: this isn't used any more (PIVX code is using both current/legacy) // TODO: disentangle those if needed
 static const unsigned int MAX_BLOCK_SIZE = MAX_BLOCK_SIZE_LEGACY; //FIXME: change block size or not?

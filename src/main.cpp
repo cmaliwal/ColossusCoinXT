@@ -95,7 +95,7 @@ int64_t nReserveBalance = 0;
 // ZCTEST: fix, the tests are failing cause of this ('dust' reason in the IsStandardTx)
 // ...this is less than the smallest relay fee, COIN (even CENT) is too big here? // Q:
 // ...back to where it was for now
-CFeeRate minRelayTxFee = CFeeRate(10000);
+CFeeRate minRelayTxFee = CFeeRate(1 * COIN); // CFeeRate(10 * CENT); // CFeeRate(10000);
 //CFeeRate minRelayTxFee = CFeeRate(10 * COIN);
 
 CTxMemPool mempool(::minRelayTxFee);
