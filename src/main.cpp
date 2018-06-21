@@ -90,13 +90,7 @@ int64_t nReserveBalance = 0;
  * We are ~100 times smaller then bitcoin now (2015-06-23), set minRelayTxFee only 10 times higher
  * so it's still 10 times lower comparing to bitcoin.
  */
-// ZCDEV: // TODO: should we now get this back? test if tests are passing now (after the full merge)
-// ZC: changed, param
-// ZCTEST: fix, the tests are failing cause of this ('dust' reason in the IsStandardTx)
-// ...this is less than the smallest relay fee, COIN (even CENT) is too big here? // Q:
-// ...back to where it was for now
-CFeeRate minRelayTxFee = CFeeRate(1 * COIN); // CFeeRate(10 * CENT); // CFeeRate(10000);
-//CFeeRate minRelayTxFee = CFeeRate(10 * COIN);
+CFeeRate minRelayTxFee = CFeeRate(1 * COIN);
 
 CTxMemPool mempool(::minRelayTxFee);
 
@@ -104,6 +98,7 @@ struct COrphanTx {
     CTransaction tx;
     NodeId fromPeer;
 };
+
 map<uint256, COrphanTx> mapOrphanTransactions;
 map<uint256, set<uint256> > mapOrphanTransactionsByPrev;
 map<uint256, int64_t> mapRejectedBlocks;

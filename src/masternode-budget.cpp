@@ -30,11 +30,6 @@ int nSubmittedFinalBudget;
 int GetBudgetPaymentCycleBlocks()
 {
     return static_cast<int>(Params().GetBudgetPaymentCycle() / Params().TargetSpacing());
-    //// ZC: not sure which is right, colx change, review // Q:
-    //int64_t nSecondsPerMonth = 60*60*24*30;
-    ////int64_t nSecondsPerMonth = 60*60*24*2; // ?
-
-    //return static_cast<int>(nSecondsPerMonth / Params().TargetSpacing());
 }
 
 int GetBudgetFinalizationBlocks()
@@ -69,7 +64,7 @@ bool IsBudgetCollateralValid(uint256 nTxCollateralHash, uint256 nExpectedHash, s
             LogPrint("masternode","CBudgetProposalBroadcast::IsBudgetCollateralValid - %s\n", strError);
             return false;
         }
-        if (o.scriptPubKey == findScript && o.nValue >= PROPOSAL_FEE_TX) foundOpReturn = true;
+        if (o.scriptPubKey == findScript && o.nValue >= BUDGET_FEE_TX) foundOpReturn = true;
     }
     if (!foundOpReturn) {
         strError = strprintf("Couldn't find opReturn %s in %s", nExpectedHash.ToString(), txCollateral.ToString());
