@@ -4953,24 +4953,22 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
         }
     }
 
-    {
-        LOCK(cs_main);   // Replaces the former TRY_LOCK loop because busy waiting wastes too much resources
+    LOCK(cs_main);   // Replaces the former TRY_LOCK loop because busy waiting wastes too much resources
 
-        MarkBlockAsReceived (pblock->GetHash ());
-        if (!checked) {
-            return error ("%s : CheckBlock FAILED for block %s", __func__, pblock->GetHash().GetHex());
-        }
-
-        // Store to disk
-        CBlockIndex* pindex = NULL;
-        bool ret = AcceptBlock (*pblock, state, &pindex, dbp, checked);
-        if (pindex && pfrom) {
-            mapBlockSource[pindex->GetBlockHash ()] = pfrom->GetId ();
-        }
-        CheckBlockIndex ();
-        if (!ret)
-            return error ("%s : AcceptBlock FAILED", __func__);
+    MarkBlockAsReceived (pblock->GetHash ());
+    if (!checked) {
+        return error ("%s : CheckBlock FAILED for block %s", __func__, pblock->GetHash().GetHex());
     }
+
+    // Store to disk
+    CBlockIndex* pindex = NULL;
+    bool ret = AcceptBlock (*pblock, state, &pindex, dbp, checked);
+    if (pindex && pfrom) {
+        mapBlockSource[pindex->GetBlockHash ()] = pfrom->GetId ();
+    }
+    CheckBlockIndex ();
+    if (!ret)
+        return error ("%s : AcceptBlock FAILED", __func__);
 
     if (!ActivateBestChain(state, pblock, checked))
         return error("%s : ActivateBestChain failed", __func__);
