@@ -31,6 +31,10 @@ BOOST_AUTO_TEST_CASE(amount_to_denomination_test)
     CAmount amount1 = 5000 * COIN;
     BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount1) == ZQ_FIVE_THOUSAND, "For 5000*COIN denomination should be ZQ_ONE");
 
+    //valid amount (max edge, new)
+    CAmount amount10000 = 10000 * COIN;
+    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount10000) == ZQ_TEN_THOUSAND, "For 10000*COIN denomination should be ZQ_ONE");
+
     //invalid amount (too much)
     CAmount amount2 = 7000 * COIN;
     BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount2) == ZQ_ERROR, "For 7000*COIN denomination should be Invalid -> ZQ_ERROR");
@@ -73,7 +77,8 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test241)
 {
     const int nMaxNumberOfSpends = 4;
     const bool fMinimizeChange = false;
-    const int DenomAmounts[] = {1, 2, 3, 4, 0, 0, 0, 0};
+    // ZCDENOMINATIONS: this should match in size w/ zerocoinDenomList (otherwise deadloops)
+    const int DenomAmounts[] = {1, 2, 3, 4, 0, 0, 0, 0, 0};
     CAmount nSelectedValue;
     std::list<CZerocoinMint> listMints;
     std::map<CoinDenomination, CAmount> mapDenom;
@@ -153,7 +158,8 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test115)
 {
     const int nMaxNumberOfSpends = 4;
     const bool fMinimizeChange = false;
-    const int DenomAmounts[] = {0, 1, 1, 2, 0, 0, 0, 0};
+    // ZCDENOMINATIONS: this should match in size w/ zerocoinDenomList (otherwise deadloops)
+    const int DenomAmounts[] = {0, 1, 1, 2, 0, 0, 0, 0, 0};
     CAmount nSelectedValue;
     std::list<CZerocoinMint> listMints;
     std::map<CoinDenomination, CAmount> mapDenom;
@@ -224,12 +230,13 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test_from_245)
     // Here have a 50 so use for 36 since can't meet exact amount
     //    const int DenomAmounts[] = {0,1,4,1,0,0,0,0};
     // Here have 45 so use 4*10 for 36 since can't meet exact amount
-    //    const int DenomAmounts[] = {0, 1, 4, 0, 0, 0, 0, 0};
+    //    const int DenomAmounts[] = {0, 1, 4, 0, 0, 0, 0, 0, 0};
     // For 51
     //const int nSpendValue = 51;
     
     // CoinsHeld = 245
-    const int DenomAmounts[] = {0, 1, 4, 2, 1, 0, 0, 0};
+    // ZCDENOMINATIONS: this should match in size w/ zerocoinDenomList (otherwise deadloops)
+    const int DenomAmounts[] = {0, 1, 4, 2, 1, 0, 0, 0, 0};
     // We can spend up to this amount for above set for less 6 spends
     // Otherwise, 6 spends are required
     const int nMaxSpendAmount = 220;
@@ -329,7 +336,8 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test_from_145)
 {
     const int nMaxNumberOfSpends = 5;
     // CoinsHeld = 145
-    const int DenomAmounts[] = {0, 1, 4, 2, 0, 0, 0, 0};
+    // ZCDENOMINATIONS: this should match in size w/ zerocoinDenomList (otherwise deadloops)
+    const int DenomAmounts[] = {0, 1, 4, 2, 0, 0, 0, 0, 0};
     CAmount nSelectedValue;
     std::list<CZerocoinMint> listMints;
     std::map<CoinDenomination, CAmount> mapOfDenomsHeld;
@@ -430,7 +438,8 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test99)
 {
     const int nMaxNumberOfSpends = 4;
     const bool fMinimizeChange = false;
-    const int DenomAmounts[] = {0, 1, 4, 2, 1, 0, 0, 0};
+    // ZCDENOMINATIONS: this should match in size w/ zerocoinDenomList (otherwise deadloops)
+    const int DenomAmounts[] = {0, 1, 4, 2, 1, 0, 0, 0, 0};
     CAmount nSelectedValue;
     std::list<CZerocoinMint> listMints;
     std::map<CoinDenomination, CAmount> mapOfDenomsHeld;

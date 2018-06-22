@@ -211,7 +211,7 @@ public:
             "fd64fcb0f72a736350ae83b394d5f861af8378b348b4a359b5e5e8837aae2ba4b23838610fe65605fd7ef34972b47e773a906b56a60129ce"
             "04ed78030ff7ad2c2c4f54cc715ee0cccab5f42566829ad507c4bd834cde358ff079f87c0352b3434c059d3df8bcb7e9b19f13f9150b41";
         nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
-        nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
+        nMinZerocoinMintFee = 10 * COIN; // 1 * CENT; //high fee required for zerocoin mints
         // ZCDEV: confirmations are not allowing us to confirm and spend zc-s.
         nMintRequiredConfirmations = 0; // 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1; // 0?

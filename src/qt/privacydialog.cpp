@@ -677,6 +677,9 @@ void PrivacyDialog::setBalance(const CAmount& balance, const CAmount& unconfirme
             case libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND:
                 ui->labelzDenom8Amount->setText(strDenomStats);
                 break;
+            case libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND:
+                ui->labelzDenom9Amount->setText(strDenomStats);
+                break;
             default:
                 // Error Case: don't update display
                 break;
@@ -725,6 +728,9 @@ void PrivacyDialog::setBalance(const CAmount& balance, const CAmount& unconfirme
                 break;
             case libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND:
                 ui->labelZsupplyAmount5000->setText(strSupply);
+                break;
+            case libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND:
+                ui->labelZsupplyAmount10000->setText(strSupply);
                 break;
             default:
                 // Error Case: don't update display

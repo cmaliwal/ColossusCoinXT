@@ -2200,7 +2200,9 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
                 setCoinsRet.insert(coin.second);
                 nValueRet += coin.first;
                 return true;
-            } else if (n < nTargetValue + CENT) {
+            // ZC_MINTXFEE: REVIEW: change the scale here as well?
+            //} else if (n < nTargetValue + CENT) {
+            } else if (n < nTargetValue + COIN) {
                 vValue.push_back(coin);
                 nTotalLower += n;
             } else if (n < coinLowestLarger.first) {
@@ -2241,13 +2243,20 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
     CAmount nBest;
 
     ApproximateBestSubset(vValue, nTotalLower, nTargetValue, vfBest, nBest, 1000);
-    if (nBest != nTargetValue && nTotalLower >= nTargetValue + CENT)
-        ApproximateBestSubset(vValue, nTotalLower, nTargetValue + CENT, vfBest, nBest, 1000);
+
+    // ZC_MINTXFEE: REVIEW: change the scale here as well?
+    //if (nBest != nTargetValue && nTotalLower >= nTargetValue + CENT)
+    //    ApproximateBestSubset(vValue, nTotalLower, nTargetValue + CENT, vfBest, nBest, 1000);
+    if (nBest != nTargetValue && nTotalLower >= nTargetValue + COIN)
+        ApproximateBestSubset(vValue, nTotalLower, nTargetValue + COIN, vfBest, nBest, 1000);
 
     // If we have a bigger coin and (either the stochastic approximation didn't find a good solution,
     //                                   or the next bigger coin is closer), return the bigger coin
+    // ZC_MINTXFEE: REVIEW: change the scale here as well?
+    //if (coinLowestLarger.second.first &&
+    //    ((nBest != nTargetValue && nBest < nTargetValue + CENT) || coinLowestLarger.first <= nBest)) {
     if (coinLowestLarger.second.first &&
-        ((nBest != nTargetValue && nBest < nTargetValue + CENT) || coinLowestLarger.first <= nBest)) {
+        ((nBest != nTargetValue && nBest < nTargetValue + COIN) || coinLowestLarger.first <= nBest)) {
         setCoinsRet.insert(coinLowestLarger.second);
         nValueRet += coinLowestLarger.first;
     } else {
@@ -2447,7 +2456,10 @@ bool CWallet::SelectCoinsDark(CAmount nValueMin, CAmount nValueMax, std::vector<
 
     BOOST_FOREACH (const COutput& out, vCoins) {
         //do not allow inputs less than 1 CENT
-        if (out.tx->vout[out.i].nValue < CENT) continue;
+        // ZC_MINTXFEE: REVIEW: change the scale here as well?
+        //if (out.tx->vout[out.i].nValue < CENT) continue;
+        if (out.tx->vout[out.i].nValue < COIN) continue;
+
         //do not allow collaterals to be selected
         if (IsCollateralAmount(out.tx->vout[out.i].nValue)) continue;
         if (fMasterNode && out.tx->vout[out.i].nValue == Params().GetRequiredMasternodeCollateral()) continue; //masternode input
@@ -2654,7 +2666,9 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
     CAmount nFeePay,
     bool useLockTime)
 {
-    if (useIX && nFeePay < CENT) nFeePay = CENT;
+    // ZC_MINTXFEE: REVIEW: change the scale here as well?
+    //if (useIX && nFeePay < CENT) nFeePay = CENT;
+    if (useIX && nFeePay < COIN) nFeePay = COIN;
 
     CAmount nValue = 0;
 
@@ -4040,6 +4054,8 @@ void CWallet::AutoZeromint()
 
     if (nToMintAmount >= ZQ_6666){
         nMintAmount = ZQ_6666;
+    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND){
+        nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND;
     } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND){
         nMintAmount = libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND;
     } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND){
@@ -4519,7 +4535,9 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
     //any change that is less than 0.0100000 will be ignored and given as an extra fee
     //also assume that a zerocoinspend that is minting the change will not have any change that goes to Piv
     CAmount nChange = nValueIn - nTotalValue; // Fee already accounted for in nTotalValue
-    if (nChange > 1 * CENT && !isZCSpendChange) {
+    // ZC_MINTXFEE: we might need to increase this further?
+    //if (nChange > 1 * CENT && !isZCSpendChange) {
+    if (nChange > 1 * COIN && !isZCSpendChange) {
         // Fill a vout to ourself using the largest contributing address
         CScript scriptChange = GetLargestContributor(setCoins);
 

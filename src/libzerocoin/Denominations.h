@@ -25,14 +25,17 @@ enum  CoinDenomination {
     ZQ_ONE_HUNDRED = 100,
     ZQ_FIVE_HUNDRED = 500,
     ZQ_ONE_THOUSAND = 1000,
-    ZQ_FIVE_THOUSAND = 5000
+    ZQ_FIVE_THOUSAND = 5000,
+    ZQ_TEN_THOUSAND = 10000
 };
 
 // Order is with the Smallest Denomination first and is important for a particular routine that this order is maintained
-const std::vector<CoinDenomination> zerocoinDenomList = {ZQ_ONE, ZQ_FIVE, ZQ_TEN, ZQ_FIFTY, ZQ_ONE_HUNDRED, ZQ_FIVE_HUNDRED, ZQ_ONE_THOUSAND, ZQ_FIVE_THOUSAND};
+const std::vector<CoinDenomination> zerocoinDenomList = {ZQ_ONE, ZQ_FIVE, ZQ_TEN, ZQ_FIFTY, ZQ_ONE_HUNDRED, ZQ_FIVE_HUNDRED, ZQ_ONE_THOUSAND, ZQ_FIVE_THOUSAND, ZQ_TEN_THOUSAND};
 // These are the max number you'd need at any one Denomination before moving to the higher denomination. Last number is 4, since it's the max number of
 // possible spends at the moment    /
-const std::vector<int> maxCoinsAtDenom   = {4, 1, 4, 1, 4, 1, 4, 4};
+// ZCDENOMINATIONS: this should match in size w/ zerocoinDenomList, not used?
+//const std::vector<int> maxCoinsAtDenom = { 4, 1, 4, 1, 4, 1, 4, 4 };
+const std::vector<int> maxCoinsAtDenom   = {4, 1, 4, 1, 4, 1, 4, 1, 4};
 
 int64_t ZerocoinDenominationToInt(const CoinDenomination& denomination);
 int64_t ZerocoinDenominationToAmount(const CoinDenomination& denomination);
