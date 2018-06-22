@@ -4054,8 +4054,9 @@ void CWallet::AutoZeromint()
 
     if (nToMintAmount >= ZQ_6666){
         nMintAmount = ZQ_6666;
-    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND){
-        nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND;
+    // ZCDENOMINATIONS: 10000 was added AccumulatorMap::GetCheckpoint() is asserting,
+    //} else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND){
+    //    nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND;
     } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND){
         nMintAmount = libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND;
     } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND){

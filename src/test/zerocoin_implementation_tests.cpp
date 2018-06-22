@@ -351,34 +351,34 @@ BOOST_AUTO_TEST_CASE(checksum_tests)
 {
     cout << "Running checksum_tests\n";
 
+    // ZCDENOMINATIONS: AccumulatorMap::GetCheckpoint() is asserting, turning off for now
     // ZCDENOMINATIONS: this is overflowing, it can take only 8 uint-s, math is wrong
 
     uint256 checksum;
-    //uint32_t c1 = 0xa3219ef1;
-    //uint32_t c2 = 0xabcdef00;
-    //uint32_t c3 = 0x101029f3;
-    //uint32_t c4 = 0xaaaaaeee;
-    //uint32_t c5 = 0xffffffff;
-    //uint32_t c6 = 0xbbbbbbbb;
-    //uint32_t c7 = 0x11111111;
-    //uint32_t c8 = 0xeeeeeeee;
-    //uint32_t c9 = 0xcccccccc;
-    uint32_t c1 = 0x00000000;
-    uint32_t c2 = 0xa3219ef1;
-    uint32_t c3 = 0xabcdef00;
-    uint32_t c4 = 0x101029f3;
-    uint32_t c5 = 0xaaaaaeee;
-    uint32_t c6 = 0xffffffff;
-    uint32_t c7 = 0xbbbbbbbb;
-    uint32_t c8 = 0x11111111;
-    uint32_t c9 = 0xeeeeeeee;
+    uint32_t c1 = 0xa3219ef1;
+    uint32_t c2 = 0xabcdef00;
+    uint32_t c3 = 0x101029f3;
+    uint32_t c4 = 0xaaaaaeee;
+    uint32_t c5 = 0xffffffff;
+    uint32_t c6 = 0xbbbbbbbb;
+    uint32_t c7 = 0x11111111;
+    uint32_t c8 = 0xeeeeeeee;
+    //uint32_t c1 = 0x00000000;
+    //uint32_t c2 = 0xa3219ef1;
+    //uint32_t c3 = 0xabcdef00;
+    //uint32_t c4 = 0x101029f3;
+    //uint32_t c5 = 0xaaaaaeee;
+    //uint32_t c6 = 0xffffffff;
+    //uint32_t c7 = 0xbbbbbbbb;
+    //uint32_t c8 = 0x11111111;
+    //uint32_t c9 = 0xeeeeeeee;
     // ZCDENOMINATIONS: this should match in size w/ zerocoinDenomList
-    vector<uint32_t> vChecksums{ c1,c2,c3,c4,c5,c6,c7,c8,c9 };
+    vector<uint32_t> vChecksums{ c1,c2,c3,c4,c5,c6,c7,c8 }; //,c9 };
     for(uint32_t c : vChecksums)
         checksum = checksum << 32 | c;
 
-    //BOOST_CHECK_MESSAGE(checksum == uint256("a3219ef1abcdef00101029f3aaaaaeeeffffffffbbbbbbbb11111111eeeeeeee"), "checksum not properly concatenated");
-    BOOST_CHECK_MESSAGE(checksum == uint256("00000000a3219ef1abcdef00101029f3aaaaaeeeffffffffbbbbbbbb11111111eeeeeeee"), "checksum not properly concatenated");
+    BOOST_CHECK_MESSAGE(checksum == uint256("a3219ef1abcdef00101029f3aaaaaeeeffffffffbbbbbbbb11111111eeeeeeee"), "checksum not properly concatenated");
+    //BOOST_CHECK_MESSAGE(checksum == uint256("00000000a3219ef1abcdef00101029f3aaaaaeeeffffffffbbbbbbbb11111111eeeeeeee"), "checksum not properly concatenated");
 
     int i = 0;
     string strError = "";
