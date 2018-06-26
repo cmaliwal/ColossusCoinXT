@@ -530,7 +530,8 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageGroup(_("Zerocoin options:"));
     strUsage += HelpMessageOpt("-enablezeromint=<n>", strprintf(_("Enable automatic Zerocoin minting (0-1, default: %u)"), 1));
     strUsage += HelpMessageOpt("-zeromintpercentage=<n>", strprintf(_("Percentage of automatically minted Zerocoin  (1-100, default: %u)"), 10));
-    strUsage += HelpMessageOpt("-preferredDenom=<n>", strprintf(_("Preferred Denomination for automatically minted Zerocoin  (1/5/10/50/100/500/1000/5000), 0 for no preference. default: %u)"), 0));
+    // ZCDENOMINATIONS: fix this
+    strUsage += HelpMessageOpt("-preferredDenom=<n>", strprintf(_("Preferred Denomination for automatically minted Zerocoin  (100/500/1000/5000/10000/50000/100000/500000), 0 for no preference. default: %u)"), 0));
     strUsage += HelpMessageOpt("-backupzpiv=<n>", strprintf(_("Enable automatic wallet backups triggered after each zPiv minting (0-1, default: %u)"), 1));
     // DRAGAN: this is obsolete, above arguments are used (also obfuscation, util, qt/overviewpage to be synced)
     // i.e. it doesn't make sense to keep tracking the old pivx code (no longer used) as we're starting fresh
@@ -1827,8 +1828,14 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (nZeromintPercentage < 1) nZeromintPercentage = 1;
 
     nPreferredDenom  = GetArg("-preferredDenom", 0);
-    if (nPreferredDenom != 0 && nPreferredDenom != 1 && nPreferredDenom != 5 && nPreferredDenom != 10 && nPreferredDenom != 50 &&
-        nPreferredDenom != 100 && nPreferredDenom != 500 && nPreferredDenom != 1000 && nPreferredDenom != 5000){
+    // ZCDENOMINATIONS: fix this
+    //if (nPreferredDenom != 0 && nPreferredDenom != 1 && nPreferredDenom != 5 && nPreferredDenom != 10 && nPreferredDenom != 50 &&
+    //    nPreferredDenom != 100 && nPreferredDenom != 500 && nPreferredDenom != 1000 && nPreferredDenom != 5000){
+    //    LogPrintf("-preferredDenom: invalid denomination parameter %d. Default value used\n", nPreferredDenom);
+    //    nPreferredDenom = 0;
+    //}
+    if (nPreferredDenom != 0 && nPreferredDenom != 100 && nPreferredDenom != 500 && nPreferredDenom != 1000 && nPreferredDenom != 5000 &&
+        nPreferredDenom != 10000 && nPreferredDenom != 50000 && nPreferredDenom != 100000 && nPreferredDenom != 500000){
         LogPrintf("-preferredDenom: invalid denomination parameter %d. Default value used\n", nPreferredDenom);
         nPreferredDenom = 0;
     }

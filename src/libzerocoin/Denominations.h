@@ -18,16 +18,17 @@ namespace libzerocoin {
 
 // ZCDENOMINATIONS: 10000 was added AccumulatorMap::GetCheckpoint() is asserting,
 // we need to have '8' exactly. Removing 1 will throw off the tests etc. So rethink and redo
+// ZCDENOMINATIONS: changed to *100
 enum  CoinDenomination {
     ZQ_ERROR = 0,
-    ZQ_ONE = 1,
-    ZQ_FIVE = 5,
-    ZQ_TEN = 10,
-    ZQ_FIFTY = 50,
-    ZQ_ONE_HUNDRED = 100,
-    ZQ_FIVE_HUNDRED = 500,
-    ZQ_ONE_THOUSAND = 1000,
-    ZQ_FIVE_THOUSAND = 5000 //, ZQ_TEN_THOUSAND = 10000
+    ZQ_ONE = 100, //1,
+    ZQ_FIVE = 500, //5,
+    ZQ_TEN = 1000, //10,
+    ZQ_FIFTY = 5000, //50,
+    ZQ_ONE_HUNDRED = 10000, //100,
+    ZQ_FIVE_HUNDRED = 50000, //500,
+    ZQ_ONE_THOUSAND = 100000, //1000,
+    ZQ_FIVE_THOUSAND = 500000 //5000 //, ZQ_TEN_THOUSAND = 10000
 };
 
 // Order is with the Smallest Denomination first and is important for a particular routine that this order is maintained

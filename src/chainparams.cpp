@@ -427,6 +427,8 @@ public:
 
     int64_t GetMinStakeAge(int nTargetHeight) const
     {
+        // ZCTESTING: just temp to avoid 'CheckStakeKernelHash() : min age violation - ' error
+        return 60*60*2;
         return 60*60*8; //8 hours
     }
 

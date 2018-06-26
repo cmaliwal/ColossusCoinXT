@@ -1148,10 +1148,10 @@ zPIV are mature when they have more than 20 confirmations AND more than 2 mints 
                         <item>
                          <widget class="QLabel" name="labelzDenom1Text">
                           <property name="toolTip">
-                           <string>Denominations with value 1:</string>
+                           <string>Denominations with value 100:</string>
                           </property>
                           <property name="text">
-                           <string>Denom. with value 1:</string>
+                           <string>Denom. with value 100:</string>
                           </property>
                           <property name="alignment">
                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1201,10 +1201,10 @@ Immature: confirmed, but less than 2 mints of the same denomination after it was
                         <item>
                          <widget class="QLabel" name="labelzDenom2Text">
                           <property name="toolTip">
-                           <string>Denominations with value 5:</string>
+                           <string>Denominations with value 500:</string>
                           </property>
                           <property name="text">
-                           <string>Denom. with value 5:</string>
+                           <string>Denom. with value 500:</string>
                           </property>
                           <property name="alignment">
                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1254,10 +1254,10 @@ Immature: confirmed, but less than 2 mints of the same denomination after it was
                         <item>
                          <widget class="QLabel" name="labelzDenom3Text">
                           <property name="toolTip">
-                           <string>Denominations with value 10:</string>
+                           <string>Denominations with value 1000:</string>
                           </property>
                           <property name="text">
-                           <string>Denom. with value 10:</string>
+                           <string>Denom. with value 1000:</string>
                           </property>
                           <property name="alignment">
                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1307,10 +1307,10 @@ Immature: confirmed, but less than 2 mints of the same denomination after it was
                         <item>
                          <widget class="QLabel" name="labelzDenom4Text">
                           <property name="toolTip">
-                           <string>Denominations with value 50:</string>
+                           <string>Denominations with value 5000:</string>
                           </property>
                           <property name="text">
-                           <string>Denom. with value 50:</string>
+                           <string>Denom. with value 5000:</string>
                           </property>
                           <property name="alignment">
                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1360,10 +1360,10 @@ Immature: confirmed, but less than 2 mints of the same denomination after it was
                         <item>
                          <widget class="QLabel" name="labelzDenom5Text">
                           <property name="toolTip">
-                           <string>Denominations with value 100:</string>
+                           <string>Denominations with value 10000:</string>
                           </property>
                           <property name="text">
-                           <string>Denom. with value 100:</string>
+                           <string>Denom. with value 10000:</string>
                           </property>
                           <property name="alignment">
                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1413,10 +1413,10 @@ Immature: confirmed, but less than 2 mints of the same denomination after it was
                         <item>
                          <widget class="QLabel" name="labelzDenom6Text">
                           <property name="toolTip">
-                           <string>Denominations with value 500:</string>
+                           <string>Denominations with value 50000:</string>
                           </property>
                           <property name="text">
-                           <string>Denom. with value 500:</string>
+                           <string>Denom. with value 50000:</string>
                           </property>
                           <property name="alignment">
                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1466,10 +1466,10 @@ Immature: confirmed, but less than 2 mints of the same denomination after it was
                         <item>
                          <widget class="QLabel" name="labelzDenom7Text">
                           <property name="toolTip">
-                           <string>Denominations with value 1000:</string>
+                           <string>Denominations with value 100000:</string>
                           </property>
                           <property name="text">
-                           <string>Denom. with value 1000:</string>
+                           <string>Denom. with value 100000:</string>
                           </property>
                           <property name="alignment">
                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1519,10 +1519,10 @@ Immature: confirmed, but less than 2 mints of the same denomination after it was
                         <item>
                          <widget class="QLabel" name="labelzDenom8Text">
                           <property name="toolTip">
-                           <string>Denominations with value 5000:</string>
+                           <string>Denominations with value 500000:</string>
                           </property>
                           <property name="text">
-                           <string>Denom. with value 5000:</string>
+                           <string>Denom. with value 500000:</string>
                           </property>
                           <property name="alignment">
                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1742,7 +1742,7 @@ To change the percentage (no restart required):
                         <item>
                          <widget class="QLabel" name="labelZsupplyText1">
                           <property name="text">
-                           <string>Denom. 1:</string>
+                           <string>Denom. 100:</string>
                           </property>
                          </widget>
                         </item>
@@ -1773,7 +1773,7 @@ To change the percentage (no restart required):
                         <item>
                          <widget class="QLabel" name="labelZsupplyText5">
                           <property name="text">
-                           <string>Denom. 5:</string>
+                           <string>Denom. 500:</string>
                           </property>
                          </widget>
                         </item>
@@ -1804,7 +1804,7 @@ To change the percentage (no restart required):
                         <item>
                          <widget class="QLabel" name="labelZsupplyText10">
                           <property name="text">
-                           <string>Denom. 10:</string>
+                           <string>Denom. 1000:</string>
                           </property>
                          </widget>
                         </item>
@@ -1835,7 +1835,7 @@ To change the percentage (no restart required):
                         <item>
                          <widget class="QLabel" name="labelZsupplyText50">
                           <property name="text">
-                           <string>Denom. 50:</string>
+                           <string>Denom. 5000:</string>
                           </property>
                          </widget>
                         </item>
@@ -1866,7 +1866,7 @@ To change the percentage (no restart required):
                         <item>
                          <widget class="QLabel" name="labelZsupplyText100">
                           <property name="text">
-                           <string>Denom. 100:</string>
+                           <string>Denom. 10000:</string>
                           </property>
                          </widget>
                         </item>
@@ -1897,7 +1897,7 @@ To change the percentage (no restart required):
                         <item>
                          <widget class="QLabel" name="labelZsupplyText500">
                           <property name="text">
-                           <string>Denom. 500:</string>
+                           <string>Denom. 50000:</string>
                           </property>
                          </widget>
                         </item>
@@ -1928,7 +1928,7 @@ To change the percentage (no restart required):
                         <item>
                          <widget class="QLabel" name="labelZsupplyText1000">
                           <property name="text">
-                           <string>Denom. 1000:</string>
+                           <string>Denom. 100000:</string>
                           </property>
                          </widget>
                         </item>
@@ -1959,7 +1959,7 @@ To change the percentage (no restart required):
                         <item>
                          <widget class="QLabel" name="labelZsupplyText5000">
                           <property name="text">
-                           <string>Denom. 5000:</string>
+                           <string>Denom. 500000:</string>
                           </property>
                          </widget>
                         </item>

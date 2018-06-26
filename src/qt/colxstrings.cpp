@@ -8,6 +8,7 @@
 #else
 #define UNUSED
 #endif
+// ZCDENOMINATIONS: fix this
 static const char UNUSED *colx_strings[] = {
 QT_TRANSLATE_NOOP("colx-core", " mints deleted\n"),
 QT_TRANSLATE_NOOP("colx-core", " mints updated, "),
@@ -135,7 +136,7 @@ QT_TRANSLATE_NOOP("colx-core", ""
 "Output debugging information (default: %u, supplying <category> is optional)"),
 QT_TRANSLATE_NOOP("colx-core", ""
 "Preferred Denomination for automatically minted Zerocoin  "
-"(1/5/10/50/100/500/1000/5000), 0 for no preference. default: %u)"),
+"(100/500/1000/5000/10000/50000/100000/500000), 0 for no preference. default: %u)"), //"(1/5/10/50/100/500/1000/5000), 0 for no preference. default: %u)"),
 QT_TRANSLATE_NOOP("colx-core", ""
 "Query for peer addresses via DNS lookup, if low on addresses (default: 1 "
 "unless -connect)"),

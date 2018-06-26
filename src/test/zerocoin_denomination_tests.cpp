@@ -24,12 +24,12 @@ BOOST_AUTO_TEST_CASE(amount_to_denomination_test)
     cout << "Running amount_to_denomination_test...\n";
 
     //valid amount (min edge)
-    CAmount amount = 1 * COIN;
-    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount) == ZQ_ONE, "For COIN denomination should be ZQ_ONE");
+    CAmount amount = 100 * COIN;
+    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount) == ZQ_ONE, "For 100*COIN denomination should be ZQ_ONE");
 
     //valid amount (max edge)
-    CAmount amount1 = 5000 * COIN;
-    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount1) == ZQ_FIVE_THOUSAND, "For 5000*COIN denomination should be ZQ_ONE");
+    CAmount amount1 = 500000 * COIN;
+    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount1) == ZQ_FIVE_THOUSAND, "For 500000*COIN denomination should be ZQ_ONE");
 
     // ZCDENOMINATIONS: AccumulatorMap::GetCheckpoint() is asserting
     ////valid amount (max edge, new)
@@ -37,8 +37,8 @@ BOOST_AUTO_TEST_CASE(amount_to_denomination_test)
     //BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount10000) == ZQ_TEN_THOUSAND, "For 10000*COIN denomination should be ZQ_ONE");
 
     //invalid amount (too much)
-    CAmount amount2 = 7000 * COIN;
-    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount2) == ZQ_ERROR, "For 7000*COIN denomination should be Invalid -> ZQ_ERROR");
+    CAmount amount2 = 700000 * COIN;
+    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount2) == ZQ_ERROR, "For 700000*COIN denomination should be Invalid -> ZQ_ERROR");
 
     //invalid amount (not enough)
     CAmount amount3 = 1;
@@ -49,25 +49,25 @@ BOOST_AUTO_TEST_CASE(denomination_to_value_test)
 {
     cout << "Running ZerocoinDenominationToValue_test...\n";
 
-    int64_t Value = 1 * COIN;
+    int64_t Value = 100 * COIN;
     CoinDenomination denomination = ZQ_ONE;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 1");
-
-    Value = 10 * COIN;
-    denomination = ZQ_TEN;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 10");
-
-    Value = 50 * COIN;
-    denomination = ZQ_FIFTY;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 50");
-
-    Value = 500 * COIN;
-    denomination = ZQ_FIVE_HUNDRED;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 500");
-
-    Value = 100 * COIN;
-    denomination = ZQ_ONE_HUNDRED;
     BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 100");
+
+    Value = 1000 * COIN;
+    denomination = ZQ_TEN;
+    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 1000");
+
+    Value = 5000 * COIN;
+    denomination = ZQ_FIFTY;
+    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 5000");
+
+    Value = 50000 * COIN;
+    denomination = ZQ_FIVE_HUNDRED;
+    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 50000");
+
+    Value = 10000 * COIN;
+    denomination = ZQ_ONE_HUNDRED;
+    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 10000");
 
     Value = 0 * COIN;
     denomination = ZQ_ERROR;
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test241)
         mapDenom.insert(std::pair<CoinDenomination, CAmount>(denom, DenomAmounts[j]));
         j++;
     }
-    CoinsHeld = nTotalAmount / COIN;
+    CoinsHeld = nTotalAmount / (100 * COIN);
     std::cout << "Curremt Amount held = " << CoinsHeld << ": ";
 
     // Show what we have
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test241)
 
     // For DenomAmounts[] = {1,2,3,4,0,0,0,0}; we can spend up to 200 without requiring more than 4 Spends
     // Amounts above this can not be met
-    CAmount MaxLimit = 200;
+    CAmount MaxLimit = 200; // 00;
     CAmount OneCoinAmount = ZerocoinDenominationToAmount(ZQ_ONE);
     CAmount nValueTarget = OneCoinAmount;
     int nCoinsReturned;
@@ -240,7 +240,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test_from_245)
     const int DenomAmounts[] = {0, 1, 4, 2, 1, 0, 0, 0}; //, 0};
     // We can spend up to this amount for above set for less 6 spends
     // Otherwise, 6 spends are required
-    const int nMaxSpendAmount = 220;
+    const int nMaxSpendAmount = 220; // 00;
     CAmount nSelectedValue;
     std::list<CZerocoinMint> listMints;
     std::map<CoinDenomination, CAmount> mapOfDenomsHeld;
@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test_from_245)
         mapOfDenomsHeld.insert(std::pair<CoinDenomination, CAmount>(denom, DenomAmounts[j]));
         j++;
     }
-    CoinsHeld = nTotalAmount / COIN;
+    CoinsHeld = nTotalAmount / (100 * COIN);
     std::cout << "Curremt Amount held = " << CoinsHeld << ": ";
 
     // Show what we have
@@ -363,11 +363,11 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test_from_145)
         mapOfDenomsHeld.insert(std::pair<CoinDenomination, CAmount>(denom, DenomAmounts[j]));
         j++;
     }
-    CoinsHeld = nTotalAmount / COIN;
+    CoinsHeld = nTotalAmount / (100 * COIN);
     std::cout << "Curremt Amount held = " << CoinsHeld << ": ";
     // We can spend up to this amount for above set for less 6 spends
     // Otherwise, 6 spends are required
-    const int nMaxSpendAmount = 130;
+    const int nMaxSpendAmount = 130; // 00;
 
     // Show what we have
     j = 0;
@@ -465,7 +465,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test99)
         mapOfDenomsHeld.insert(std::pair<CoinDenomination, CAmount>(denom, DenomAmounts[j]));
         j++;
     }
-    CoinsHeld = nTotalAmount / COIN;
+    CoinsHeld = nTotalAmount / (100 * COIN);
     std::cout << "Curremt Amount held = " << CoinsHeld << ": ";
 
     // Show what we have

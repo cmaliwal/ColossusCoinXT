@@ -4040,6 +4040,7 @@ void CWallet::AutoZeromint()
     // zPIV amount missing from target (must be minted)
     nToMintAmount = (nToMintAmount - nZerocoinBalance) / COIN;
 
+    // ZCDENOMINATIONS: fix this
     // Use the biggest denomination smaller than the needed zPIV We'll only mint exact denomination to make minting faster.
     // Exception: for big amounts use 6666 (6666 = 1*5000 + 1*1000 + 1*500 + 1*100 + 1*50 + 1*10 + 1*5 + 1) to create all
     // possible denominations to avoid having 5000 denominations only.

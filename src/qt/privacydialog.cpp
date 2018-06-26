@@ -58,27 +58,45 @@ PrivacyDialog::PrivacyDialog(QWidget* parent) : QDialog(parent),
     ui->labelCoinControlAmount->addAction(clipboardAmountAction);
 
     // Denomination labels
-    ui->labelzDenom1Text->setText(tr("Denom. with value <b>1</b>:"));
-    ui->labelzDenom2Text->setText(tr("Denom. with value <b>5</b>:"));
-    ui->labelzDenom3Text->setText(tr("Denom. with value <b>10</b>:"));
-    ui->labelzDenom4Text->setText(tr("Denom. with value <b>50</b>:"));
-    ui->labelzDenom5Text->setText(tr("Denom. with value <b>100</b>:"));
-    ui->labelzDenom6Text->setText(tr("Denom. with value <b>500</b>:"));
-    ui->labelzDenom7Text->setText(tr("Denom. with value <b>1000</b>:"));
-    ui->labelzDenom8Text->setText(tr("Denom. with value <b>5000</b>:"));
+    //ui->labelzDenom1Text->setText(tr("Denom. with value <b>1</b>:"));
+    //ui->labelzDenom2Text->setText(tr("Denom. with value <b>5</b>:"));
+    //ui->labelzDenom3Text->setText(tr("Denom. with value <b>10</b>:"));
+    //ui->labelzDenom4Text->setText(tr("Denom. with value <b>50</b>:"));
+    //ui->labelzDenom5Text->setText(tr("Denom. with value <b>100</b>:"));
+    //ui->labelzDenom6Text->setText(tr("Denom. with value <b>500</b>:"));
+    //ui->labelzDenom7Text->setText(tr("Denom. with value <b>1000</b>:"));
+    //ui->labelzDenom8Text->setText(tr("Denom. with value <b>5000</b>:"));
+    ui->labelzDenom1Text->setText(tr("Denom. with value <b>100</b>:"));
+    ui->labelzDenom2Text->setText(tr("Denom. with value <b>500</b>:"));
+    ui->labelzDenom3Text->setText(tr("Denom. with value <b>1000</b>:"));
+    ui->labelzDenom4Text->setText(tr("Denom. with value <b>5000</b>:"));
+    ui->labelzDenom5Text->setText(tr("Denom. with value <b>10000</b>:"));
+    ui->labelzDenom6Text->setText(tr("Denom. with value <b>50000</b>:"));
+    ui->labelzDenom7Text->setText(tr("Denom. with value <b>100000</b>:"));
+    ui->labelzDenom8Text->setText(tr("Denom. with value <b>500000</b>:"));
+    // ZCDENOMINATIONS: fix this
 
     // AutoMint status
     ui->label_AutoMintStatus->setText(tr("AutoMint Status:"));
 
     // Global Supply labels
-    ui->labelZsupplyText1->setText(tr("Denom. <b>1</b>:"));
-    ui->labelZsupplyText5->setText(tr("Denom. <b>5</b>:"));
-    ui->labelZsupplyText10->setText(tr("Denom. <b>10</b>:"));
-    ui->labelZsupplyText50->setText(tr("Denom. <b>50</b>:"));
-    ui->labelZsupplyText100->setText(tr("Denom. <b>100</b>:"));
-    ui->labelZsupplyText500->setText(tr("Denom. <b>500</b>:"));
-    ui->labelZsupplyText1000->setText(tr("Denom. <b>1000</b>:"));
-    ui->labelZsupplyText5000->setText(tr("Denom. <b>5000</b>:"));
+    //ui->labelZsupplyText1->setText(tr("Denom. <b>1</b>:"));
+    //ui->labelZsupplyText5->setText(tr("Denom. <b>5</b>:"));
+    //ui->labelZsupplyText10->setText(tr("Denom. <b>10</b>:"));
+    //ui->labelZsupplyText50->setText(tr("Denom. <b>50</b>:"));
+    //ui->labelZsupplyText100->setText(tr("Denom. <b>100</b>:"));
+    //ui->labelZsupplyText500->setText(tr("Denom. <b>500</b>:"));
+    //ui->labelZsupplyText1000->setText(tr("Denom. <b>1000</b>:"));
+    //ui->labelZsupplyText5000->setText(tr("Denom. <b>5000</b>:"));
+    ui->labelZsupplyText1->setText(tr("Denom. <b>100</b>:"));
+    ui->labelZsupplyText5->setText(tr("Denom. <b>500</b>:"));
+    ui->labelZsupplyText10->setText(tr("Denom. <b>1000</b>:"));
+    ui->labelZsupplyText50->setText(tr("Denom. <b>5000</b>:"));
+    ui->labelZsupplyText100->setText(tr("Denom. <b>10000</b>:"));
+    ui->labelZsupplyText500->setText(tr("Denom. <b>50000</b>:"));
+    ui->labelZsupplyText1000->setText(tr("Denom. <b>100000</b>:"));
+    ui->labelZsupplyText5000->setText(tr("Denom. <b>500000</b>:"));
+    // ZCDENOMINATIONS: fix this
     
     // PIVX settings
     QSettings settings;

@@ -279,6 +279,7 @@ UniValue getblockhash(const UniValue& params, bool fHelp)
 
 UniValue getblock(const UniValue& params, bool fHelp)
 {
+    // ZCDENOMINATIONS: fix this
     if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
             "getblock \"hash\" ( verbose )\n"
@@ -308,14 +309,14 @@ UniValue getblock(const UniValue& params, bool fHelp)
             "  \"moneysupply\" : \"supply\"       (numeric) The money supply when this block was added to the blockchain\n"
             "  \"zPIVsupply\" :\n"
             "  {\n"
-            "     \"1\" : n,            (numeric) supply of 1 zPIV denomination\n"
-            "     \"5\" : n,            (numeric) supply of 5 zPIV denomination\n"
-            "     \"10\" : n,           (numeric) supply of 10 zPIV denomination\n"
-            "     \"50\" : n,           (numeric) supply of 50 zPIV denomination\n"
-            "     \"100\" : n,          (numeric) supply of 100 zPIV denomination\n"
-            "     \"500\" : n,          (numeric) supply of 500 zPIV denomination\n"
-            "     \"1000\" : n,         (numeric) supply of 1000 zPIV denomination\n"
-            "     \"5000\" : n,         (numeric) supply of 5000 zPIV denomination\n"
+            "     \"100\" : n,            (numeric) supply of 100 zPIV denomination\n"
+            "     \"500\" : n,            (numeric) supply of 500 zPIV denomination\n"
+            "     \"1000\" : n,           (numeric) supply of 1000 zPIV denomination\n"
+            "     \"5000\" : n,           (numeric) supply of 5000 zPIV denomination\n"
+            "     \"10000\" : n,          (numeric) supply of 10000 zPIV denomination\n"
+            "     \"50000\" : n,          (numeric) supply of 50000 zPIV denomination\n"
+            "     \"100000\" : n,         (numeric) supply of 100000 zPIV denomination\n"
+            "     \"500000\" : n,         (numeric) supply of 500000 zPIV denomination\n"
             "     \"total\" : n,        (numeric) The total supply of all zPIV denominations\n"
             "  }\n"
             "}\n"

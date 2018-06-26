@@ -465,6 +465,10 @@ bool CMasternodeBroadcast::CheckDefaultPort(std::string strService, std::string&
         strErrorRet = strprintf("Invalid port %u for masternode %s, only %d is supported on %s-net.", 
                                         service.GetPort(), strService, nDefaultPort, Params().NetworkIDString());
         LogPrint("masternode", "%s - %s\n", strContext, strErrorRet);
+        // ZCTESTING: to skip the error when setting up masternet, doesn't seem to make sense
+        // (if we change this it throws on another place when activating/starting)
+        if (Params().NetworkID() == CBaseChainParams::TESTNET)
+            return true;
         return false;
     }
  
