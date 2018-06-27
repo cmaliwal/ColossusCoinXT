@@ -107,7 +107,6 @@ public:
     const std::vector<CDNSSeedData>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
     const std::vector<CAddress>& FixedSeeds() const { return vFixedSeeds; }
-    //virtual const Checkpoints::CCheckpointData& Checkpoints() const = 0;
     int PoolMaxTransactions() const { return nPoolMaxTransactions; }
     std::string SporkKey() const { return strSporkKey; }
     std::string ObfuscationPoolDummyAddress() const { return strObfuscationPoolDummyAddress; }
@@ -126,8 +125,6 @@ public:
     int Zerocoin_HeaderVersion() const { return nZerocoinHeaderVersion; }
 
     /** Height or Time Based Activations **/
-    //int ModifierUpgradeBlock() const { return nModifierUpdateBlock; }
-    //int LAST_POW_BLOCK() const { return nLastPOWBlock; }
     int Zerocoin_StartHeight() const { return nZerocoinStartHeight; }
     int Zerocoin_Block_EnforceSerialRange() const { return nBlockEnforceSerialRange; }
     int Zerocoin_Block_RecalculateAccumulators() const { return nBlockRecalculateAccumulators; }
@@ -138,7 +135,6 @@ public:
 
     int GetMasternodePaymentSigTotal() const { return nMasternodePaymentSigTotal; }
     int GetMasternodePaymentSigRequired() const { return nMasternodePaymentSigRequired; }
-    //int64_t GetMasternodeRewardPercent() const { return nMasternodeRewardPercent; }
     int64_t GetBudgetPercent() const { return nBudgetPercent; }
     int64_t GetDevFundPercent() const { return nDevFundPercent; }
     int64_t GetBudgetPaymentCycle() const { return nBudgetPaymentCycle; }
@@ -215,7 +211,6 @@ protected:
 
     int nMasternodePaymentSigTotal;
     int nMasternodePaymentSigRequired;
-    //int64_t nMasternodeRewardPercent;
     int64_t nBudgetPercent;
     int64_t nDevFundPercent;
     int64_t nBudgetPaymentCycle;

@@ -18,27 +18,15 @@ CoinDenomination IntToZerocoinDenomination(int64_t amount)
 {
     CoinDenomination denomination;
     switch (amount) {
-    //case 1:		denomination = CoinDenomination::ZQ_ONE; break;
-    //case 5:		denomination = CoinDenomination::ZQ_FIVE; break;
-    //case 10:	denomination = CoinDenomination::ZQ_TEN; break;
-    //case 50:	denomination = CoinDenomination::ZQ_FIFTY; break;
-    //case 100:	denomination = CoinDenomination::ZQ_ONE_HUNDRED; break;
-    //case 500:	denomination = CoinDenomination::ZQ_FIVE_HUNDRED; break;
-    //case 1000:	denomination = CoinDenomination::ZQ_ONE_THOUSAND; break;
-    //case 5000:	denomination = CoinDenomination::ZQ_FIVE_THOUSAND; break;
-    case 100:		denomination = CoinDenomination::ZQ_ONE; break;
-    case 500:		denomination = CoinDenomination::ZQ_FIVE; break;
-    case 1000:	denomination = CoinDenomination::ZQ_TEN; break;
-    case 5000:	denomination = CoinDenomination::ZQ_FIFTY; break;
-    case 10000:	denomination = CoinDenomination::ZQ_ONE_HUNDRED; break;
-    case 50000:	denomination = CoinDenomination::ZQ_FIVE_HUNDRED; break;
-    case 100000:	denomination = CoinDenomination::ZQ_ONE_THOUSAND; break;
-    case 500000:	denomination = CoinDenomination::ZQ_FIVE_THOUSAND; break;
-    // ZCDENOMINATIONS: 10000 was added AccumulatorMap::GetCheckpoint() is asserting,
-    //case 10000: denomination = CoinDenomination::ZQ_TEN_THOUSAND; break;
-    default:
-        //not a valid denomination
-        denomination = CoinDenomination::ZQ_ERROR; break;
+    case 100:    denomination = CoinDenomination::ZQ_ONE; break;
+    case 500:    denomination = CoinDenomination::ZQ_FIVE; break;
+    case 1000:   denomination = CoinDenomination::ZQ_TEN; break;
+    case 5000:   denomination = CoinDenomination::ZQ_FIFTY; break;
+    case 10000:  denomination = CoinDenomination::ZQ_ONE_HUNDRED; break;
+    case 50000:  denomination = CoinDenomination::ZQ_FIVE_HUNDRED; break;
+    case 100000: denomination = CoinDenomination::ZQ_ONE_THOUSAND; break;
+    case 500000: denomination = CoinDenomination::ZQ_FIVE_THOUSAND; break;
+    default:     denomination = CoinDenomination::ZQ_ERROR; break;
     }
 
     return denomination;
@@ -48,14 +36,6 @@ int64_t ZerocoinDenominationToInt(const CoinDenomination& denomination)
 {
     int64_t Value = 0;
     switch (denomination) {
-    //case CoinDenomination::ZQ_ONE: Value = 1; break;
-    //case CoinDenomination::ZQ_FIVE: Value = 5; break;
-    //case CoinDenomination::ZQ_TEN: Value = 10; break;
-    //case CoinDenomination::ZQ_FIFTY : Value = 50; break;
-    //case CoinDenomination::ZQ_ONE_HUNDRED: Value = 100; break;
-    //case CoinDenomination::ZQ_FIVE_HUNDRED: Value = 500; break;
-    //case CoinDenomination::ZQ_ONE_THOUSAND: Value = 1000; break;
-    //case CoinDenomination::ZQ_FIVE_THOUSAND: Value = 5000; break;
     case CoinDenomination::ZQ_ONE: Value = 100; break;
     case CoinDenomination::ZQ_FIVE: Value = 500; break;
     case CoinDenomination::ZQ_TEN: Value = 1000; break;
@@ -64,12 +44,9 @@ int64_t ZerocoinDenominationToInt(const CoinDenomination& denomination)
     case CoinDenomination::ZQ_FIVE_HUNDRED: Value = 50000; break;
     case CoinDenomination::ZQ_ONE_THOUSAND: Value = 100000; break;
     case CoinDenomination::ZQ_FIVE_THOUSAND: Value = 500000; break;
-    // ZCDENOMINATIONS: 10000 was added AccumulatorMap::GetCheckpoint() is asserting,
-    //case CoinDenomination::ZQ_TEN_THOUSAND: Value = 10000; break;
-    default:
-        // Error Case
-        Value = 0; break;
+    default: Value = 0; break;
     }
+
     return Value;
 }
 
@@ -120,12 +97,10 @@ CAmount ZerocoinDenominationToAmount(const CoinDenomination& denomination)
     return nValue;
 }
 
-
 CoinDenomination get_denomination(std::string denomAmount) {
     int64_t val = std::stoi(denomAmount);
     return IntToZerocoinDenomination(val);
 }
-
 
 int64_t get_amount(std::string denomAmount) {
     int64_t nAmount = 0;

@@ -413,7 +413,7 @@ bool CMasternodeBroadcast::Create(std::string strService, std::string strKeyMast
     }
 
     // The service needs the correct default port to work properly
-    if (Params().NetworkID() == CBaseChainParams::MAIN && !CheckDefaultPort(strService, strErrorRet, "CMasternodeBroadcast::Create", true))
+    if (!CheckDefaultPort(strService, strErrorRet, "CMasternodeBroadcast::Create", true))
         return false;
 
     return Create(txin, CService(strService, true), keyCollateralAddressNew, pubKeyCollateralAddressNew, keyMasternodeNew, pubKeyMasternodeNew, strErrorRet, mnbRet);
@@ -458,6 +458,10 @@ bool CMasternodeBroadcast::Create(CTxIn txin, CService service, CKey keyCollater
 
 bool CMasternodeBroadcast::CheckDefaultPort(std::string strService, std::string& strErrorRet, std::string strContext, bool fAllowLookup)
 {
+    // accept any port on testnet
+    if (Params().NetworkID() == CBaseChainParams::TESTNET)
+        return true;
+
     CService service = CService(strService, fAllowLookup);
     int nDefaultPort = Params().GetDefaultPort();
     
@@ -465,14 +469,9 @@ bool CMasternodeBroadcast::CheckDefaultPort(std::string strService, std::string&
         strErrorRet = strprintf("Invalid port %u for masternode %s, only %d is supported on %s-net.", 
                                         service.GetPort(), strService, nDefaultPort, Params().NetworkIDString());
         LogPrint("masternode", "%s - %s\n", strContext, strErrorRet);
-        // ZCTESTING: to skip the error when setting up masternet, doesn't seem to make sense
-        // (if we change this it throws on another place when activating/starting)
-        if (Params().NetworkID() == CBaseChainParams::TESTNET)
-            return true;
         return false;
-    }
- 
-    return true;
+    } else
+        return true;
 }
 
 bool CMasternodeBroadcast::CheckAndUpdate(int& nDos)

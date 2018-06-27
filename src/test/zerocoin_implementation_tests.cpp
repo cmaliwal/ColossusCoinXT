@@ -202,10 +202,10 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     CBigNum bnpubcoin;
     // ZCDENOMINATIONS: FIX the tx hardcoded hashes to match, commenting out for now
     return;
-    //BOOST_CHECK_MESSAGE(bnpubcoin.SetHexBool(rawTxpub1), "Failed to set CBigNum from hex string");
+    BOOST_CHECK_MESSAGE(bnpubcoin.SetHexBool(rawTxpub1), "Failed to set CBigNum from hex string");
     PublicCoin pubCoin(Params().Zerocoin_Params(), bnpubcoin, CoinDenomination::ZQ_ONE);
     // ZCDENOMINATIONS: FIX the tx hardcoded hashes to match, commenting out for now
-    //BOOST_CHECK_MESSAGE(pubCoin.validate(), "Failed to validate pubCoin created from hex string");
+    BOOST_CHECK_MESSAGE(pubCoin.validate(), "Failed to validate pubCoin created from hex string");
 
     //initialize and Accumulator and AccumulatorWitness
     Accumulator accumulator(Params().Zerocoin_Params(), CoinDenomination::ZQ_ONE);
@@ -216,13 +216,13 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     for(pair<string, string> raw : vecRawMints) {
         CTransaction tx;
         // ZCDENOMINATIONS: FIX the tx hardcoded hashes to match, commenting out for now
-        //BOOST_CHECK_MESSAGE(DecodeHexTx(tx, raw.first), "Failed to deserialize hex transaction");
+        BOOST_CHECK_MESSAGE(DecodeHexTx(tx, raw.first), "Failed to deserialize hex transaction");
 
         for(const CTxOut out : tx.vout){
             if(!out.scriptPubKey.empty() && out.scriptPubKey.IsZerocoinMint()) {
                 PublicCoin publicCoin(Params().Zerocoin_Params());
                 // ZCDENOMINATIONS: FIX the tx hardcoded hashes to match, commenting out for now
-                //BOOST_CHECK_MESSAGE(TxOutToPublicCoin(out, publicCoin, state), "Failed to convert CTxOut " << out.ToString() << " to PublicCoin");
+                BOOST_CHECK_MESSAGE(TxOutToPublicCoin(out, publicCoin, state), "Failed to convert CTxOut " << out.ToString() << " to PublicCoin");
 
                 accumulator += publicCoin;
                 witness += publicCoin;

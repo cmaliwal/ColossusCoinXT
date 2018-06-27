@@ -582,12 +582,9 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
             if (GetTime() - nMintableLastCheck > 5 * 60) // 5 minute check time
             {
                 nMintableLastCheck = GetTime();
-                // ZC: this seems to be a (colx) fix, it conflicts w/ pivx // Q: // MintableCoins();
                 fMintableCoins = pwallet->MintableCoins(chainActive.Height() + 1);
             }
 
-            // ZC: this was a colx fix, conflicts w/ pivx // Q: 
-            //while (chainActive.Tip()->nTime < 1471482000 || vNodes.empty() || pwallet->IsLocked() || !fMintableCoins || nReserveBalance >= pwallet->GetBalance() || !masternodeSync.IsSynced()) {
             while (vNodes.empty() || pwallet->IsLocked() || !fMintableCoins || nReserveBalance >= pwallet->GetBalance() || !masternodeSync.IsSynced()) {
                 nLastCoinStakeSearchInterval = 0;
                 MilliSleep(5000);

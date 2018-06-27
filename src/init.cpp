@@ -38,6 +38,7 @@
 #include "util.h"
 #include "utilmoneystr.h"
 #include "validationinterface.h"
+#include "libzerocoin/Denominations.h"
 #ifdef ENABLE_WALLET
 #include "db.h"
 #include "wallet.h"
@@ -1828,14 +1829,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (nZeromintPercentage < 1) nZeromintPercentage = 1;
 
     nPreferredDenom  = GetArg("-preferredDenom", 0);
-    // ZCDENOMINATIONS: fix this
-    //if (nPreferredDenom != 0 && nPreferredDenom != 1 && nPreferredDenom != 5 && nPreferredDenom != 10 && nPreferredDenom != 50 &&
-    //    nPreferredDenom != 100 && nPreferredDenom != 500 && nPreferredDenom != 1000 && nPreferredDenom != 5000){
-    //    LogPrintf("-preferredDenom: invalid denomination parameter %d. Default value used\n", nPreferredDenom);
-    //    nPreferredDenom = 0;
-    //}
-    if (nPreferredDenom != 0 && nPreferredDenom != 100 && nPreferredDenom != 500 && nPreferredDenom != 1000 && nPreferredDenom != 5000 &&
-        nPreferredDenom != 10000 && nPreferredDenom != 50000 && nPreferredDenom != 100000 && nPreferredDenom != 500000){
+    if (nPreferredDenom != 0 && libzerocoin::ZQ_ERROR == libzerocoin::IntToZerocoinDenomination(nPreferredDenom)){
         LogPrintf("-preferredDenom: invalid denomination parameter %d. Default value used\n", nPreferredDenom);
         nPreferredDenom = 0;
     }

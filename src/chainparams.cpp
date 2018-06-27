@@ -148,8 +148,6 @@ public:
          *     CTxOut(nValue=50.00000000, scriptPubKey=0xA9037BAC7050C479B121CF)
          *   vMerkleTree: e0028e
          */
-        //// ZCTEST: experimenting w/ the genesis
-        //const std::string pszTimestamp = "U.S. News & World Report Jan 28 2016 With His Absence, Trump Dominates Another Debate";
         const std::string pszTimestamp = "2017-09-21 22:01:04 : Bitcoin Block Hash for Height 486382 : 00000000000000000092d15e5b3e6e8269398a84a60ae5a2dbd4e7f431199d03";
         CMutableTransaction txNew;
         txNew.vin.resize(1);
@@ -166,9 +164,6 @@ public:
         genesis.nNonce = 2402015;
 
         hashGenesisBlock = genesis.GetHash();
-        //// ZCTEST: experimenting w/ the genesis
-        //assert(hashGenesisBlock == uint256("0x0000041e482b9b9691d98eefb48473405c0b8ec31b76df3797c74a78680ef818"));
-        //assert(genesis.hashMerkleRoot == uint256("0x1b2ef6e2f28be914103a277377ae7729dcd125dfeb8bf97bd5964ba72b6dc39b"));
         assert(hashGenesisBlock == uint256("0xa0ce8206c908357008c1b9a8ba2813aff0989ca7f72d62b14e652c55f02b4f5c"));
         assert(genesis.hashMerkleRoot == uint256("0xf7c9a0d34fffa0887892dff1f384048b7be854a99937871705283758b727e414"));
 
@@ -211,7 +206,7 @@ public:
             "fd64fcb0f72a736350ae83b394d5f861af8378b348b4a359b5e5e8837aae2ba4b23838610fe65605fd7ef34972b47e773a906b56a60129ce"
             "04ed78030ff7ad2c2c4f54cc715ee0cccab5f42566829ad507c4bd834cde358ff079f87c0352b3434c059d3df8bcb7e9b19f13f9150b41";
         nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
-        nMinZerocoinMintFee = 10 * COIN; // 1 * CENT; //high fee required for zerocoin mints
+        nMinZerocoinMintFee = 1 * COIN;
         // ZCDEV: confirmations are not allowing us to confirm and spend zc-s.
         nMintRequiredConfirmations = 0; // 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1; // 0?
@@ -248,7 +243,6 @@ public:
             "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
             "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
             "31438167899885040445364023527381951378636564391212010397122822120720357";
-
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -338,8 +332,6 @@ public:
         genesis.nNonce = 2452017;
 
         hashGenesisBlock = genesis.GetHash();
-        //// ZCTEST: experimenting w/ the genesis
-        //assert(hashGenesisBlock == uint256("0xf6b11dff4a93ed81adc9eb0aa2709564f3567cc393831e3ff99d378e7f567b16"));
         assert(hashGenesisBlock == uint256("0x6cd37a546cfaafeee652fd0f3a85ba64c0f539f771a27fca9610cdc2f3278932"));
 
         vFixedSeeds.clear();
@@ -374,29 +366,16 @@ public:
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short
                                        // here because we only have a 8 block finalization window on testnet
 
-        // ZC: 
         /** Height or Time Based Activations **/
-        nZerocoinStartHeight = 333333; // 863787;
-        // ZCTEST: a bit in the future for blocks to be accepted (i.e. to be able to run the testnet)
-        nZerocoinStartTime = 1527972200; // June 2nd, 2018 8:43:20 PM
         nBlockEnforceSerialRange = 533333; // 895400; //Enforce serial range starting this block
         nBlockRecalculateAccumulators = 533333; // 908000; //Trigger a recalculation of accumulators
         nBlockFirstFraudulent = 533333; // 891737; //First block that bad serials emerged
         nBlockLastGoodCheckpoint = 533333; // 891730; //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = 533333; // 902850; //Start enforcing the invalid UTXO's
-        // THIS IS FOR TESTING PURPOSES ONLY
-        // ZCTEST: // ZCTESTNET: this is to avoid errors related to nBits and POW (another layer of changes, still testing)
-        // ZCTEST: // ZCTESTNET: adjusting to the testnet version
-        fSkipProofOfWorkCheck = true;
         nZerocoinStartHeight = 52000;
         nZerocoinStartTime = 1528142000; // 1529999999;
 
-        //strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
-        //nLastPOWBlock = 200;
-        //nModifierUpdateBlock = 0; // 51197 //approx Mon, 17 Apr 2017 04:00:00 GMT
-        //nZerocoinStartHeight = 201576;
-        //nZerocoinStartTime = 1526272200; // May 14, 2018 04:30:00 AM // 1501776000;
-        //nBlockEnforceSerialRange = 1; //Enforce serial range starting this block
+        strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -427,8 +406,6 @@ public:
 
     int64_t GetMinStakeAge(int nTargetHeight) const
     {
-        // ZCTESTING: just temp to avoid 'CheckStakeKernelHash() : min age violation - ' error
-        return 60*60*2;
         return 60*60*8; //8 hours
     }
 

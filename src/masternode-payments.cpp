@@ -379,7 +379,6 @@ std::string GetRequiredPaymentsString(int nBlockHeight)
 
 void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake, CBlockIndex* pindexPrev)
 {
-    // ZC: colx change
     if (!pindexPrev) {
         error("%s: pindexPrev is nullptr", __func__);
         return;
@@ -634,7 +633,6 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int n
     const int nMasternodeCountStable = mnodeman.stable_size();
     const int nMasternodeCountDrift = nMasternodeCountStable + Params().MasternodeCountDrift();
 
-    // ZC: COLX fix
     CAmount nReward = GetBlockValueReward(nBlockHeight);
     CAmount nRequiredMasternodePayment = GetMasternodePayment(nBlockHeight, nMasternodeCountDrift, pindexPrev->nMoneySupply);
 

@@ -67,20 +67,6 @@ void CActiveMasternode::ManageStatus()
             service = CService(strMasterNodeAddr);
         }
 
-        //if (Params().NetworkID() == CBaseChainParams::MAIN) {
-        //    if (service.GetPort() != Params().GetDefaultPort()) {
-        //        notCapableReason = strprintf("Invalid port: %u - only Params().GetDefaultPort() is supported on mainnet.", service.GetPort());
-        //        LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
-        //        return;
-        //    }
-        //} else if (service.GetPort() == Params().GetDefaultPort()) {
-        //    notCapableReason = strprintf("Invalid port: %u - Params().GetDefaultPort() is only supported on mainnet.", service.GetPort());
-        //    LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
-        //    return;
-        //}
-
-        // DRAGAN: we should use CheckDefaultPort I guess (pvix new), review // Q:
-        // The service needs the correct default port to work properly
         if (!CMasternodeBroadcast::CheckDefaultPort(strMasterNodeAddr, errorMessage, "CActiveMasternode::ManageStatus()"))
             return;
 
@@ -271,20 +257,6 @@ bool CActiveMasternode::Register(std::string strService, std::string strKeyMaste
     }
 
     CService service = CService(strService);
-    //if (Params().NetworkID() == CBaseChainParams::MAIN) {
-    //    if (service.GetPort() != Params().GetDefaultPort()) {
-    //        errorMessage = strprintf("Invalid port %u for masternode %s - only Params().GetDefaultPort() is supported on mainnet.", service.GetPort(), strService);
-    //        LogPrintf("CActiveMasternode::Register() - %s\n", errorMessage);
-    //        return false;
-    //    }
-    //} else if (service.GetPort() == Params().GetDefaultPort()) {
-    //    errorMessage = strprintf("Invalid port %u for masternode %s - Params().GetDefaultPort() is only supported on mainnet.", service.GetPort(), strService);
-    //    LogPrintf("CActiveMasternode::Register() - %s\n", errorMessage);
-    //    return false;
-    //}
-
-    // DRAGAN: we should use CheckDefaultPort I guess (pvix new), review // Q:
-    // The service needs the correct default port to work properly
     if(!CMasternodeBroadcast::CheckDefaultPort(strService, errorMessage, "CActiveMasternode::Register()"))
         return false;
 

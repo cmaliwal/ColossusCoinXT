@@ -1421,7 +1421,6 @@ bool CObfuscationPool::DoAutomaticDenominating(bool fDryRun)
 
     // ** find the coins we'll use
     std::vector<CTxIn> vCoins;
-    // ZC_MINTXFEE: change the scale here as well? This is not used any more?
     CAmount nValueMin = CENT;
     CAmount nValueIn = 0;
 

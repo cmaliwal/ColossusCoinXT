@@ -619,8 +619,6 @@ void CoinControlDialog::updateLabels(WalletModel* model, QDialog* dialog)
         nPayFee = CWallet::GetMinimumFee(nBytes, nTxConfirmTarget, mempool);
 
         // IX Fee
-        // ZC_MINTXFEE: REVIEW: should we change the scale here as well? 1 CENT makes no sense any more. But I'm not sure about the swift 
-        //if (coinControl->useSwiftTX) nPayFee = max(nPayFee, CENT);
         if (coinControl->useSwiftTX) nPayFee = max(nPayFee, COIN);
         // Allow free?
         double dPriorityNeeded = mempoolEstimatePriority;
@@ -636,9 +634,7 @@ void CoinControlDialog::updateLabels(WalletModel* model, QDialog* dialog)
             nChange = nAmount - nPayFee - nPayAmount;
 
             // Never create dust outputs; if we would, just add the dust to the fee.
-            // ZC_MINTXFEE: changed to COIN instead, that should keep us above dust (~0.6) but is it certain (scale wise it should be more like 10 or more COINS)  
-            // if (nChange > 0 && nChange < CENT) {
-            if (nChange > 0 && nChange < COIN) {
+            if (nChange > 0) {
                 CTxOut txout(nChange, (CScript)vector<unsigned char>(24, 0));
                 if (txout.IsDust(::minRelayTxFee)) {
                     nPayFee += nChange;

@@ -17,7 +17,6 @@ using namespace libzerocoin;
 
 BOOST_AUTO_TEST_SUITE(zerocoin_denom_tests)
 
-
 //translation from pivx quantity to zerocoin denomination
 BOOST_AUTO_TEST_CASE(amount_to_denomination_test)
 {
@@ -33,8 +32,8 @@ BOOST_AUTO_TEST_CASE(amount_to_denomination_test)
 
     // ZCDENOMINATIONS: AccumulatorMap::GetCheckpoint() is asserting
     ////valid amount (max edge, new)
-    //CAmount amount10000 = 10000 * COIN;
-    //BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount10000) == ZQ_TEN_THOUSAND, "For 10000*COIN denomination should be ZQ_ONE");
+    CAmount amount10000 = 10000 * COIN;
+    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount10000) == ZQ_ONE_HUNDRED, "For 10000*COIN denomination should be ZQ_ONE");
 
     //invalid amount (too much)
     CAmount amount2 = 700000 * COIN;
