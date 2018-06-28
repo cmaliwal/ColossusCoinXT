@@ -633,23 +633,6 @@ bool CBudgetManager::IsBudgetPaymentBlock(int nBlockHeight)
         return 0 == (nBlockHeight % GetBudgetPaymentCycleBlocks());
 }
 
-//bool CBudgetManager::HasNextFinalizedBudget()
-//{
-//    CBlockIndex* pindexPrev = chainActive.Tip();
-//    if (!pindexPrev) return false;
-//
-//    if (masternodeSync.IsBudgetFinEmpty()) return true;
-//
-//    int nBlockStart = pindexPrev->nHeight - pindexPrev->nHeight % GetBudgetPaymentCycleBlocks() + GetBudgetPaymentCycleBlocks();
-//    if (nBlockStart - pindexPrev->nHeight > 576 * 2) return true; //we wouldn't have the budget yet
-//
-//    if (budget.IsBudgetPaymentBlock(nBlockStart)) return true;
-//
-//    LogPrint("masternode", "CBudgetManager::HasNextFinalizedBudget() - Client is missing budget - %lli\n", nBlockStart);
-//
-//    return false;
-//}
-
 bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHeight)
 {
     CScript payee;
