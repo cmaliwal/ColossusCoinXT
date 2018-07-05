@@ -36,7 +36,8 @@ enum class ChainHeight
     H1, // 1, Premine, Reward 2500 COLX
     H2, // 151202, Reward 1250 COLX
     H3, // 302401, Reward 1000 COLX
-    H4  // 388800, Reward 1250 COLX, new budget and dev funds, only block version >= 4 is valid
+    H4, // 388800, Reward 1250 COLX, new budget and dev funds, only block version >= 4 is valid
+    H5  // Zerocoin, only block version >= 5 is valid
 };
 
 /**
@@ -122,10 +123,9 @@ public:
     int Zerocoin_MintRequiredConfirmations() const { return nMintRequiredConfirmations; }
     int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
-    int Zerocoin_HeaderVersion() const { return nZerocoinHeaderVersion; }
 
     /** Height or Time Based Activations **/
-    int Zerocoin_StartHeight() const { return nZerocoinStartHeight; }
+    int Zerocoin_StartHeight() const { return GetChainHeight(ChainHeight::H5); }
     int Zerocoin_Block_EnforceSerialRange() const { return nBlockEnforceSerialRange; }
     int Zerocoin_Block_RecalculateAccumulators() const { return nBlockRecalculateAccumulators; }
     int Zerocoin_Block_FirstFraudulent() const { return nBlockFirstFraudulent; }
@@ -198,9 +198,7 @@ protected:
     int nMintRequiredConfirmations;
     int nRequiredAccumulation;
     int nDefaultSecurityLevel;
-    int nZerocoinHeaderVersion;
     int64_t nBudget_Fee_Confirmations;
-    int nZerocoinStartHeight;
     int nZerocoinStartTime;
 
     int nBlockEnforceSerialRange;

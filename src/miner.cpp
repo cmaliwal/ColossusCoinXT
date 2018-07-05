@@ -96,29 +96,24 @@ void UpdateTime(CBlockHeader* pblock, const CBlockIndex* pindexPrev)
 
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, bool fProofOfStake)
 {
-    CReserveKey reservekey(pwallet);
-
     // Create new block
     unique_ptr<CBlockTemplate> pblocktemplate(new CBlockTemplate());
     if (!pblocktemplate.get())
         return NULL;
+
     CBlock* pblock = &pblocktemplate->block; // pointer for convenience
 
-    // -regtest only: allow overriding block.nVersion with
-    // -blockversion=N to test forking scenarios
-    if (Params().MineBlocksOnDemand())
-        pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
-
-    // ZC: this are important changes to include zerocoin (CreateNewBlock) // Q: 
-    // check if the block version change here is ok (vs -blockversion)
-
     // Make sure to create the correct block version after zerocoin is enabled
-    // ZCMASTER: change to 5
     bool fZerocoinActive = GetAdjustedTime() >= Params().Zerocoin_StartTime();
     if (fZerocoinActive)
         pblock->nVersion = CBlockHeader::VERSION5;
     else
         pblock->nVersion = CBlockHeader::VERSION4;
+
+    // -regtest only: allow overriding block.nVersion with
+    // -blockversion=N to test forking scenarios
+    if (Params().MineBlocksOnDemand())
+        pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
 
     // Create coinbase tx
     CMutableTransaction txNew;

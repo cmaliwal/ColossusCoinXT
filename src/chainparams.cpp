@@ -190,7 +190,6 @@ public:
         fSkipProofOfWorkCheck = false;
         fTestnetToBeDeprecatedFieldRPC = false;
         fHeadersFirstSyncingActive = false;
-
         nPoolMaxTransactions = 3;
 
         strSporkKey = "0423f2b48d99f15a0bceedbe9b05a06d028aca587c3a0f0ee4a7dff6b0859181c1225b5842a17e8bb74758b8f1757a82025631f3276bec0734c6f61de71c1e4d28";
@@ -198,51 +197,26 @@ public:
         nStartMasternodePayments = 1403728576; //Wed, 25 Jun 2014 20:36:16 GMT
 
         /** Zerocoin */
-        zerocoinModulus = "eea95da0a8c277c6fa63a84ab86e748bd499417feb8bc312e67d4076e6d1bb048d0e60afc42bc04b4f3afb754b35bc2056"
-            "31855dc262811b2f77b8323ece492299e599b8ac048b3335004c63bb115fa1448619741ae4eafd21e59fc41761bf0015fe96fc0300ed78b8"
-            "b050440b093f82bcbdf4d63d9851004d72c71b79506b687a7a12a796813da48baa4ab23708f1d1b5b380ac5cc38529465961a1c098da9f26"
-            "06dcb6d5393e9b9eef43f8eb42c8e3e1634a0d1649337a409fe2b948fd3f5753e258ef855b72a5a83f34f14add3180ffc15e1da6a3d6a147"
-            "ad4ef9da82a9253b39f5ffca4c483d76333c93c1781b2b0e5ccb520ebf58da506da303ea28c975a4463c0fc5b2f8a7421e072d09ef391268"
-            "fd64fcb0f72a736350ae83b394d5f861af8378b348b4a359b5e5e8837aae2ba4b23838610fe65605fd7ef34972b47e773a906b56a60129ce"
-            "04ed78030ff7ad2c2c4f54cc715ee0cccab5f42566829ad507c4bd834cde358ff079f87c0352b3434c059d3df8bcb7e9b19f13f9150b41";
-        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
-        nMinZerocoinMintFee = 1 * COIN;
-        // ZCDEV: confirmations are not allowing us to confirm and spend zc-s.
-        nMintRequiredConfirmations = 0; // 20; //the maximum amount of confirmations until accumulated in 19
-        nRequiredAccumulation = 1; // 0?
-        nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinHeaderVersion = CBlockHeader::VERSION5; //Block headers must be this version once zerocoin is active
-        nBudget_Fee_Confirmations = 6; // Number of confirmations for the finalization fee
-
-        //FIXME: params must correspond zerocoin release
-        /** Height or Time Based Activations **/
-        //nLastPOWBlock = 10080;  // 259200
-        //nModifierUpdateBlock = 0; // 615800
-        nZerocoinStartHeight = 333333; // 863787;
-        // ZCTEST: a bit in the future for blocks to be accepted (i.e. to be able to run the testnet)
-        nZerocoinStartTime = 1527972200; // June 2nd, 2018 8:43:20 PM
-        nBlockEnforceSerialRange = 533333; // 895400; //Enforce serial range starting this block
-        nBlockRecalculateAccumulators = 533333; // 908000; //Trigger a recalculation of accumulators
-        nBlockFirstFraudulent = 533333; // 891737; //First block that bad serials emerged
-        nBlockLastGoodCheckpoint = 533333; // 891730; //Last valid accumulator checkpoint
-        nBlockEnforceInvalidUTXO = 533333; // 902850; //Start enforcing the invalid UTXO's
-
-        // THIS IS FOR TESTING PURPOSES ONLY
-        // ZCTEST: // ZCMAINNET: this is to avoid errors related to nBits and POW (another layer of changes, still testing)
-        fSkipProofOfWorkCheck = true;
-        nZerocoinStartHeight = 9333333;
-        nZerocoinStartTime = 1539999999; // 1529999999;
-        //nZerocoinHeaderVersion = 5;
-
-        // ZCTEST: // tests are failing due to the modulus change, paramgen generated big#-s don't work for some reason,
-        // ...I'm guessing that tests are hardcoded (some of the tx-s there, modulus's been adjusted). Questions is whether that
-        // will result in some ZC problems? For that reason, leaving the zc modulus to what pivx is using
         zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
             "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"
             "6507761337985909570009733045974880842840179742910064245869181719511874612151517265463228221686998754918242243363"
             "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
             "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
             "31438167899885040445364023527381951378636564391212010397122822120720357";
+        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMinZerocoinMintFee = 1 * COIN;
+        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
+        nRequiredAccumulation = 1;
+        nDefaultSecurityLevel = 100; //full security level for accumulators
+        nBudget_Fee_Confirmations = 6; // Number of confirmations for the finalization fee
+
+        /** Height or Time Based Activations **/
+        nBlockEnforceSerialRange = std::numeric_limits<int>::max(); //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = std::numeric_limits<int>::max(); //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
+        nZerocoinStartTime = std::numeric_limits<int>::max(); // FIXME
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -268,6 +242,9 @@ public:
 
         case ChainHeight::H4:
             return 388800;
+
+        case ChainHeight::H5:
+            return std::numeric_limits<int>::max(); // FIXME
 
         default:
             assert(false);
@@ -367,13 +344,12 @@ public:
                                        // here because we only have a 8 block finalization window on testnet
 
         /** Height or Time Based Activations **/
-        nBlockEnforceSerialRange = 533333; // 895400; //Enforce serial range starting this block
-        nBlockRecalculateAccumulators = 533333; // 908000; //Trigger a recalculation of accumulators
-        nBlockFirstFraudulent = 533333; // 891737; //First block that bad serials emerged
-        nBlockLastGoodCheckpoint = 533333; // 891730; //Last valid accumulator checkpoint
-        nBlockEnforceInvalidUTXO = 533333; // 902850; //Start enforcing the invalid UTXO's
-        nZerocoinStartHeight = 52000;
-        nZerocoinStartTime = 1528142000; // 1529999999;
+        nBlockEnforceSerialRange = std::numeric_limits<int>::max(); //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = std::numeric_limits<int>::max(); //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
+        nZerocoinStartTime = 1528142000; // June 4, 2018 7:53:20 PM
 
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
     }
@@ -397,6 +373,9 @@ public:
         case ChainHeight::H3:
         case ChainHeight::H4:
             return 35500; // on testnet
+
+        case ChainHeight::H5:
+            return 52000;
 
         default:
             assert(false);
@@ -446,8 +425,6 @@ public:
 
         hashGenesisBlock = genesis.GetHash();
         nDefaultPort = 51476;
-        //// ZCTEST: experimenting w/ the genesis
-        //assert(hashGenesisBlock == uint256("0x4f023a2120d9127b21bbad01724fdb79b519f593f2a85b60d3d79160ec5f29df"));
         assert(hashGenesisBlock == uint256("0x41d203d900885c5ff18d2c550957743a164060a184182fa17ad1d8cff46c7eac"));
 
         vFixedSeeds.clear(); //! Testnet mode doesn't have any fixed seeds.

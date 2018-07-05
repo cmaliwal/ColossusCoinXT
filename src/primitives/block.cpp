@@ -15,7 +15,7 @@
 
 uint256 CBlockHeader::GetHash() const
 {
-    if (nVersion < VERSION5) // FIXME: probably we won't change hash algorithm
+    if (nVersion < VERSION5)
         return HashQuark(BEGIN(nVersion), END(nNonce));
     else
         return Hash(BEGIN(nVersion), END(nAccumulatorCheckpoint));

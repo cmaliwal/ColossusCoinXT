@@ -4363,30 +4363,18 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
 
     // Check proof of work matches claimed amount
     if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits))
-        return state.DoS(50, error("CheckBlockHeader() : proof of work failed"),
-            REJECT_INVALID, "high-hash");
+        return state.DoS(50, error("CheckBlockHeader() : proof of work failed"), REJECT_INVALID, "high-hash");
 
-    // Version 4 header must be used after Params().Zerocoin_StartHeight(). And never before.
+    // Zerocoin version header must be used after Params().Zerocoin_StartHeight(). And never before.
+    const int32_t nZCver = CBlockHeader::VERSION5;
     if (block.GetBlockTime() > Params().Zerocoin_StartTime()) {
-        if (block.nVersion < Params().Zerocoin_HeaderVersion()) {
-            // ZCTEST: // ZCMAINNET: best is to skip complaining about it for now
-            // ...check this out, if we push the params up may not be needed
-            LogPrint("debug", "%s: block version must be 4 or above after ZerocoinStartHeight", __func__);
-            return true;
-
-            // ZC: text was wrong
-            //return state.DoS(50, error("CheckBlockHeader() : block version must be 4 or above after ZerocoinStartHeight"),
-            //    REJECT_INVALID, "block-version");
-        }
-    } else {
-        if (block.nVersion >= Params().Zerocoin_HeaderVersion()) {
-            //// ZCTEST: // ZCMAINNET: skip complaining, just log it (it happens for mainnet as well)
-            //LogPrint("debug", "%s: CheckBlockHeader() : block version must be below 4 before ZerocoinStartHeight", __func__);
-            ////return true;
-
-            return state.DoS(50, error("CheckBlockHeader() : block version must be below 4 before ZerocoinStartHeight"),
+        if (block.nVersion < nZCver)
+            return state.DoS(50, error("CheckBlockHeader() : block version must be %d+ after ZerocoinStartHeight", nZCver),
             REJECT_INVALID, "block-version");
-        }
+    } else {
+        if (block.nVersion >= nZCver)
+            return state.DoS(50, error("CheckBlockHeader() : block version must be below %d before ZerocoinStartHeight", nZCver),
+            REJECT_INVALID, "block-version");
     }
 
     return true;

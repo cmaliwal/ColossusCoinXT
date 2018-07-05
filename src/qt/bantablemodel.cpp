@@ -48,7 +48,6 @@ public:
     void refreshBanlist()
     {
         banmap_t banMap;
-        // DRAGAN: FIXME: not implemented
         CNode::GetBanned(banMap);
 
         cachedBanlist.clear();

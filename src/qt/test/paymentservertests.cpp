@@ -110,12 +110,12 @@ void PaymentServerTests::paymentServerTests()
     QCOMPARE(merchant, QString(""));
 
     // Just get some random data big enough to trigger BIP70 DoS protection
-    unsigned char randData[BIP70_MAX_PAYMENTREQUEST_SIZE + 1];
-    GetRandBytes(randData, sizeof(randData));
+    vector<unsigned char> randData(BIP70_MAX_PAYMENTREQUEST_SIZE + 1, 0);
+    GetRandBytes(&(randData[0]), randData.size());
     // Write data to a temp file:
     QTemporaryFile tempFile;
     tempFile.open();
-    tempFile.write((const char*)randData, sizeof(randData));
+    tempFile.write((const char*)&(randData[0]), randData.size());
     tempFile.close();
     // Trigger BIP70 DoS protection
     QCOMPARE(PaymentServer::readPaymentRequestFromFile(tempFile.fileName(), r.paymentRequest), false);
