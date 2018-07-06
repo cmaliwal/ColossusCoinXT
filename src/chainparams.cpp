@@ -207,7 +207,7 @@ public:
         nMinZerocoinMintFee = 1 * COIN;
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
-        nDefaultSecurityLevel = 100; //full security level for accumulators
+        nDefaultSecurityLevel = 42; // medium security level for accumulators
         nBudget_Fee_Confirmations = 6; // Number of confirmations for the finalization fee
 
         /** Height or Time Based Activations **/

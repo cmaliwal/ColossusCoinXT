@@ -57,10 +57,10 @@ using namespace libzerocoin;
 #define SCRIPT_OFFSET 6
 // For Script size (BIGNUM/Uint256 size)
 #define BIGNUM_SIZE   4
+
 /**
  * Global state
  */
-
 CCriticalSection cs_main;
 
 BlockMap mapBlockIndex;
@@ -82,9 +82,6 @@ bool fVerifyingBlocks = false;
 // ZCDENOMINATIONS: should we fix this?
 unsigned int nCoinCacheSize = 5000;
 bool fAlerts = DEFAULT_ALERTS;
-
-// DRAGAN: removed, not used
-//unsigned int nStakeMinAge = 60 * 60;
 int64_t nReserveBalance = 0;
 
 /** Fees smaller than this (in upiv) are considered zero fee (for relaying and mining)
@@ -92,7 +89,6 @@ int64_t nReserveBalance = 0;
  * so it's still 10 times lower comparing to bitcoin.
  */
 CFeeRate minRelayTxFee = CFeeRate(1 * COIN);
-
 CTxMemPool mempool(::minRelayTxFee);
 
 struct COrphanTx {
@@ -3281,7 +3277,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                 REJECT_INVALID, "bad-txns-BIP30");
     }
 
-    // ZCDEV: // ZCDEVMERGE: this block of code is hard to merge (removed from pivx), flags are calc-ed differently?
     // BIP16 didn't become active until Apr 1 2012
     int64_t nBIP16SwitchTime = 1333238400;
     bool fStrictPayToScriptHash = (pindex->GetBlockTime() >= nBIP16SwitchTime);
@@ -3294,8 +3289,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         CBlockIndex::IsSuperMajority(CBlockHeader::VERSION3, pindex->pprev, Params().EnforceBlockUpgradeMajority())) {
             flags |= SCRIPT_VERIFY_DERSIG;
     }
-
-    //CBlockUndo blockundo;
 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : NULL);
 
@@ -3378,8 +3371,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             nValueIn += view.GetValueIn(tx);
 
             std::vector<CScriptCheck> vChecks;
-            // ZCDEV: // ZCDEVMERGE: flags above and here? // Q:
-            //unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG;
             if (!CheckInputs(tx, state, view, fScriptChecks, flags, false, nScriptCheckThreads ? &vChecks : NULL))
                 return false;
             control.Add(vChecks);
@@ -3413,19 +3404,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     pindex->nMoneySupply = nMoneySupplyPrev + nValueOut - nValueIn;
     pindex->nMint = pindex->nMoneySupply - nMoneySupplyPrev + nFees;
 
-//    LogPrintf("XX69----------> ConnectBlock(): nValueOut: %s, nValueIn: %s, nFees: %s, nMint: %s zPivSpent: %s\n",
-//              FormatMoney(nValueOut), FormatMoney(nValueIn),
-//              FormatMoney(nFees), FormatMoney(pindex->nMint), FormatMoney(nAmountZerocoinSpent));
-
     int64_t nTime1 = GetTimeMicros();
     nTimeConnect += nTime1 - nTimeStart;
     LogPrint("bench", "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime1 - nTimeStart), 0.001 * (nTime1 - nTimeStart) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime1 - nTimeStart) / (nInputs - 1), nTimeConnect * 0.000001);
-
-    // ZCDEV: // ZCDEVMERGE: expected mint is now done differently (and moved further down), no params
-    ////PoW phase redistributed fees to miner. PoS stage destroys fees.
-    //CAmount nExpectedMint = GetBlockValue(pindex->pprev->nHeight, nFees, false); // (pindex->pprev->nHeight)
-    //if (block.IsProofOfWork())
-    //    nExpectedMint += nFees;
 
     // ZC: added (goes together w/ block value/budget functions), moved from CheckBlock
     // ----------- masternode payments / budgets -----------
@@ -3458,11 +3439,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         }
     }
 
-    // ZCDEV: // ZCDEVMERGE: new way for expected mint
     //Check that the block does not overmint
     CAmount nExpectedMint = nFees + GetBlockExpectedMint(nHeight);
     if (!IsBlockValueValid(block, nExpectedMint, pindex->nMint)) {
-        // ZCTEST: // ZCTESTNET: 
         return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
                 FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
     }
@@ -3475,6 +3454,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     if (!control.Wait())
         return state.DoS(100, false);
+
     int64_t nTime2 = GetTimeMicros();
     nTimeVerify += nTime2 - nTimeStart;
     LogPrint("bench", "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs]\n", nInputs - 1, 0.001 * (nTime2 - nTimeStart), nInputs <= 1 ? 0 : 0.001 * (nTime2 - nTimeStart) / (nInputs - 1), nTimeVerify * 0.000001);

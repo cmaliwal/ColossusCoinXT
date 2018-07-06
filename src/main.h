@@ -232,15 +232,8 @@ bool GetTransaction(const uint256& hash, CTransaction& tx, uint256& hashBlock, b
 /** Find the best known block, and make it the tip of the block chain */
 
 bool DisconnectBlocksAndReprocess(int blocks);
-
-// ***TODO***
 double ConvertBitsToDouble(unsigned int nBits);
-//int64_t GetMasternodePayment(CAmount nTotalBlockReward);
-// ZCDEV: this is nowhere to be found?
-//unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader* pblock, bool fProofOfStake);
-
 bool ActivateBestChain(CValidationState& state, CBlock* pblock = NULL, bool fAlreadyChecked = false);
-//int64_t GetBlockValue(int nHeight, CAmount nFees, bool fBudgetBlock);
 
 // returns expected reward depends on the block height
 CAmount GetBlockExpectedMint(int nHeight);

@@ -146,7 +146,7 @@ void CBudgetManager::SubmitFinalBudget()
         LogPrint("masternode","CBudgetManager::SubmitFinalBudget - nSubmittedHeight(=%ld) < nBlockStart(=%ld) condition not fulfilled.\n", nSubmittedHeight, nBlockStart);
         return;
     }
-    // ZCDEV: merge different changes (dev + pivx/zc)
+
     // Submit final budget during the last 2 days before payment for Mainnet, about 9 minutes for Testnet
     int nFinalizationStart = nBlockStart - GetBudgetFinalizationBlocks();
     int nOffsetToStart = nFinalizationStart - nCurrentHeight;
