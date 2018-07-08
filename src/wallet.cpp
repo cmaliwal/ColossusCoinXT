@@ -50,7 +50,6 @@ bool fPayAtLeastCustomFee = true;
  * so it's still 10 times lower comparing to bitcoin.
  * Override with -mintxfee
  */
-//CAmount CWallet::minTxFeeAmount = 10 * COIN; // CFeeRate(minTxFeeAmount); 
 CFeeRate CWallet::minTxFee = CFeeRate(10 * COIN);
 int64_t nStartupTime = GetAdjustedTime();
 
@@ -2566,7 +2565,7 @@ bool CWallet::CreateCollateralTransaction(CMutableTransaction& txCollateral, std
         To doublespend a collateral transaction, it will require a fee higher than this. So there's
         still a significant cost.
     */
-    // ZC999FIX: collateral tx fee should be high, should this be 100 * COIN?
+    // ZC999FIX: REVIEW: collateral tx fee should be high, should this be 100 * COIN?
     CAmount nFeeRet = 1 * COIN;
 
     txCollateral.vin.clear();
@@ -2673,7 +2672,6 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
     bool useLockTime)
 {
     // ZC999FIX: REVIEW: should this be minTxFee? but we need full tx before that
-    //if (useIX && nFeePay < minTxFeeAmount) nFeePay = minTxFeeAmount;
     if (useIX && nFeePay < COIN) nFeePay = COIN;
 
     CAmount nValue = 0;
@@ -4000,7 +3998,6 @@ bool CWallet::GetDestData(const CTxDestination& dest, const std::string& key, st
 void CWallet::AutoZeromint()
 {
     // Don't bother Autominting if Zerocoin Protocol isn't active
-    //if (GetAdjustedTime() > GetSporkValue(SPORK_16_ZEROCOIN_MAINTENANCE_MODE)) return; // ZCTESTINGFIXES: 
     if (GetAdjustedTime() > GetSporkValue(SPORK_20_ZEROCOIN_MAINTENANCE_MODE)) return;
 
     // Wait until blockchain + masternodes are fully synced and wallet is unlocked.

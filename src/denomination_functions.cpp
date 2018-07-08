@@ -362,8 +362,7 @@ int calculateChange(
         if (isFaulty)
             LogPrintf("calculateChange().getChange : failed, amount:%s - coins:%d\n", FormatMoney(nChangeAmount), nChangeCount);
 
-        // ZC999FIX: old algo is pretty wrong, above fails (0) for 999, so try minimizing
-        if (fMinimizeChange) { // || isFaulty) {
+        if (fMinimizeChange) {
             CoinDenomination nextToMaxDenom = getNextLowerDenomHeld(minDenomOverTarget, mapOfDenomsHeld);
             bool minSuccess = false;
             int newChangeCount = minimizeChange(nMaxNumberOfSpends, nChangeCount,
@@ -383,11 +382,7 @@ int calculateChange(
             mapOfDenomsUsed.at(minDenomOverTarget) = 1;
         }
 
-        //if (!isFaulty)
         return nChangeCount;
-
-        //LogPrintf("calculateChange() : failed, going w/ the plan B, amount:%s - coins:%d\n", FormatMoney(nValueTarget), nChangeCount);
-        //// ZC999FIX: if 'faulty' proceed with other strategy, nothing to lose...
     } else {
         // Try to meet a different way
         for (const auto& denom : zerocoinDenomList)
