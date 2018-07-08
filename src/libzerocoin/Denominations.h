@@ -25,7 +25,8 @@ enum  CoinDenomination {
     ZQ_ONE_HUNDRED = 10000, //100,
     ZQ_FIVE_HUNDRED = 50000, //500,
     ZQ_ONE_THOUSAND = 100000, //1000,
-    ZQ_FIVE_THOUSAND = 500000 //5000
+    ZQ_FIVE_THOUSAND = 500000, //5000
+    ZQ_MIN = 100,
 };
 
 // Order is with the Smallest Denomination first and is important for a particular routine that this order is maintained

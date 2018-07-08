@@ -499,6 +499,7 @@ public:
     void AutoCombineDust();
     void AutoZeromint();
 
+    //static CAmount minTxFeeAmount;
     static CFeeRate minTxFee;
     static CAmount GetMinimumFee(unsigned int nTxBytes, unsigned int nConfirmTarget, const CTxMemPool& pool);
 

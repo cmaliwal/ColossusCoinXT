@@ -65,7 +65,8 @@ CoinDenomination AmountToZerocoinDenomination(CAmount amount)
 // use case: converting Piv to zPiv without user worrying about denomination math themselves
 CoinDenomination AmountToClosestDenomination(CAmount nAmount, CAmount& nRemaining)
 {
-    if (nAmount < 1 * COIN)
+    // ZC999FIX: 
+    if (nAmount < CoinDenomination::ZQ_MIN * COIN) // if (nAmount < 1 * COIN)
         return ZQ_ERROR;
 
     CAmount nConvert = nAmount / COIN;
@@ -80,6 +81,8 @@ CoinDenomination AmountToClosestDenomination(CAmount nAmount, CAmount& nRemainin
         }
 
         //we are beyond the value, use previous denomination
+        // ZC999FIX: the 'i' here is the culprit, it mints 100/ZQ_ONE for 99
+        // (I don't want to remove it as I'm unsure of possible issues)
         if (denomination > nConvert && i) {
             CoinDenomination d = zerocoinDenomList[i - 1];
             nRemaining = nConvert - d;

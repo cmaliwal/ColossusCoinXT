@@ -50,6 +50,7 @@ bool fPayAtLeastCustomFee = true;
  * so it's still 10 times lower comparing to bitcoin.
  * Override with -mintxfee
  */
+//CAmount CWallet::minTxFeeAmount = 10 * COIN; // CFeeRate(minTxFeeAmount); 
 CFeeRate CWallet::minTxFee = CFeeRate(10 * COIN);
 int64_t nStartupTime = GetAdjustedTime();
 
@@ -1132,7 +1133,8 @@ CAmount CWalletTx::GetAnonymizableCredit(bool fUseCache) const
         const CTxIn vin = CTxIn(hashTx, i);
 
         if (pwallet->IsSpent(hashTx, i) || pwallet->IsLockedCoin(hashTx, i)) continue;
-        if (fMasterNode && vout[i].nValue == 10000 * COIN) continue; // do not count MN-like outputs
+        // ZC999FIX: this doesn't look right, 10000 is PIVX MN amount, we use 10 MIL
+        if (fMasterNode && vout[i].nValue == Params().GetRequiredMasternodeCollateral()) continue; // do not count MN-like outputs
 
         const int rounds = pwallet->GetInputObfuscationRounds(vin);
         if (rounds >= -2 && rounds < nZeromintPercentage) {
@@ -1196,7 +1198,8 @@ CAmount CWalletTx::GetUnlockedCredit() const
         const CTxOut& txout = vout[i];
 
         if (pwallet->IsSpent(hashTx, i) || pwallet->IsLockedCoin(hashTx, i)) continue;
-        if (fMasterNode && vout[i].nValue == 10000 * COIN) continue; // do not count MN-like outputs
+        // ZC999FIX: this doesn't look right, 10000 is PIVX MN amount, we use 10 MIL
+        if (fMasterNode && vout[i].nValue == Params().GetRequiredMasternodeCollateral()) continue; // do not count MN-like outputs
 
         nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
         if (!MoneyRange(nCredit))
@@ -1229,8 +1232,9 @@ CAmount CWalletTx::GetLockedCredit() const
             nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
         }
 
-        // Add masternode collaterals which are handled likc locked coins
-        if (fMasterNode && vout[i].nValue == 10000 * COIN) {
+        // ZC999FIX: this doesn't look right, 10000 is PIVX MN amount, we use 10 MIL
+        // Add masternode collaterals which are handled like locked coins
+        if (fMasterNode && vout[i].nValue == Params().GetRequiredMasternodeCollateral()) {
             nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
         }
 
@@ -1347,8 +1351,9 @@ CAmount CWalletTx::GetLockedWatchOnlyCredit() const
             nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
         }
 
+        // ZC999FIX: this doesn't look right, 10000 is PIVX MN amount, we use 10 MIL
         // Add masternode collaterals which are handled likc locked coins
-        if (fMasterNode && vout[i].nValue == 10000 * COIN) {
+        if (fMasterNode && vout[i].nValue == Params().GetRequiredMasternodeCollateral()) {
             nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
         }
 
@@ -2094,6 +2099,11 @@ bool less_then_denom(const COutput& out1, const COutput& out2)
 
 bool CWallet::SelectStakeCoins(std::set<std::pair<const CWalletTx*, unsigned int> >& setCoins, CAmount nTargetAmount, int nTargetHeight) const
 {
+    // comment by DR:
+    // SelectStakeCoins => IsInMainChain => GetDepthInMainChainINTERNAL => AssertLockHeld(cs_main)
+    // IsInMainChain was added in PIVX and is called from 3 other places (this is one)
+    // that (atm) do not lock cs_main (thus allowing other threads to jump in and failing w/ that assert)
+    // we need to follow the refs to IsInMainChain and do the rest
     LOCK(cs_main);
 
     vector<COutput> vCoins;
@@ -2200,6 +2210,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
                 setCoinsRet.insert(coin.second);
                 nValueRet += coin.first;
                 return true;
+            // ZC999FIX: should this be COIN, dust or ZQ_MIN? or what?
             } else if (n < nTargetValue + COIN) {
                 vValue.push_back(coin);
                 nTotalLower += n;
@@ -2242,11 +2253,13 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, int nConfMine, int
 
     ApproximateBestSubset(vValue, nTotalLower, nTargetValue, vfBest, nBest, 1000);
 
+    // ZC999FIX: should this be COIN, dust or ZQ_MIN? or what?
     if (nBest != nTargetValue && nTotalLower >= nTargetValue + COIN)
         ApproximateBestSubset(vValue, nTotalLower, nTargetValue + COIN, vfBest, nBest, 1000);
 
     // If we have a bigger coin and (either the stochastic approximation didn't find a good solution,
     //                                   or the next bigger coin is closer), return the bigger coin
+    // ZC999FIX: should this be COIN, dust or ZQ_MIN? or what?
     if (coinLowestLarger.second.first &&
         ((nBest != nTargetValue && nBest < nTargetValue + COIN) || coinLowestLarger.first <= nBest)) {
         setCoinsRet.insert(coinLowestLarger.second);
@@ -2297,6 +2310,7 @@ bool CWallet::SelectCoins(const CAmount& nTargetValue, set<pair<const CWalletTx*
         // Make outputs by looping through denominations, from large to small
         BOOST_FOREACH (CAmount v, obfuScationDenominations) {
             BOOST_FOREACH (const COutput& out, vCoins) {
+                // ZC999FIX: should this be COIN, dust or ZQ_MIN? or what?
                 if (out.tx->vout[out.i].nValue == v                                               //make sure it's the denom we're looking for
                     && nValueRet + out.tx->vout[out.i].nValue < nTargetValue + (0.1 * COIN) + 100 //round the amount up to .1 COLX over
                     ) {
@@ -2447,6 +2461,7 @@ bool CWallet::SelectCoinsDark(CAmount nValueMin, CAmount nValueMax, std::vector<
     sort(vCoins.rbegin(), vCoins.rend(), CompareByPriority());
 
     BOOST_FOREACH (const COutput& out, vCoins) {
+        // ZC999FIX: should this be COIN, dust or ZQ_MIN? or what?
         //do not allow inputs less than 1 COIN
         if (out.tx->vout[out.i].nValue < COIN) continue;
 
@@ -2551,6 +2566,7 @@ bool CWallet::CreateCollateralTransaction(CMutableTransaction& txCollateral, std
         To doublespend a collateral transaction, it will require a fee higher than this. So there's
         still a significant cost.
     */
+    // ZC999FIX: collateral tx fee should be high, should this be 100 * COIN?
     CAmount nFeeRet = 1 * COIN;
 
     txCollateral.vin.clear();
@@ -2656,6 +2672,8 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
     CAmount nFeePay,
     bool useLockTime)
 {
+    // ZC999FIX: REVIEW: should this be minTxFee? but we need full tx before that
+    //if (useIX && nFeePay < minTxFeeAmount) nFeePay = minTxFeeAmount;
     if (useIX && nFeePay < COIN) nFeePay = COIN;
 
     CAmount nValue = 0;
@@ -3042,6 +3060,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             uint64_t nSplitSize = pcoin.first->vout[pcoin.second].nValue;
 
             //presstab HyperStake - if MultiSend is set to send in coinstake we will add our outputs here (values asigned further down)
+            // ZC999FIX: should this be a COIN?
             if (nSplitSize / 2 > nStakeSplitThreshold * COIN)
                 txNew.vout.push_back(CTxOut(0, scriptPubKeyOut)); //split stake
 
@@ -3223,6 +3242,7 @@ string CWallet::PrepareObfuscationDenominate(int minRounds, int maxRounds)
         if minRounds >= 0 it means only denominated inputs are going in and coming out
     */
     if (minRounds >= 0) {
+        // ZC999FIX: should this be a COIN or ZQ_MIN?
         if (!SelectCoinsByDenominations(obfuScationPool.sessionDenom, 0.1 * COIN, OBFUSCATION_POOL_MAX, vCoins, vCoins2, nValueIn, minRounds, maxRounds))
             return _("Error: Can't select current denominated inputs");
     }
@@ -3980,6 +4000,7 @@ bool CWallet::GetDestData(const CTxDestination& dest, const std::string& key, st
 void CWallet::AutoZeromint()
 {
     // Don't bother Autominting if Zerocoin Protocol isn't active
+    //if (GetAdjustedTime() > GetSporkValue(SPORK_16_ZEROCOIN_MAINTENANCE_MODE)) return; // ZCTESTINGFIXES: 
     if (GetAdjustedTime() > GetSporkValue(SPORK_20_ZEROCOIN_MAINTENANCE_MODE)) return;
 
     // Wait until blockchain + masternodes are fully synced and wallet is unlocked.
@@ -4462,16 +4483,24 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         nFeeRet = max(static_cast<int>(txNew.vout.size()), 1) * Params().Zerocoin_MintFee();
         nValueRemaining = nValue - nMintingValue - (isZCSpendChange ? nFeeRet : 0);
 
+        LogPrintf("CreateZCMintTx().nValueRemaining : %s - %s\n", FormatMoney(nValueRemaining), FormatMoney(libzerocoin::CoinDenomination::ZQ_MIN * COIN));
+
         // if this is change of a zerocoinspend, then we can't mint all change, at least something must be given as a fee
-        if (isZCSpendChange && nValueRemaining <= 1 * COIN)
+        if (isZCSpendChange && nValueRemaining <= libzerocoin::CoinDenomination::ZQ_MIN * COIN) {
+            LogPrintf("CreateZCMintTx(): exiting, nValueRemaining < ZQ_MIN : %s\n", FormatMoney(nValueRemaining));
             break;
+        }
 
         libzerocoin::CoinDenomination denomination = libzerocoin::AmountToClosestDenomination(nValueRemaining, nValueRemaining);
-        if (denomination == libzerocoin::ZQ_ERROR)
+        LogPrintf("CreateZCMintTx(): denomination: %d\n", denomination);
+        if (denomination == libzerocoin::ZQ_ERROR) {
+            LogPrintf("CreateZCMintTx(): exiting, denomination == libzerocoin::ZQ_ERROR : %s\n", FormatMoney(nValueRemaining));
             break;
+        }
 
         CAmount nValueNewMint = libzerocoin::ZerocoinDenominationToAmount(denomination);
         nMintingValue += nValueNewMint;
+        LogPrintf("CreateZCMintTx(): nMintingValue: %s\n", FormatMoney(nMintingValue));
 
         // mint a new coin (create Pedersen Commitment) and extract PublicCoin that is shareable from it
         libzerocoin::PrivateCoin newCoin(Params().Zerocoin_Params(), denomination);
@@ -4505,6 +4534,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         nValueIn = nValue;
     } else {
         // select UTXO's to use
+        LogPrintf("CreateZCMintTx().SelectCoins: nTotalValue: %s\n", FormatMoney(nTotalValue));
         if (!SelectCoins(nTotalValue, setCoins, nValueIn, coinControl)) {
             strFailReason = _("Insufficient or insufficient confirmed funds, you might need to wait a few minutes and try again.");
             return false;
@@ -4676,6 +4706,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
         }
 
         // If the input value is not an int, then we want the selection algorithm to round up to the next highest int
+        // ZC999FIX: should this be COIN?
         double dValue = static_cast<double>(nValue) / static_cast<double>(COIN);
         bool fWholeNumber = floor(dValue) == dValue;
         CAmount nValueToSelect = nValue;

@@ -9,6 +9,7 @@
 // Copyright (c) 2015-2017 The PIVX developers
 
 #include "denomination_functions.h"
+#include "utilmoneystr.h"
 
 using namespace libzerocoin;
 
@@ -222,8 +223,10 @@ int minimizeChange(
     const CoinDenomination nextToMaxDenom,
     const CAmount nValueTarget,
     const std::map<CoinDenomination, CAmount>& mapOfDenomsHeld,
-    std::map<CoinDenomination, CAmount>& mapOfDenomsUsed)
+    std::map<CoinDenomination, CAmount>& mapOfDenomsUsed,
+    bool& success)
 {
+    success = false;
     // Now find out if possible without using 1 coin such that we have more spends but less change
     // First get set of coins close to value but still less than value (since not exact)
     CAmount nRemainingValue = nValueTarget;
@@ -297,8 +300,15 @@ int minimizeChange(
     mapAltChange = getChange(nAltChangeAmount);
     int AltChangeCount = getNumberOfCoinsUsed(mapAltChange);
 
+    // ZC999FIX: 'minimize change' fix, this was 0 and totally nonsensical
+    bool isAltFaulty = nAltChangeAmount != 0 && AltChangeCount == 0;
+
+    if (isAltFaulty)
+        LogPrintf("minimizeChange() : failed, amount:%s - coins:%d\n", FormatMoney(nAltChangeAmount), AltChangeCount);
+
     // Alternative method yields less mints and is less than MaxNumberOfSpends if true
-    if ((AltChangeCount < nChangeCount) && (nCoinCount <= nMaxNumberOfSpends)) {
+    if (!isAltFaulty && (AltChangeCount < nChangeCount) && (nCoinCount <= nMaxNumberOfSpends)) {
+        success = true;
         return AltChangeCount;
     } else {
         // if we don't meet above go back to what we started with
@@ -318,8 +328,10 @@ int calculateChange(
     bool fMinimizeChange,
     const CAmount nValueTarget,
     const std::map<CoinDenomination, CAmount>& mapOfDenomsHeld,
-    std::map<CoinDenomination, CAmount>& mapOfDenomsUsed)
+    std::map<CoinDenomination, CAmount>& mapOfDenomsUsed,
+    bool& success)
 {
+    success = false;
     CoinDenomination minDenomOverTarget = ZQ_ERROR;
     // Initialize
     mapOfDenomsUsed.clear();
@@ -341,14 +353,28 @@ int calculateChange(
         std::map<CoinDenomination, CAmount> mapChange = getChange(nChangeAmount);
         int nChangeCount = getNumberOfCoinsUsed(mapChange);
 
-        if (fMinimizeChange) {
+        if (nChangeAmount < CoinDenomination::ZQ_MIN * COIN) {
+            LogPrintf("calculateChange().getChange : change is less than min denom, amount:%s - min:%s\n", FormatMoney(nChangeAmount), FormatMoney(CoinDenomination::ZQ_MIN * COIN));
+            success = true;
+        }
+
+        bool isFaulty = nChangeAmount != 0 && nChangeCount == 0;
+        if (isFaulty)
+            LogPrintf("calculateChange().getChange : failed, amount:%s - coins:%d\n", FormatMoney(nChangeAmount), nChangeCount);
+
+        // ZC999FIX: old algo is pretty wrong, above fails (0) for 999, so try minimizing
+        if (fMinimizeChange) { // || isFaulty) {
             CoinDenomination nextToMaxDenom = getNextLowerDenomHeld(minDenomOverTarget, mapOfDenomsHeld);
+            bool minSuccess = false;
             int newChangeCount = minimizeChange(nMaxNumberOfSpends, nChangeCount,
                                                 nextToMaxDenom, nValueTarget,
-                                                mapOfDenomsHeld, mapOfDenomsUsed);
+                                                mapOfDenomsHeld, mapOfDenomsUsed,
+                                                minSuccess);
+            if (!minSuccess)
+                LogPrintf("calculateChange().minimizeChange : failed, amount:%s - coins:%d\n", FormatMoney(nValueTarget), newChangeCount);
 
             // Alternative method yields less mints and is less than MaxNumberOfSpends if true
-            if (newChangeCount < nChangeCount) return newChangeCount;
+            if (newChangeCount < nChangeCount && minSuccess) return newChangeCount;
 
             // Reclear
             for (const auto& denom : zerocoinDenomList)
@@ -357,8 +383,11 @@ int calculateChange(
             mapOfDenomsUsed.at(minDenomOverTarget) = 1;
         }
 
+        //if (!isFaulty)
         return nChangeCount;
 
+        //LogPrintf("calculateChange() : failed, going w/ the plan B, amount:%s - coins:%d\n", FormatMoney(nValueTarget), nChangeCount);
+        //// ZC999FIX: if 'faulty' proceed with other strategy, nothing to lose...
     } else {
         // Try to meet a different way
         for (const auto& denom : zerocoinDenomList)
@@ -383,19 +412,27 @@ int calculateChange(
         std::map<CoinDenomination, CAmount> mapChange = getChange(nChangeAmount);
         int nMaxChangeCount = getNumberOfCoinsUsed(mapChange);
 
+        bool isFaulty = nChangeAmount != 0 && nMaxChangeCount == 0;
+        if (isFaulty)
+            LogPrintf("calculateChange().B.getChange : failed, amount:%s - coins:%d\n", FormatMoney(nChangeAmount), nMaxChangeCount);
+
         // Instead get max Denom held
         CoinDenomination maxDenomHeld = getMaxDenomHeld(mapOfDenomsHeld);
 
         // Assign for size (only)
         std::map<CoinDenomination, CAmount> mapOfMinDenomsUsed = mapOfDenomsUsed;
 
+        bool minSuccess = false;
         int nChangeCount = minimizeChange(nMaxNumberOfSpends, nMaxChangeCount,
                                           maxDenomHeld, nValueTarget,
-                                          mapOfDenomsHeld, mapOfMinDenomsUsed);
+                                          mapOfDenomsHeld, mapOfMinDenomsUsed,
+                                          minSuccess);
+        if (!minSuccess)
+            LogPrintf("calculateChange().B.minimizeChange : failed, amount:%s - coins:%d\n", FormatMoney(nValueTarget), nChangeCount);
 
         int nNumSpends = getNumberOfCoinsUsed(mapOfMinDenomsUsed);
 
-        if (!fMinimizeChange && (nCoinCount < nNumSpends)) {
+        if (!fMinimizeChange && (nCoinCount < nNumSpends) && !isFaulty) {
             return nMaxChangeCount;
         }
 
@@ -431,8 +468,10 @@ std::vector<CZerocoinMint> SelectMintsFromList(const CAmount nValueTarget, CAmou
     }
     // Since either too many spends needed or can not spend the exact amount,
     // calculate the change needed and the map of coins used
-    nCoinsReturned = calculateChange(nMaxNumberOfSpends, fMinimizeChange, nValueTarget, mapOfDenomsHeld, mapOfDenomsUsed);
-    if (nCoinsReturned == 0) {
+    bool success;
+    nCoinsReturned = calculateChange(nMaxNumberOfSpends, fMinimizeChange, nValueTarget, mapOfDenomsHeld, mapOfDenomsUsed, success);
+    int nMapCoinsCount = getNumberOfCoinsUsed(mapOfDenomsUsed);
+    if (nCoinsReturned == 0 && !success && nMapCoinsCount == 0) {
         LogPrint("zero", "%s: Problem getting change (TBD) or Too many spends %d\n", __func__, nValueTarget);
         vSelectedMints.clear();
     } else {
