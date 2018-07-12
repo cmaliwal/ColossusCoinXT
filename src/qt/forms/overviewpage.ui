@@ -677,8 +677,7 @@
                        <item row="4" column="0">
                         <widget class="QLabel" name="labelLockedBalanceText">
                          <property name="toolTip">
-                          <!-- DRAGAN: zPIV => ? -->
-                          <string>Locked COLX or Masternode collaterals. These are excluded from zPIV minting.</string>
+                          <string>Locked COLX or Masternode collaterals. These are excluded from zCOLX minting.</string>
                          </property>
                          <property name="text">
                           <string>Locked:</string>
@@ -697,8 +696,7 @@
                           <cursorShape>IBeamCursor</cursorShape>
                          </property>
                          <property name="toolTip">
-                          <!-- DRAGAN: zPIV => ? // Q: -->
-                          <string>Locked COLX or Masternode collaterals. These are excluded from zPIV minting.</string>
+                          <string>Locked COLX or Masternode collaterals. These are excluded from zCOLX minting.</string>
                          </property>
                          <property name="text">
                           <string notr="true">0.000 000 00 COLX</string>
@@ -854,8 +852,7 @@
                           </font>
                          </property>
                          <property name="text">
-                          <!-- DRAGAN: zPIV => ? -->
-                          <string>zPIV Balance</string>
+                          <string>zCOLX Balance</string>
                          </property>
                         </widget>
                        </item>
@@ -908,9 +905,8 @@
                        <item row="1" column="0">
                         <widget class="QLabel" name="labelzBalanceMatureText">
                          <property name="toolTip">
-                          <!-- DRAGAN: zPIV => ? -->
                           <string>Mature: more than 20 confirmation and more than 3 mints of the same denomination after it was minted.
-These zPIV are spendable.</string>
+These zCOLX are spendable.</string>
                          </property>
                          <property name="text">
                           <string>Available:</string>
@@ -926,9 +922,8 @@ These zPIV are spendable.</string>
                           </font>
                          </property>
                          <property name="toolTip">
-                          <!-- DRAGAN: zPIV => ? -->
                           <string>Mature: more than 20 confirmation and more than 3 mints of the same denomination after it was minted.
-These zPIV are spendable.</string>
+These zCOLX are spendable.</string>
                          </property>
                          <property name="text">
                           <string notr="true">0.000 000 00 COLX</string>
@@ -1003,8 +998,7 @@ Immature: confirmed, but less than 3 mints of the same denomination after it was
                        <item row="4" column="0">
                         <widget class="QLabel" name="labelzBalanceText">
                          <property name="toolTip">
-                          <!-- DRAGAN: zPIV => ? -->
-                          <string>Your current zPIV balance, unconfirmed and immature zPIV included.</string>
+                          <string>Your current zCOLX balance, unconfirmed and immature zCOLX included.</string>
                          </property>
                          <property name="text">
                           <string>Total:</string>
@@ -1023,8 +1017,7 @@ Immature: confirmed, but less than 3 mints of the same denomination after it was
                           <cursorShape>IBeamCursor</cursorShape>
                          </property>
                          <property name="toolTip">
-                          <!-- DRAGAN: zPIV => ? -->
-                          <string>Your current zPIV balance, unconfirmed and immature zPIV included.</string>
+                          <string>Your current zCOLX balance, unconfirmed and immature zCOLX included.</string>
                          </property>
                          <property name="text">
                           <string notr="true">0.000 000 00 COLX</string>

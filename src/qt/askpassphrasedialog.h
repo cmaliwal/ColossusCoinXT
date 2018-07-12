@@ -29,7 +29,6 @@ public:
         Decrypt          /**< Ask passphrase and decrypt wallet */
     };
 
-    // DRAGAN: Zpiv => ?? // Q:
     // Context from where / for what the passphrase dialog was called to set the status of the checkbox
     // Partly redundant to Mode above, but offers more flexibility for future enhancements
     enum class Context {
@@ -38,9 +37,9 @@ public:
         Encrypt,        /** Encrypt unencrypted wallet */
         ToggleLock,     /** Toggle wallet lock state */
         ChangePass,     /** Change passphrase */
-        Send_PIV,       /** Send PIV */
-        Send_zPIV,      /** Send zPIV */
-        Mint_zPIV,      /** Mint zPIV */
+        Send_PIV,       /** Send COLX */
+        Send_zPIV,      /** Send zCOLX */
+        Mint_zPIV,      /** Mint zCOLX */
         BIP_38,         /** BIP38 menu */
         Multi_Sig,      /** Multi-Signature dialog */
         Sign_Message    /** Sign/verify message dialog */

@@ -75,7 +75,6 @@ AskPassphraseDialog::AskPassphraseDialog(Mode mode, QWidget* parent, WalletModel
     }
 
     // Set checkbox "For anonymization, automint, and staking only" depending on from where we were called
-    // ZC: Zpiv => ?? // Q:
     if (context == Context::Unlock_Menu || context == Context::Mint_zPIV || context == Context::BIP_38) {
         ui->anonymizationCheckBox->setChecked(true);
     }
@@ -84,7 +83,7 @@ AskPassphraseDialog::AskPassphraseDialog(Mode mode, QWidget* parent, WalletModel
     }
 
     // It doesn't make sense to show the checkbox for sending COLX because you wouldn't check it anyway.
-    // ZC: Zpiv => ?? // Q:
+    // ZC: zCOLX => ?? // Q:
     if (context == Context::Send_PIV || context == Context::Send_zPIV) {
         ui->anonymizationCheckBox->hide();
     }

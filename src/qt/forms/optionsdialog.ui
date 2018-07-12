@@ -133,15 +133,13 @@
        <item>
         <widget class="QCheckBox" name="checkBoxZeromintEnable">
          <property name="toolTip">
-          <!-- DRAGAN: zPIV => ? // Q: -->
-          <string>Enable automatic minting of COLX units to zPIV</string>
+          <string>Enable automatic minting of COLX units to zCOLX</string>
          </property>
          <property name="layoutDirection">
           <enum>Qt::LeftToRight</enum>
          </property>
          <property name="text">
-          <!-- DRAGAN: zPIV => ? // Q: -->
-          <string>Enable zPIV Automint</string>
+          <string>Enable zCOLX Automint</string>
          </property>
         </widget>
        </item>
@@ -150,12 +148,10 @@
          <item>
           <widget class="QLabel" name="percentage_label">
            <property name="toolTip">
-            <!-- DRAGAN: zPIV => ? // Q: -->
-            <string>Percentage of incoming COLX which get automatically converted to zPIV via Zerocoin Protocol (min: 10%)</string>
+            <string>Percentage of incoming COLX which get automatically converted to zCOLX via Zerocoin Protocol (min: 10%)</string>
            </property>
            <property name="text">
-            <!-- DRAGAN: zPIV => ? // Q: -->
-            <string>Percentage of autominted zPIV</string>
+            <string>Percentage of autominted zCOLX</string>
            </property>
           </widget>
          </item>
@@ -188,8 +184,7 @@
             <string>Wait with automatic conversion to Zerocoin until enough COLX for this denomination is available</string>
            </property>
            <property name="text">
-            <!-- DRAGAN: zPIV => ? // Q: -->
-            <string>Preferred Automint zPIV Denomination</string>
+            <string>Preferred Automint zCOLX Denomination</string>
            </property>
           </widget>
          </item>

@@ -356,20 +356,15 @@ QString TransactionTableModel::formatTxType(const TransactionRecord* wtx) const
     case TransactionRecord::Obfuscated:
         return tr("Obfuscated");
     case TransactionRecord::ZerocoinMint:
-        // DRAGAN: Zpiv => ?? // Q:
-        return tr("Converted COLX to zPiv");
+        return tr("Converted COLX to zCOLX");
     case TransactionRecord::ZerocoinSpend:
-        // DRAGAN: Zpiv => ?? // Q:
-        return tr("Spent zPiv");
+        return tr("Spent zCOLX");
     case TransactionRecord::RecvFromZerocoinSpend:
-        // DRAGAN: Zpiv => ?? // Q:
-        return tr("Received COLX from zPiv");
+        return tr("Received COLX from zCOLX");
     case TransactionRecord::ZerocoinSpend_Change_zPiv:
-        // DRAGAN: Zpiv => ?? // Q:
-        return tr("Minted Change as zPiv from zPiv Spend");
+        return tr("Minted Change as zCOLX from zCOLX Spend");
     case TransactionRecord::ZerocoinSpend_FromMe:
-        // DRAGAN: Zpiv => ?? // Q:
-        return tr("Converted zPiv to COLX");
+        return tr("Converted zCOLX to COLX");
 
     default:
         return QString();
@@ -424,8 +419,7 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord* wtx, b
         return QString::fromStdString(wtx->address) + watchAddress;
     case TransactionRecord::ZerocoinMint:
     case TransactionRecord::ZerocoinSpend_Change_zPiv:
-        // DRAGAN: Zpiv => ?? // Q:
-        return tr("zPiv Accumulator");
+        return tr("zCOLX Accumulator");
     case TransactionRecord::SendToSelf:
     default:
         return tr("(n/a)") + watchAddress;
