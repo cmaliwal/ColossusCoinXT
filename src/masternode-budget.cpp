@@ -293,6 +293,28 @@ bool CBudgetDB::Write(const CBudgetManager& objToSave)
 
 CBudgetDB::ReadResult CBudgetDB::Read(CBudgetManager& objToLoad, bool fDryRun)
 {
+    if (!fDryRun) {
+        // DLOCKSFIX:
+        // this fast ends up at CheckAndRemove...and main:GetTransaction requiring cs_main
+        // and mempool.cs follows (mempool.lookup), that's almost always the prferred order.
+        // probably an overkill (not sure how often other path is invoked), but trying to
+        // optimize and avoid over-locking things (and slowing other parts)
+        LOCK3(cs_main, mempool.cs, objToLoad.cs);
+        return ReadINTERNAL(objToLoad, fDryRun);
+    } else {
+        return ReadINTERNAL(objToLoad, fDryRun);
+    }
+}
+CBudgetDB::ReadResult CBudgetDB::ReadINTERNAL(CBudgetManager& objToLoad, bool fDryRun)
+{
+    // DLOCKSFIX: backtrace (to what's invoking the cs_main lock)
+    //#0  GetTransaction(..., fAllowSlow = true) - at main.cpp:1979
+    //#1  IsBudgetCollateralValid(..., strError = "", nTime = @0x7fffcd666e00: 1531415139, nConf = @0x7ffff185f830: 0) - at masternode - budget.cpp:48
+    //#2  CFinalizedBudget::IsValid(this = 0x7fffcd666d40, strError = "", fCheckCollateral = true) - at masternode - budget.cpp:1962
+    //#3  CBudgetManager::CheckAndRemove(this = 0x555557e92ae0 <budget>) - at masternode - budget.cpp:451
+    //#4  CBudgetDB::Read(this = 0x7ffff18601b0, objToLoad = ..., fDryRun = false) - at masternode - budget.cpp:371
+    //#5  AppInit2(threadGroup = ..., scheduler = ...) - at init.cpp:1727
+
     LOCK(objToLoad.cs);
 
     int64_t nStart = GetTimeMillis();
@@ -858,6 +880,17 @@ CAmount CBudgetManager::GetTotalBudget(int nHeight)
 
 void CBudgetManager::NewBlock()
 {
+    // DLOCKSFIX: order of locks: cs_main, mempool.cs, CBudgetManager.cs
+    // this fast ends up at CheckAndRemove...and main:GetTransaction requiring cs_main
+    // and mempool.cs follows (mempool.lookup), that's almost always the preferred order.
+    // i.e. we already have 'cs_main', just the mempool is missing (alternative is to add this
+    // above in the calling ProcessNewBlock (main) and get mempool alongside cs_main).
+    TRY_LOCK(cs_main, lockMain);
+    if (!lockMain) return;
+
+    TRY_LOCK(mempool.cs, lockMempool);
+    if (!lockMempool) return;
+
     TRY_LOCK(cs, fBudgetNewBlock);
     if (!fBudgetNewBlock) return;
 

@@ -88,6 +88,7 @@ struct CNodeSignals {
     boost::signals2::signal<int()> GetHeight;
     boost::signals2::signal<bool(CNode*)> ProcessMessages;
     boost::signals2::signal<bool(CNode*, bool)> SendMessages;
+    boost::signals2::signal<bool()> AddressRefreshBroadcast;
     boost::signals2::signal<void(NodeId, const CNode*)> InitializeNode;
     boost::signals2::signal<void(NodeId)> FinalizeNode;
 };

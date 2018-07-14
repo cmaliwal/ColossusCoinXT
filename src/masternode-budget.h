@@ -166,6 +166,9 @@ public:
     CBudgetDB();
     bool Write(const CBudgetManager& objToSave);
     ReadResult Read(CBudgetManager& objToLoad, bool fDryRun = false);
+
+private:
+    ReadResult ReadINTERNAL(CBudgetManager& objToLoad, bool fDryRun = false);
 };
 
 

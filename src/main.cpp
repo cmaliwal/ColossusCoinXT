@@ -504,6 +504,7 @@ void RegisterNodeSignals(CNodeSignals& nodeSignals)
     nodeSignals.GetHeight.connect(&GetHeight);
     nodeSignals.ProcessMessages.connect(&ProcessMessages);
     nodeSignals.SendMessages.connect(&SendMessages);
+    nodeSignals.AddressRefreshBroadcast.connect(&AddressRefreshBroadcast);
     nodeSignals.InitializeNode.connect(&InitializeNode);
     nodeSignals.FinalizeNode.connect(&FinalizeNode);
 }
@@ -513,6 +514,7 @@ void UnregisterNodeSignals(CNodeSignals& nodeSignals)
     nodeSignals.GetHeight.disconnect(&GetHeight);
     nodeSignals.ProcessMessages.disconnect(&ProcessMessages);
     nodeSignals.SendMessages.disconnect(&SendMessages);
+    nodeSignals.AddressRefreshBroadcast.disconnect(&AddressRefreshBroadcast);
     nodeSignals.InitializeNode.disconnect(&InitializeNode);
     nodeSignals.FinalizeNode.disconnect(&FinalizeNode);
 }
@@ -1974,6 +1976,7 @@ bool GetTransaction(const uint256& hash, CTransaction& txOut, uint256& hashBlock
 {
     CBlockIndex* pindexSlow = NULL;
     {
+        // DLOCKSFIX: // SEE: masternode-budget.cpp:Read(...)
         LOCK(cs_main);
         {
             if (mempool.lookup(hash, txOut)) {
@@ -4889,6 +4892,10 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
         }
     }
 
+    // DLOCKSFIX: TRY_LOCK is safer here, the only piece doing an unconditional lock
+    // maybe we should do the mempool.cs as well? as it's almost always needed, and that way
+    // we'd reduce issues down the line?
+    //LOCK2(cs_main, mempool.cs);
     LOCK(cs_main);   // Replaces the former TRY_LOCK loop because busy waiting wastes too much resources
 
     MarkBlockAsReceived(pblock->GetHash());
@@ -5665,6 +5672,10 @@ void static ProcessGetData(CNode* pfrom)
 
     vector<CInv> vNotFound;
 
+    // DLOCKSFIX: order of locks: 
+    // cs_vRecvMsg (net thread), cs_main (main: ProcessGetData), cs_vSend (net: PushMessage)
+    // cs_vSend (net thread: SendMessages), cs_main (main: SendMessages) 
+    {
     LOCK(cs_main);
 
     while (it != pfrom->vRecvGetData.end()) {
@@ -5879,6 +5890,7 @@ void static ProcessGetData(CNode* pfrom)
     }
 
     pfrom->vRecvGetData.erase(pfrom->vRecvGetData.begin(), it);
+    }
 
     if (!vNotFound.empty()) {
         // Let the peer know that we didn't find what it asked for, so it doesn't
@@ -6110,9 +6122,13 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             return error("message inv size() = %u", vInv.size());
         }
 
-        LOCK(cs_main);
-
         std::vector<CInv> vToFetch;
+
+        // DLOCKSFIX: order of locks: 
+        // cs_vRecvMsg (net thread), cs_main (main: ProcessMessage), cs_vSend (PushMessage)
+        // cs_vSend (net thread: SendMessages), cs_main (main: SendMessages) 
+        {
+        LOCK(cs_main);
 
         for (unsigned int nInv = 0; nInv < vInv.size(); nInv++) {
             const CInv& inv = vInv[nInv];
@@ -6143,6 +6159,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 Misbehaving(pfrom->GetId(), 50);
                 return error("send buffer size() = %u", pfrom->nSendSize);
             }
+        }
         }
 
         if (!vToFetch.empty())
@@ -6852,6 +6869,30 @@ bool ProcessMessages(CNode* pfrom)
     return fOk;
 }
 
+bool AddressRefreshBroadcast()
+{
+    // Address refresh broadcast
+    static int64_t nLastRebroadcast;
+    if (!IsInitialBlockDownload() && (GetTime() - nLastRebroadcast > 24 * 60 * 60)) {
+        // DLOCKSFIX: order of locks: cs_main, cs_vSend, cs_vNodes
+        // masternode-sync.cpp: cs_vNodes, cs_vSend
+        // ...there's apparently no easy way to handle this?
+        LOCK(cs_vNodes);
+        BOOST_FOREACH (CNode* pnode, vNodes) {
+            // Periodically clear setAddrKnown to allow refresh broadcasts
+            if (nLastRebroadcast)
+                pnode->setAddrKnown.clear();
+
+            // Rebroadcast our address
+            AdvertizeLocal(pnode);
+        }
+        if (!vNodes.empty())
+            nLastRebroadcast = GetTime();
+
+        return true;
+    }
+    return false;
+}
 
 bool SendMessages(CNode* pto, bool fSendTrickle)
 {
@@ -6893,21 +6934,28 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
         if (!lockMain)
             return true;
 
-        // Address refresh broadcast
-        static int64_t nLastRebroadcast;
-        if (!IsInitialBlockDownload() && (GetTime() - nLastRebroadcast > 24 * 60 * 60)) {
-            LOCK(cs_vNodes);
-            BOOST_FOREACH (CNode* pnode, vNodes) {
-                // Periodically clear setAddrKnown to allow refresh broadcasts
-                if (nLastRebroadcast)
-                    pnode->setAddrKnown.clear();
-
-                // Rebroadcast our address
-                AdvertizeLocal(pnode);
-            }
-            if (!vNodes.empty())
-                nLastRebroadcast = GetTime();
-        }
+        // DLOCKSFIX: moved to a signal of its own, to separate the locks 
+        // it's an isolated piece of code (not relating to any befor or after in here), it's
+        // just something we have to do from time to time and SendMessages was used as trigger
+        // SEE: net.cpp
+        //AddressRefreshBroadcast();
+        //// Address refresh broadcast
+        //static int64_t nLastRebroadcast;
+        //if (!IsInitialBlockDownload() && (GetTime() - nLastRebroadcast > 24 * 60 * 60)) {
+        //    // DLOCKSFIX: order of locks: cs_main, cs_vSend, cs_vNodes
+        //    // masternode-sync.cpp: cs_vNodes, cs_vSend
+        //    // ...there's apparently no easy way to handle this?
+        //    LOCK(cs_vNodes);
+        //    BOOST_FOREACH (CNode* pnode, vNodes) {
+        //        // Periodically clear setAddrKnown to allow refresh broadcasts
+        //        if (nLastRebroadcast)
+        //            pnode->setAddrKnown.clear();
+        //        // Rebroadcast our address
+        //        AdvertizeLocal(pnode);
+        //    }
+        //    if (!vNodes.empty())
+        //        nLastRebroadcast = GetTime();
+        //}
 
         //
         // Message: addr

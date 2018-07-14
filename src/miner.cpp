@@ -173,6 +173,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     CAmount nFees = 0;
 
     {
+        // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet (pwallet->SignTx)
         LOCK2(cs_main, mempool.cs);
 
         CBlockIndex* pindexPrev = chainActive.Tip();

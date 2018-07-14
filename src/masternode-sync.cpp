@@ -264,6 +264,7 @@ void CMasternodeSync::Process()
     if (Params().NetworkID() != CBaseChainParams::REGTEST &&
         !IsBlockchainSynced() && RequestedMasternodeAssets > MASTERNODE_SYNC_SPORKS) return;
 
+    // DLOCKSFIX: order of locks: cs_vNodes, cs_vSend
     TRY_LOCK(cs_vNodes, lockRecv);
     if (!lockRecv) return;
 

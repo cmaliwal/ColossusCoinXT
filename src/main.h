@@ -215,6 +215,7 @@ bool ProcessMessages(CNode* pfrom);
  * @param[in]   pto             The node which we are sending messages to.
  * @param[in]   fSendTrickle    When true send the trickled data, otherwise trickle the data until true.
  */
+bool AddressRefreshBroadcast();
 bool SendMessages(CNode* pto, bool fSendTrickle);
 /** Run an instance of the script checking thread */
 void ThreadScriptCheck();

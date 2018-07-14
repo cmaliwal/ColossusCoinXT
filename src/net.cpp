@@ -1540,6 +1540,11 @@ void ThreadMessageHandler()
 
             // Receive messages
             {
+                // DLOCKSFIX: send is most often needed within receive, resulting in
+                // deadlock warnings (cs_vSend at the end of chain, while we also have cs_vSend, cs_main)
+                //TRY_LOCK(pnode->cs_vSend, lockSend); if (lockRecv && lockSend)
+                // ...this didn't work well, to remove (still testing)
+
                 TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
                 if (lockRecv) {
                     if (!g_signals.ProcessMessages(pnode))
@@ -1556,9 +1561,28 @@ void ThreadMessageHandler()
 
             // Send messages
             {
-                TRY_LOCK(pnode->cs_vSend, lockSend);
-                if (lockSend)
-                    g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
+                // DLOCKSFIX: order of locks: 
+                // cs_vRecvMsg, cs_main (main: ProcessMessage...), cs_vSend (PushMessage)
+                // cs_vSend, cs_main (main: SendMessages) 
+                // SendMessages acquires cs_main right after the call, just in wrong order
+                // (cs_main should go first, cs_vSend is always called from inside
+                TRY_LOCK(cs_main, lockMain);
+                if (lockMain) {
+                    if (pnode->nVersion != 0)
+                    {
+                        // DLOCKSFIX: AddressRefreshBroadcast is moved to a signal of its own
+                        // to separate the locks. It's an isolated piece of code, just something 
+                        // we have to do from time to time and SendMessages was used as a trigger
+                        TRY_LOCK(cs_vNodes, lockNodes);
+                        if (lockNodes) {
+                            g_signals.AddressRefreshBroadcast();
+                        }
+                    }
+                    TRY_LOCK(pnode->cs_vSend, lockSend);
+                    if (lockSend) {
+                        g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
+                    }
+                }
             }
             boost::this_thread::interruption_point();
         }
