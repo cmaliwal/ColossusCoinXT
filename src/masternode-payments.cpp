@@ -187,38 +187,26 @@ CAmount FindPayment(const CTransaction& tx, const string& address)
     return nAmount;
 }
 
-bool IsBlockValueValid(const CBlock& block, CAmount nExpectedValue, CAmount nMinted)
+bool IsBlockValueValid(const CBlock& block, int nHeight, CAmount nExpectedValue, CAmount nMinted, CBlockIndex* pindexPrev)
 {
-    CBlockIndex* pindexPrev = chainActive.Tip();
-    if (pindexPrev == NULL) return true;
-
-    int nHeight = 0;
-    if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
-        nHeight = pindexPrev->nHeight + 1;
-    } else { //out of order
-        BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-        if (mi != mapBlockIndex.end() && (*mi).second)
-            nHeight = (*mi).second->nHeight + 1;
-    }
-
-    if (nHeight == 0)
-        LogPrint("masternode","IsBlockValueValid() : WARNING: Couldn't find previous block\n");
+    if (nHeight <= 0)
+        return error("%s: Unexpected block height: %d (%s)\n", __func__, nHeight, block.GetHash().ToString());
 
     if (!masternodeSync.IsSynced()) { //there is no budget data to use to check anything
-        //super blocks will always be on these blocks, max 100 per budgeting
-        if (nHeight % GetBudgetPaymentCycleBlocks() < 100)
-            return true;
+        //super blocks will always be on these blocks
+        if (nHeight % GetBudgetPaymentCycleBlocks() < Params().GetMaxSuperBlocksPerCycle())
+            return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight);
         else
             return nMinted <= nExpectedValue;
     } else { // we're synced and have data so check the budget schedule
         if (budget.IsBudgetPaymentBlock(nHeight))
-            return true; //the value of the block is evaluated in CheckBlock
+            return nMinted <= nExpectedValue + budget.GetBudgetValue(nHeight, pindexPrev);
         else
             return nMinted <= nExpectedValue;
     }
 }
 
-bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
+bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBlockIndex* pindexPrev)
 {
     if (!masternodeSync.IsSynced()) { //there is no budget data to use to check anything -- find the longest chain
         LogPrint("mnpayments", "Client not synced, skipping block payee checks\n");
@@ -230,7 +218,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees)
     bool mnValid = true;
     bool budgetValid = true;
     if (budget.IsBudgetPaymentBlock(nBlockHeight)) {
-        budgetValid = budget.IsTransactionValid(txNew, nBlockHeight);
+        budgetValid = budget.IsTransactionValid(txNew, nBlockHeight, pindexPrev);
         if (!budgetValid) {
             error("%s: invalid budget payment detected %s\n", __func__, txNew.ToString().c_str());
             if (IsSporkActive(SPORK_9_MASTERNODE_BUDGET_ENFORCEMENT))
@@ -339,9 +327,8 @@ static bool SubtractFromStakeReward(CMutableTransaction& tx, int nStakeOut, CAmo
     return true;
 }
 
-void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake)
+void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev)
 {
-    CBlockIndex* pindexPrev = chainActive.Tip();
     if (!pindexPrev) {
         error("%s: pindexPrev is nullptr", __func__);
         return;

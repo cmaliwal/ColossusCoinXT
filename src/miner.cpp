@@ -103,18 +103,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
     CBlock* pblock = &pblocktemplate->block; // pointer for convenience
 
-    // Make sure to create the correct block version after zerocoin is enabled
-    bool fZerocoinActive = GetAdjustedTime() >= Params().Zerocoin_StartTime();
-    if (fZerocoinActive)
-        pblock->nVersion = CBlockHeader::VERSION5;
-    else
-        pblock->nVersion = CBlockHeader::VERSION4;
-
-    // -regtest only: allow overriding block.nVersion with
-    // -blockversion=N to test forking scenarios
-    if (Params().MineBlocksOnDemand())
-        pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
-
     // Create coinbase tx
     CMutableTransaction txNew;
     txNew.vin.resize(1);
@@ -179,6 +167,16 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         CBlockIndex* pindexPrev = chainActive.Tip();
         const int nHeight = pindexPrev->nHeight + 1;
         CCoinsViewCache view(pcoinsTip);
+
+        // Make sure to create the correct block version before zerocoin is enabled
+        // FIXME: remove in the next release (it is for backward compatibility only)
+        if (nHeight < Params().Zerocoin_StartHeight())
+            pblock->nVersion = CBlockHeader::VERSION4;
+
+        // -regtest only: allow overriding block.nVersion with
+        // -blockversion=N to test forking scenarios
+        if (Params().MineBlocksOnDemand())
+            pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
 
         // Priority order to process transactions
         list<COrphan> vOrphan; // list memory doesn't move
@@ -430,7 +428,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             assert(pblock->vtx.size() > 1);
             assert(pblock->vtx[1].IsCoinStake());
             CMutableTransaction txCoinStake = pblock->vtx[1];
-            FillBlockPayee(txCoinStake, nFees, fProofOfStake);
+            FillBlockPayee(txCoinStake, nFees, fProofOfStake, pindexPrev);
 
             if (pwallet->SignTx(txCoinStake, 0)) {
                 pblock->vtx[1] = txCoinStake;
@@ -449,7 +447,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         // Compute final coinbase transaction.
         pblock->vtx[0].vin[0].scriptSig = CScript() << nHeight << OP_0;
         if (!fProofOfStake) {
-            // ZC: colx change/fix
             txNew.vout[0].nValue = GetBlockValueReward(nHeight) + nFees;
             pblock->vtx[0] = txNew;
             pblocktemplate->vTxFees[0] = -nFees;
@@ -464,9 +461,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         // ZC: added acc checkpoint
         uint256 nCheckpoint = 0;
         AccumulatorMap mapAccumulators;
-        if(fZerocoinActive && !CalculateAccumulatorCheckpoint(nHeight, nCheckpoint, mapAccumulators)){
+        if (!CalculateAccumulatorCheckpoint(nHeight, nCheckpoint, mapAccumulators))
             LogPrintf("%s: failed to get accumulator checkpoint\n", __func__);
-        }
+
         pblock->nAccumulatorCheckpoint = nCheckpoint;
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
 

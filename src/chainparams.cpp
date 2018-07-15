@@ -134,6 +134,7 @@ public:
         nBudgetPercent = 10;
         nDevFundPercent = 10;
         nBudgetPaymentCycle = 60*60*24*30; // 1 month
+        nMaxSuperBlocksPerCycle = 100;
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 6;
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
@@ -349,7 +350,7 @@ public:
         nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
         nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
-        nZerocoinStartTime = 1528142000; // June 4, 2018 7:53:20 PM
+        nZerocoinStartTime = 1530126974; // June 4, 2018 7:53:20 PM
 
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
     }
@@ -372,10 +373,10 @@ public:
         case ChainHeight::H2:
         case ChainHeight::H3:
         case ChainHeight::H4:
-            return 35500; // on testnet
+            return 35500;
 
         case ChainHeight::H5:
-            return 52000;
+            return 53384;
 
         default:
             assert(false);
@@ -385,8 +386,6 @@ public:
 
     int64_t GetMinStakeAge(int nTargetHeight) const
     {
-        //// ZCTESTINGFIXES: just temp to avoid 'CheckStakeKernelHash() : min age violation - ' error
-        //return 60*60*2;
         return 60*60*8; //8 hours
     }
 

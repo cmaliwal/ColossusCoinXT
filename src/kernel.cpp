@@ -16,8 +16,6 @@
 
 using namespace std;
 
-bool fTestNet = false; //Params().NetworkID() == CBaseChainParams::TESTNET;
-
 // Hard checkpoints of stake modifiers to ensure they are deterministic
 static std::map<int, unsigned int> mapStakeModifierCheckpoints =
     boost::assign::map_list_of(0, 0xfd11f4e7u);
@@ -287,12 +285,15 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock blockFrom, const CTra
     if (nTimeTx < nTimeBlockFrom) // Transaction timestamp violation
         return error("CheckStakeKernelHash() : nTime violation");
 
-    // DRAGAN: latest COLX change
     const int64_t nMinStakeAge = Params().GetMinStakeAge(chainActive.Height() + 1);
-    if (nTimeBlockFrom + nMinStakeAge > nTimeTx) // Min age requirement
-        return error("CheckStakeKernelHash() : min age violation - nTimeBlockFrom=%d nStakeMinAge=%d nTimeTx=%d", nTimeBlockFrom, nMinStakeAge, nTimeTx);
-    //if (nTimeBlockFrom + Params().GetMinStakeAge() > nTimeTx) // Min age requirement
-    //    return error("CheckStakeKernelHash() : min age violation - nTimeBlockFrom=%d nStakeMinAge=%d nTimeTx=%d", nTimeBlockFrom, Params().GetMinStakeAge(), nTimeTx);
+    if (nTimeBlockFrom + nMinStakeAge > nTimeTx) { // Min age requirement
+        const string msg = strprintf("CheckStakeKernelHash() : min age violation - nTimeBlockFrom=%d nStakeMinAge=%d nTimeTx=%d", nTimeBlockFrom, nMinStakeAge, nTimeTx);
+        if (Params().NetworkID() == CBaseChainParams::MAIN)
+            return error(msg.c_str());
+        else
+            DebugPrintf(msg.c_str());
+            return false;
+    }
 
     //grab difficulty
     uint256 bnTargetPerCoinDay;
@@ -423,7 +424,6 @@ unsigned int GetStakeModifierChecksum(const CBlockIndex* pindex)
 // Check stake modifier hard checkpoints
 bool CheckStakeModifierCheckpoints(int nHeight, unsigned int nStakeModifierChecksum)
 {
-    if (fTestNet) return true; // Testnet has no checkpoints
     if (mapStakeModifierCheckpoints.count(nHeight)) {
         return nStakeModifierChecksum == mapStakeModifierCheckpoints[nHeight];
     }

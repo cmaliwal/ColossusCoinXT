@@ -11,8 +11,6 @@
 #include "masternode.h"
 #include <boost/lexical_cast.hpp>
 
-using namespace std;
-
 extern CCriticalSection cs_vecPayments;
 extern CCriticalSection cs_mapMasternodeBlocks;
 extern CCriticalSection cs_mapMasternodePayeeVotes;
@@ -23,16 +21,12 @@ class CMasternodeBlockPayees;
 
 extern CMasternodePayments masternodePayments;
 
-// DRAGAN: no longer used
-//#define MNPAYMENTS_SIGNATURES_REQUIRED 6
-//#define MNPAYMENTS_SIGNATURES_TOTAL 10
-
 void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
-bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees);
+bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBlockIndex* pindexPrev);
 std::string GetRequiredPaymentsString(int nBlockHeight);
-bool IsBlockValueValid(const CBlock& block, CAmount nExpectedValue, CAmount nMinted);
-void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake);
-
+bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount nExpectedValue, CAmount nMinted, CBlockIndex* pindexPrev);
+void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
+CAmount FindPayment(const CTransaction& tx, const string& address);
 void DumpMasternodePayments();
 
 /** Save Masternode Payment Data (mnpayments.dat)

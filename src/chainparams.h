@@ -138,6 +138,7 @@ public:
     int64_t GetBudgetPercent() const { return nBudgetPercent; }
     int64_t GetDevFundPercent() const { return nDevFundPercent; }
     int64_t GetBudgetPaymentCycle() const { return nBudgetPaymentCycle; }
+    int GetMaxSuperBlocksPerCycle() const { return nMaxSuperBlocksPerCycle; }
     unsigned int GetModifierInterval() const { return nModifierInterval; }
     unsigned int GetModifierIntervalRatio() const { return nModifierIntervalRatio; }
     CAmount GetRequiredMasternodeCollateral() const { return nRequiredMasternodeCollateral; }
@@ -212,6 +213,7 @@ protected:
     int64_t nBudgetPercent;
     int64_t nDevFundPercent;
     int64_t nBudgetPaymentCycle;
+    int nMaxSuperBlocksPerCycle;
     unsigned int nModifierInterval;
     unsigned int nModifierIntervalRatio;
     CAmount nRequiredMasternodeCollateral;

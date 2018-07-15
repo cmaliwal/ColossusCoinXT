@@ -226,7 +226,7 @@ public:
     CFinalizedBudget* FindFinalizedBudget(uint256 nHash);
     std::pair<std::string, std::string> GetVotes(std::string strProposalName);
 
-    CAmount GetTotalBudget(int nHeight);
+    CAmount GetTotalBudget(int nHeight) const;
     std::vector<CBudgetProposal*> GetBudget();
     std::vector<CBudgetProposal*> GetAllProposals();
     std::vector<CFinalizedBudget*> GetFinalizedBudgets();
@@ -239,10 +239,12 @@ public:
     bool UpdateProposal(CBudgetVote& vote, CNode* pfrom, std::string& strError);
     bool UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError);
     bool PropExists(uint256 nHash);
-    bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
+    bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CBlockIndex* pindexPrev);
     std::string GetRequiredPaymentsString(int nBlockHeight);
     void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
-    int GrabHighestCount(int nTargetHeight, CScript& payee, CAmount& nAmount);
+    int GrabHighestCount(int nTargetHeight, CScript& payee, CAmount& nAmount) const;
+    CAmount GetBudgetValue(int nTargetHeight, CBlockIndex* pindexPrev) const;
+    CAmount GetPaidBudgetValue(int nTargetHeight, CBlockIndex* pindexPrev) const;
     void CheckOrphanVotes();
     void Clear()
     {
@@ -354,7 +356,7 @@ public:
         return true;
     }
 
-    bool GetPayeeAndAmount(int64_t nBlockHeight, CScript& payee, CAmount& nAmount)
+    bool GetPayeeAndAmount(int64_t nBlockHeight, CScript& payee, CAmount& nAmount) const
     {
         LOCK(cs);
 

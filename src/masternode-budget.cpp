@@ -460,9 +460,6 @@ void CBudgetManager::CheckAndRemove()
 {
     LogPrint("mnbudget", "CBudgetManager::CheckAndRemove\n");
 
-    // map<uint256, CFinalizedBudget> tmpMapFinalizedBudgets;
-    // map<uint256, CBudgetProposal> tmpMapProposals;
-
     std::string strError = "";
 
     LogPrint("mnbudget", "CBudgetManager::CheckAndRemove - mapFinalizedBudgets cleanup - size before: %d\n", mapFinalizedBudgets.size());
@@ -506,24 +503,18 @@ void CBudgetManager::CheckAndRemove()
 
         ++it2;
     }
-    // Remove invalid entries by overwriting complete map
-    // mapFinalizedBudgets = tmpMapFinalizedBudgets;
-    // mapProposals = tmpMapProposals;
 
-    // LogPrint("mnbudget", "CBudgetManager::CheckAndRemove - mapFinalizedBudgets cleanup - size after: %d\n", mapFinalizedBudgets.size());
-    // LogPrint("mnbudget", "CBudgetManager::CheckAndRemove - mapProposals cleanup - size after: %d\n", mapProposals.size());
     LogPrint("masternode","CBudgetManager::CheckAndRemove - PASSED\n");
-
 }
 
-int CBudgetManager::GrabHighestCount(int nTargetHeight, CScript& payee, CAmount& nAmount)
+int CBudgetManager::GrabHighestCount(int nTargetHeight, CScript& payee, CAmount& nAmount) const
 {
     LOCK(cs);
 
     int nHighestCount = -1;
-    std::map<uint256, CFinalizedBudget>::iterator it = mapFinalizedBudgets.begin();
+    std::map<uint256, CFinalizedBudget>::const_iterator it = mapFinalizedBudgets.begin();
     while (it != mapFinalizedBudgets.end()) {
-        CFinalizedBudget* pfinalizedBudget = &((*it).second);
+        const CFinalizedBudget* pfinalizedBudget = &((*it).second);
         if (pfinalizedBudget->GetVoteCount() > 0 &&
             pfinalizedBudget->GetVoteCount() > nHighestCount &&
             nTargetHeight >= pfinalizedBudget->GetBlockStart() &&
@@ -538,12 +529,82 @@ int CBudgetManager::GrabHighestCount(int nTargetHeight, CScript& payee, CAmount&
     return nHighestCount;
 }
 
-void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev)
+CAmount CBudgetManager::GetPaidBudgetValue(int nTargetHeight, CBlockIndex* pindexPrev) const
 {
-    LOCK(cs);
+    if (nTargetHeight % GetBudgetPaymentCycleBlocks() >= Params().GetMaxSuperBlocksPerCycle()) {
+        error("%s: nTargetHeight=%d is out of budget cycle", __func__, nTargetHeight);
+        return -1;
+    }
 
     if (!pindexPrev) {
-        LogPrint("masternode", "%s: pindexPrev is nullptr", __func__);
+        error("%s: pindexPrev is nullptr", __func__);
+        return -1;
+    }
+
+    CAmount nAmount = 0;
+    CBlockIndex *pindex = pindexPrev;
+    const int nBudgetCycleStartHeight = nTargetHeight - nTargetHeight % GetBudgetPaymentCycleBlocks();
+    while (pindex->nHeight >= nBudgetCycleStartHeight) {
+        nAmount += (pindex->nMint - GetBlockExpectedMint(pindex->nHeight));
+        pindex = pindex->pprev;
+        if (!pindex) {
+            error("%s: pindex is nullptr", __func__);
+            nAmount = -1;
+            break;
+        }
+    }
+
+    DebugPrintf("%s: amount = %s, height = %d\n", __func__, FormatMoney(nAmount), pindex->nHeight);
+    return nAmount;
+}
+
+CAmount CBudgetManager::GetBudgetValue(int nTargetHeight, CBlockIndex* pindexPrev) const
+{
+    if (pindexPrev && nTargetHeight != pindexPrev->nHeight + 1)
+        error("%s: nTargetHeight=%d, pindexPrev->nHeight=%d", __func__, nTargetHeight, pindexPrev->nHeight);
+
+    CScript payee;
+    CAmount nAmount = 0;
+    const int nHighestCount = GrabHighestCount(nTargetHeight, payee, nAmount);
+    const int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
+
+    if (nHighestCount < nFivePercent) {
+        if (0 == (nTargetHeight % GetBudgetPaymentCycleBlocks()))
+            return GetTotalBudget(nTargetHeight);
+        else
+            return 0;
+    } else if (pindexPrev) {
+        // Search for unallocated budget amount in the current cycle
+        CScript payee2;
+        CAmount nAmount2 = 0;
+        CAmount nUnallocatedAmount = 0;
+        const int nHighestCountNext = GrabHighestCount(nTargetHeight + 1, payee2, nAmount2);
+        if (nHighestCountNext < nFivePercent) {
+            const CAmount nPaidAmount = GetPaidBudgetValue(nTargetHeight, pindexPrev);
+            if (nPaidAmount >= 0) {
+                nUnallocatedAmount = GetTotalBudget(nTargetHeight) - nAmount - nPaidAmount;
+                if (nUnallocatedAmount < 0) {
+                    error("%s: Negative unallocated amount %s, nAmount=%s, nPaidAmount=%s",
+                          __func__, FormatMoney(nUnallocatedAmount), FormatMoney(nAmount), FormatMoney(nPaidAmount));
+                    nUnallocatedAmount = 0;
+                }
+            }
+        }
+
+        return nAmount + nUnallocatedAmount;
+    } else
+        return nAmount;
+}
+
+void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev)
+{
+    if (!fProofOfStake) {
+        error("%s: proof-of-stake expected", __func__);
+        return;
+    }
+
+    if (!pindexPrev) {
+        error("%s: pindexPrev is nullptr", __func__);
         return;
     }
 
@@ -551,7 +612,7 @@ void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, b
     CAmount nAmount = 0;
     const int nTargetHeight = pindexPrev->nHeight + 1;
     const int nHighestCount = GrabHighestCount(nTargetHeight, payee, nAmount);
-    int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
+    const int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
 
     if (nHighestCount < nFivePercent) {
         LogPrint("masternode", "%s - No Budget payment, nHighestCount = %d, finalized budgets size = %lld\n", __func__, nHighestCount, mapFinalizedBudgets.size());
@@ -560,39 +621,38 @@ void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, b
             const CAmount nTotalBudget = GetTotalBudget(nTargetHeight);
             LogPrint("masternode", "%s - Make payment %s to the official Developer Fund Address\n", __func__, FormatMoney(nTotalBudget));
 
-            //Append an additional output as the budget payment
+            // Append an additional output as the budget payment
             txNew.vout.push_back(CTxOut(nTotalBudget, GetScriptForDestination(Params().GetUnallocatedBudgetAddress().Get())));
         }
-    } else if (fProofOfStake) {
-        if (txNew.vout.size() < 2) {
-            error("%s: invalid transaction:\n%s\n", __func__, txNew.ToString());
-        } else {
-            unsigned int i = txNew.vout.size();
-            txNew.vout.resize(i + 1);
-            txNew.vout[i].scriptPubKey = payee;
-            txNew.vout[i].nValue = nAmount;
-
-            CTxDestination address1;
-            ExtractDestination(payee, address1);
-            CBitcoinAddress address2(address1);
-            LogPrint("masternode", "CBudgetManager::FillBlockPayee - Budget payment to %s for %lld, nHighestCount = %d\n", address2.ToString(), nAmount, nHighestCount);
-        }
-    } else { // Proof-Of-Work
-        //miners get the full amount on these blocks
-        CAmount blockValue = GetBlockValueReward(pindexPrev->nHeight);
-        txNew.vout[0].nValue = blockValue;
-
-        txNew.vout.resize(2);
-
-        //these are super blocks, so their value can be much larger than normal
-        txNew.vout[1].scriptPubKey = payee;
-        txNew.vout[1].nValue = nAmount;
+    } else {
+        // Append budget payment
+        unsigned int i = txNew.vout.size();
+        txNew.vout.resize(i + 1);
+        txNew.vout[i].scriptPubKey = payee;
+        txNew.vout[i].nValue = nAmount;
 
         CTxDestination address1;
         ExtractDestination(payee, address1);
         CBitcoinAddress address2(address1);
+        LogPrint("masternode", "%s - Budget payment to %s for %lld, nHighestCount = %d\n", __func__, address2.ToString(), nAmount, nHighestCount);
 
-        LogPrint("masternode", "CBudgetManager::FillBlockPayee - Budget payment to %s for %lld\n", address2.ToString(), nAmount);
+        // Append unallocated budget payment to the last budget block in the current cycle
+        CScript payee2;
+        CAmount nAmount2 = 0;
+        const int nHighestCountNext = GrabHighestCount(nTargetHeight + 1, payee2, nAmount2);
+        if (nHighestCountNext < nFivePercent) {
+            const CAmount nPaidAmount = GetPaidBudgetValue(nTargetHeight, pindexPrev);
+            if (nPaidAmount >= 0) {
+                const CAmount nUnallocatedAmount = GetTotalBudget(nTargetHeight) - nAmount - nPaidAmount;
+                if (nUnallocatedAmount < 0) {
+                    error("%s: Negative unallocated amount %s, nAmount=%s, nPaidAmount=%s",
+                          __func__, FormatMoney(nUnallocatedAmount), FormatMoney(nAmount), FormatMoney(nPaidAmount));
+                } else if (nUnallocatedAmount > 0) {
+                    txNew.vout.push_back(CTxOut(nUnallocatedAmount, GetScriptForDestination(Params().GetUnallocatedBudgetAddress().Get())));
+                    LogPrint("masternode", "%s - Unallocated budget payment %s to the official Developer Fund Address\n", __func__, FormatMoney(nUnallocatedAmount));
+                }
+            }
+        }
     }
 }
 
@@ -640,22 +700,24 @@ bool CBudgetManager::IsBudgetPaymentBlock(int nBlockHeight)
     if (!IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS))
         return false;
 
+    if (nBlockHeight % GetBudgetPaymentCycleBlocks() >= Params().GetMaxSuperBlocksPerCycle())
+        return false;
+
     CScript payee;
     CAmount nAmount = 0;
     const int nHighestCount = GrabHighestCount(nBlockHeight, payee, nAmount);
-    int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
+    const int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
 
-    LogPrint("masternode", "CBudgetManager::IsBudgetPaymentBlock() - nHighestCount: %lli, 5%% of Masternodes: %lli.\n", 
-        nHighestCount, nFivePercent);
+    LogPrint("masternode", "%s - nHighestCount: %lli, 5%% of Masternodes: %lli.\n", __func__, nHighestCount, nFivePercent);
 
-    // If budget doesn't have 5% of the network votes, then we should pay to the fund address
+    // If budget doesn't have 5% of the network votes, then we should pay unallocated amount to the fund address
     if (nHighestCount >= nFivePercent)
         return true;
     else
         return 0 == (nBlockHeight % GetBudgetPaymentCycleBlocks());
 }
 
-bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHeight)
+bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CBlockIndex* pindexPrev)
 {
     CScript payee;
     CAmount nAmount = 0;
@@ -668,43 +730,62 @@ bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHei
     if (nHighestCount < nFivePercent) {
         if (0 == (nBlockHeight % GetBudgetPaymentCycleBlocks())) {
             const CAmount nTotalBudget = GetTotalBudget(nBlockHeight);
-
-            bool found = false;
-            BOOST_FOREACH(const CTxOut& out, txNew.vout) {
-                CTxDestination address1;
-                ExtractDestination(out.scriptPubKey, address1);
-                CBitcoinAddress address2(address1);
-                if (address2.ToString() == Params().GetUnallocatedBudgetAddress().ToString()) {
-                    if (out.nValue == nTotalBudget)
-                        found = true;
-                    else
-                        error("%s: budget payment amount is wrong. Paid=%s Required=%s\n", __func__, FormatMoney(out.nValue), FormatMoney(nTotalBudget));
-                }
-            }
-
-            if (!found)
-                error("%s: budget payment to the dev fund address was not found\n", __func__);
-
-            return found;
+            const CAmount nAmount = FindPayment(txNew, Params().GetUnallocatedBudgetAddress().ToString());
+            if (nAmount < nTotalBudget)
+                return error("%s: budget payment amount is wrong or not found. Paid=%s Required=%s\n", __func__, FormatMoney(nAmount), FormatMoney(nTotalBudget));
+            else
+                return true;
         } else
             return error("%s: block %d is not a budget payment block\n", __func__, nBlockHeight);
     } else {
-        LOCK(cs);
-        // check the highest finalized budgets (+/- 10% to assist in consensus)
-        std::map<uint256, CFinalizedBudget>::iterator it = mapFinalizedBudgets.begin();
-        while (it != mapFinalizedBudgets.end()) {
-            CFinalizedBudget* pfinalizedBudget = &((*it).second);
-            if (pfinalizedBudget->GetVoteCount() >= nHighestCount - mnodeman.CountEnabled(ActiveProtocol()) / 10) {
-                if (nBlockHeight >= pfinalizedBudget->GetBlockStart() && nBlockHeight <= pfinalizedBudget->GetBlockEnd()) {
-                    if (pfinalizedBudget->IsTransactionValid(txNew, nBlockHeight)) {
-                        return true;
+        bool finalBudgetValid = false;
+        bool unallocatedBudgetValid = true;
+
+        {   // Verify final budget payment
+            LOCK(cs);
+            std::map<uint256, CFinalizedBudget>::iterator it = mapFinalizedBudgets.begin();
+            while (it != mapFinalizedBudgets.end()) {
+                CFinalizedBudget* pfinalizedBudget = &((*it).second);
+                if (pfinalizedBudget->GetVoteCount() >= nHighestCount - mnodeman.CountEnabled(ActiveProtocol()) / 10) {
+                    if (nBlockHeight >= pfinalizedBudget->GetBlockStart() && nBlockHeight <= pfinalizedBudget->GetBlockEnd()) {
+                        if (pfinalizedBudget->IsTransactionValid(txNew, nBlockHeight)) {
+                            finalBudgetValid = true;
+                            break;
+                        }
+                    }
+                }
+                ++it;
+            }
+        }
+
+        if (!finalBudgetValid)
+            error("%s: finalized budget was not found\n", __func__);
+
+        if (!pindexPrev)
+            unallocatedBudgetValid = true;
+        else {
+            // Verify unallocated budget payment
+            CScript payee2;
+            CAmount nAmount2 = 0;
+            const int nHighestCountNext = GrabHighestCount(nBlockHeight + 1, payee2, nAmount2);
+            if (nHighestCountNext < nFivePercent) {
+                const CAmount nPaidAmount = GetPaidBudgetValue(nBlockHeight, pindexPrev);
+                if (nPaidAmount >= 0) {
+                    const CAmount nUnallocatedAmount = GetTotalBudget(nBlockHeight) - nAmount - nPaidAmount;
+                    if (nUnallocatedAmount < 0) {
+                        error("%s: Negative unallocated amount %s, nAmount=%s, nPaidAmount=%s",
+                              __func__, FormatMoney(nUnallocatedAmount), FormatMoney(nAmount), FormatMoney(nPaidAmount));
+                    } else if (nUnallocatedAmount > 0) {
+                        CAmount nAmount = FindPayment(txNew, Params().GetUnallocatedBudgetAddress().ToString());
+                        unallocatedBudgetValid = nAmount >= nUnallocatedAmount;
+                        if (!unallocatedBudgetValid)
+                            LogPrintf("%s - Unallocated budget payment %s to the official Developer Fund Address was not found\n", __func__, FormatMoney(nUnallocatedAmount));
                     }
                 }
             }
-            ++it;
         }
-        //we looked through all of the known budgets
-        return error("%s: finalized budget was not found\n", __func__);
+
+        return finalBudgetValid && unallocatedBudgetValid;
     }
 }
 
@@ -872,7 +953,7 @@ std::string CBudgetManager::GetRequiredPaymentsString(int nBlockHeight)
     return ret;
 }
 
-CAmount CBudgetManager::GetTotalBudget(int nHeight)
+CAmount CBudgetManager::GetTotalBudget(int nHeight) const
 {
     CAmount nSubsidy = GetBlockValueBudget(nHeight);
     return nSubsidy * GetBudgetPaymentCycleBlocks();
@@ -1953,6 +2034,9 @@ std::string CFinalizedBudget::GetStatus()
 
 bool CFinalizedBudget::IsValid(std::string& strError, bool fCheckCollateral)
 {
+    // All(!) finalized budgets have the name "main", so get some additional information about them
+    const std::string strProposals = GetProposals();
+
     // Must be the correct block for payment to happen (once a month)
     if (nBlockStart % GetBudgetPaymentCycleBlocks() != 0) {
         strError = "Invalid BlockStart";
@@ -1973,19 +2057,17 @@ bool CFinalizedBudget::IsValid(std::string& strError, bool fCheckCollateral)
         return false;
     }
     if (nBlockStart == 0) {
-        strError = "Budget " + strBudgetName + " Invalid BlockStart == 0";
+        strError = "Budget " + strBudgetName + " (" + strProposals + ") Invalid BlockStart == 0";
         return false;
     }
     if (nFeeTXHash == 0) {
-        strError = "Budget " + strBudgetName + " Invalid FeeTx == 0";
+        strError = "Budget " + strBudgetName  + " (" + strProposals + ") Invalid FeeTx == 0";
         return false;
     }
 
     // Can only pay out 10% of the possible coins (min value of coins)
     if (GetTotalPayout() > budget.GetTotalBudget(nBlockStart)) {
-        // DRAGAN: 
-        //strError = "Budget " + strBudgetName + " Invalid Payout (more than max)"; // pivx
-        strError = strprintf("Invalid Payout (more than max of %s)", budget.GetTotalBudget(nBlockStart));
+        strError = "Budget " + strBudgetName + " (" + strProposals + ") Invalid Payout (more than max)";
         return false;
     }
 
@@ -2000,17 +2082,23 @@ bool CFinalizedBudget::IsValid(std::string& strError, bool fCheckCollateral)
         }
     }
 
-    //TODO: if N cycles old, invalid, invalid
+    // Remove obsolete finalized budgets after some time
 
     CBlockIndex* pindexPrev = chainActive.Tip();
-    if (pindexPrev == NULL) return true;
+    if (pindexPrev == NULL)
+        return true;
 
-// TODO: verify if we can safely remove this
-//
-//    if (nBlockStart < pindexPrev->nHeight - 100) {
-//        strError = "Budget " + strBudgetName + " Older than current blockHeight" ;
-//        return false;
-//    }
+    // Get start of current budget-cycle
+    int nCurrentHeight = chainActive.Height();
+    int nBlockStart = nCurrentHeight - nCurrentHeight % GetBudgetPaymentCycleBlocks() + GetBudgetPaymentCycleBlocks();
+
+    // Remove budgets where the last payment (from max. 100) ends before 2 budget-cycles before the current one
+    int nMaxAge = nBlockStart - (2 * GetBudgetPaymentCycleBlocks());
+
+    if (GetBlockEnd() < nMaxAge) {
+        strError = strprintf("Budget " + strBudgetName + " (" + strProposals + ") (ends at block %ld) too old and obsolete", GetBlockEnd());
+        return false;
+    }
 
     return true;
 }

@@ -3411,52 +3411,36 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     nTimeConnect += nTime1 - nTimeStart;
     LogPrint("bench", "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime1 - nTimeStart), 0.001 * (nTime1 - nTimeStart) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime1 - nTimeStart) / (nInputs - 1), nTimeConnect * 0.000001);
 
-    // ZC: added (goes together w/ block value/budget functions), moved from CheckBlock
-    // ----------- masternode payments / budgets -----------
-    int nHeight = 0;
-    CBlockIndex* pindexPrev = chainActive.Tip();
-    if (pindexPrev != NULL) {
-        if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
-            nHeight = pindexPrev->nHeight + 1;
-        } else { //out of order
-            BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-            if (mi != mapBlockIndex.end() && (*mi).second)
-                nHeight = (*mi).second->nHeight + 1;
+    // Check required payments are made (masternode payments / budgets / etc)
+    // It is entierly possible that we don't have enough data and this could fail
+    // (i.e. the block could indeed be valid). Store the block for later consideration
+    // but issue an initial reject message.
+    // The case also exists that the sending peer could not have enough data to see
+    // that this block is invalid, so don't issue an outright ban.
+    if (!IsInitialBlockDownload()) {
+        if (!IsBlockPayeeValid(block, pindex->nHeight, nFees, pindex->pprev)) {
+            mapRejectedBlocks.insert(make_pair(block.GetHash(), GetTime()));
+            return state.DoS(0, error("CheckBlock() : Couldn't find masternode/budget payment"), REJECT_INVALID, "bad-cb-payee");
         }
-
-        // COLX
-        // It is entierly possible that we don't have enough data and this could fail
-        // (i.e. the block could indeed be valid). Store the block for later consideration
-        // but issue an initial reject message.
-        // The case also exists that the sending peer could not have enough data to see
-        // that this block is invalid, so don't issue an outright ban.
-        if (nHeight != 0 && !IsInitialBlockDownload()) {
-            if (!IsBlockPayeeValid(block, nHeight, nFees)) {
-                mapRejectedBlocks.insert(make_pair(block.GetHash(), GetTime()));
-                return state.DoS(0, error("CheckBlock() : Couldn't find masternode/budget payment"),
-                    REJECT_INVALID, "bad-cb-payee");
-            }
-        } else {
-            if (fDebug)
-                LogPrintf("CheckBlock(): Masternode payment check skipped on sync - skipping IsBlockPayeeValid()\n");
-        }
+    } else {
+        DebugPrintf("%s: Masternode payment check skipped on sync - skipping IsBlockPayeeValid()\n", __func__);
     }
 
-    //Check that the block does not overmint
-    CAmount nExpectedMint = nFees + GetBlockExpectedMint(nHeight);
-    if (!IsBlockValueValid(block, nExpectedMint, pindex->nMint)) {
-        // ZCTESTINGFIXES: getting the error at 11040 (on some nodes), not sure why, off locally
-        LogPrintf("warning (error turned off for testing): ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
-            FormatMoney(pindex->nMint), FormatMoney(nExpectedMint));
-        //return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
-        //        FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
-    }
+    // FIXME
+    if (pindex->nHeight == 11040)
+        uiInterface.ThreadSafeMessageBox("11040", "11040", CClientUIInterface::MSG_WARNING);
+
+    // Check that the block does not overmint
+    CAmount nExpectedMint = nFees + GetBlockExpectedMint(pindex->nHeight);
+    if (!IsBlockValueValid(block, pindex->nHeight, nExpectedMint, pindex->nMint, pindex->pprev))
+        return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
+            FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
 
     // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
     AccumulatorMap mapAccumulators;
     if (!ValidateAccumulatorCheckpoint(block, pindex, mapAccumulators))
         return state.DoS(100, error("%s: Failed to validate accumulator checkpoint for block=%s height=%d", __func__,
-                                    block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID, "bad-acc-checkpoint");
+            block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID, "bad-acc-checkpoint");
 
     if (!control.Wait())
         return state.DoS(100, false);
@@ -4462,40 +4446,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
         LogPrintf("CheckBlock() : skipping transaction locking checks\n");
     }
 
-    // DRAGAN: moved to ConnectBlock // Q: // RECHECK: 
-    //// masternode payments / budgets
-    //CBlockIndex* pindexPrev = chainActive.Tip();
-    //int nHeight = 0;
-    //if (pindexPrev != NULL) {
-    //    if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
-    //        nHeight = pindexPrev->nHeight + 1;
-    //    } else { //out of order
-    //        BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-    //        if (mi != mapBlockIndex.end() && (*mi).second)
-    //            nHeight = (*mi).second->nHeight + 1;
-    //    }
-
-    //    // PIVX
-    //    // It is entierly possible that we don't have enough data and this could fail
-    //    // (i.e. the block could indeed be valid). Store the block for later consideration
-    //    // but issue an initial reject message.
-    //    // The case also exists that the sending peer could not have enough data to see
-    //    // that this block is invalid, so don't issue an outright ban.
-    //    if (nHeight != 0 && !IsInitialBlockDownload()) {
-    //        if (!IsBlockPayeeValid(block, nHeight)) {
-    //            mapRejectedBlocks.insert(make_pair(block.GetHash(), GetTime()));
-    //            return state.DoS(0, error("CheckBlock() : Couldn't find masternode/budget payment"),
-    //                    REJECT_INVALID, "bad-cb-payee");
-    //        }
-    //    } else {
-    //        if (fDebug)
-    //            LogPrintf("CheckBlock(): Masternode payment check skipped on sync - skipping IsBlockPayeeValid()\n");
-    //    }
-    //}
-
     // Check transactions
-    // ZCTEST: Zerocoin_StartTime is ok here (even if testnet is not uptodate) it's only active in the case zerocoins are used
-    bool fZerocoinActive = block.GetBlockTime() > Params().Zerocoin_StartTime();
+    bool fZerocoinActive = block.GetVersion() >= CBlockHeader::VERSION5;
     vector<CBigNum> vBlockSerials;
     for (const CTransaction& tx : block.vtx) {
         if (!CheckTransaction(tx, fZerocoinActive, state))
@@ -4520,7 +4472,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     BOOST_FOREACH (const CTransaction& tx, block.vtx) {
         nSigOps += GetLegacySigOpCount(tx);
     }
-    // ZCTEST: Zerocoin_StartTime is ok here (current == legacy for testing)
+
     unsigned int nMaxBlockSigOps = fZerocoinActive ? MAX_BLOCK_SIGOPS_CURRENT : MAX_BLOCK_SIGOPS_LEGACY;
     if (nSigOps > nMaxBlockSigOps)
         return state.DoS(100, error("CheckBlock() : out-of-bounds SigOpCount"),
@@ -4647,10 +4599,10 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
     // if 750 of the last 1,000 blocks are version 2 or greater (51/100 if testnet):
     if (block.nVersion >= CBlockHeader::VERSION2 &&
         CBlockIndex::IsSuperMajority(CBlockHeader::VERSION2, pindexPrev, Params().EnforceBlockUpgradeMajority())) {
-        CScript expect = CScript() << nHeight;
-        if (block.vtx[0].vin[0].scriptSig.size() < expect.size() ||
-            !std::equal(expect.begin(), expect.end(), block.vtx[0].vin[0].scriptSig.begin())) {
-            return state.DoS(100, error("%s : block height mismatch in coinbase", __func__), REJECT_INVALID, "bad-cb-height");
+        const CScript expect = CScript() << nHeight;
+        const CScript scriptSig = block.vtx[0].vin[0].scriptSig;
+        if (scriptSig.size() < expect.size() || !std::equal(expect.begin(), expect.end(), scriptSig.begin())) {
+            return state.DoS(100, error("%s : block height(%d) mismatch in coinbase(%s)", __func__, nHeight, HexStr(scriptSig)), REJECT_INVALID, "bad-cb-height");
         }
     }
 
