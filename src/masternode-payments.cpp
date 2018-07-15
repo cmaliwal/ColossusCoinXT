@@ -192,6 +192,10 @@ bool IsBlockValueValid(const CBlock& block, int nHeight, CAmount nExpectedValue,
     if (nHeight <= 0)
         return error("%s: Unexpected block height: %d (%s)\n", __func__, nHeight, block.GetHash().ToString());
 
+    if (Params().NetworkID() == CBaseChainParams::TESTNET &&
+        (nHeight == 10800 || nHeight == 11040 || nHeight == 11041))
+        return true; // there is no budget data to verify these blocks on testnet
+
     if (!masternodeSync.IsSynced()) { //there is no budget data to use to check anything
         //super blocks will always be on these blocks
         if (nHeight % GetBudgetPaymentCycleBlocks() < Params().GetMaxSuperBlocksPerCycle())

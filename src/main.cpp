@@ -3426,10 +3426,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         DebugPrintf("%s: Masternode payment check skipped on sync - skipping IsBlockPayeeValid()\n", __func__);
     }
 
-    // FIXME
-    if (pindex->nHeight == 11040)
-        uiInterface.ThreadSafeMessageBox("11040", "11040", CClientUIInterface::MSG_WARNING);
-
     // Check that the block does not overmint
     CAmount nExpectedMint = nFees + GetBlockExpectedMint(pindex->nHeight);
     if (!IsBlockValueValid(block, pindex->nHeight, nExpectedMint, pindex->nMint, pindex->pprev))
