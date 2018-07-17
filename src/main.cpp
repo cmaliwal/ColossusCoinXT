@@ -4334,18 +4334,6 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
     if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits))
         return state.DoS(50, error("CheckBlockHeader() : proof of work failed"), REJECT_INVALID, "high-hash");
 
-    // Zerocoin version header must be used after Params().Zerocoin_StartHeight(). And never before.
-    const int32_t nZCver = CBlockHeader::VERSION5;
-    if (block.GetBlockTime() > Params().Zerocoin_StartTime()) {
-        if (block.nVersion < nZCver)
-            return state.DoS(50, error("CheckBlockHeader() : block version must be %d+ after ZerocoinStartHeight", nZCver),
-            REJECT_INVALID, "block-version");
-    } else {
-        if (block.nVersion >= nZCver)
-            return state.DoS(50, error("CheckBlockHeader() : block version must be below %d before ZerocoinStartHeight", nZCver),
-            REJECT_INVALID, "block-version");
-    }
-
     return true;
 }
 
@@ -4522,14 +4510,15 @@ bool CheckWork(const CBlock block, CBlockIndex* const pindexPrev)
 
 bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex* const pindexPrev)
 {
-    uint256 hash = block.GetHash();
+    const uint256 hash = block.GetHash();
 
     if (hash == Params().HashGenesisBlock())
         return true;
 
-    assert(pindexPrev);
+    if (!pindexPrev)
+        return error("%s : null pindexPrev for block %s", __func__, hash.ToString());
 
-    int nHeight = pindexPrev->nHeight + 1;
+    const int nHeight = pindexPrev->nHeight + 1;
 
     //If this is a reorg, check that it is not too deep
     int64_t nMaxReorganizationDepth = GetSporkValue(SPORK_19_MAX_REORGANIZATION_DEPTH);
@@ -4559,6 +4548,18 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
             CBlockIndex::IsSuperMajority(i, pindexPrev, Params().RejectBlockOutdatedMajority())) {
                 return state.Invalid(error("%s : rejected nVersion=%d block", __func__, block.nVersion), REJECT_OBSOLETE, "bad-version");
         }
+    }
+
+    // Zerocoin version header must be used after Params().Zerocoin_StartHeight(). And never before.
+    const int32_t nZCver = CBlockHeader::VERSION5;
+    if (nHeight >= Params().Zerocoin_StartHeight()) {
+        if (block.GetVersion() < nZCver)
+            return state.DoS(50, error("%s : block version must be %d+ after ZerocoinStartHeight", __func__, nZCver),
+                REJECT_INVALID, "block-version");
+    } else {
+        if (block.GetVersion() >= nZCver)
+            return state.DoS(50, error("%s : block version must be below %d before ZerocoinStartHeight", __func__, nZCver),
+                REJECT_INVALID, "block-version");
     }
 
     return true;

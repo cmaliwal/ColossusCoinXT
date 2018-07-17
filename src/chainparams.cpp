@@ -219,7 +219,6 @@ public:
         nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
         nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
-        nZerocoinStartTime = std::numeric_limits<int>::max(); // FIXME
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -358,7 +357,6 @@ public:
         nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
         nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
-        nZerocoinStartTime = 1530126974; // June 4, 2018 7:53:20 PM
 
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
     }
