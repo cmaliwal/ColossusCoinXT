@@ -36,8 +36,10 @@ enum class ChainHeight
     H1, // 1, Premine, Reward 2500 COLX
     H2, // 151202, Reward 1250 COLX
     H3, // 302401, Reward 1000 COLX
-    H4, // 388800, Reward 1250 COLX, new budget and dev funds, only block version >= 4 is valid
-    H5  // Zerocoin, only block version >= 5 is valid
+    H4, // 388800, Reward 1500 COLX, see-saw algorithm, new budget params and dev fund payments, only block version >= 4 is valid
+    H5, // Zerocoin, only block version >= 5 is valid
+    H6, // See-saw disabled, go back to 60% MN / 40% staker
+    H7  // New budget Fee 25'000 COLX
 };
 
 /**

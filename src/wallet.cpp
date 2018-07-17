@@ -2685,30 +2685,35 @@ bool CWallet::CreateCollateralTransaction(CMutableTransaction& txCollateral, std
     return true;
 }
 
-bool CWallet::GetBudgetSystemCollateralTX(CTransaction& tx, uint256 hash, bool useIX)
+bool CWallet::GetBudgetSystemCollateralTX(CTransaction& tx, uint256 hash, int nBudgetBlockStart, bool useIX)
 {
     CWalletTx wtx;
-    if (GetBudgetSystemCollateralTX(wtx, hash, useIX)) {
+    if (GetBudgetSystemCollateralTX(wtx, hash, nBudgetBlockStart, useIX)) {
         tx = (CTransaction)wtx;
         return true;
     }
     return false;
 }
 
-bool CWallet::GetBudgetSystemCollateralTX(CWalletTx& tx, uint256 hash, bool useIX)
+bool CWallet::GetBudgetSystemCollateralTX(CWalletTx& tx, uint256 hash, int nBudgetBlockStart, bool useIX)
 {
     // make our change address
     CReserveKey reservekey(pwalletMain);
 
     CScript scriptChange;
-    scriptChange << OP_RETURN << ToByteVector(hash);
+    const CAmount nFeeRequired = GetBudgetFee(nBudgetBlockStart);
+    if (nBudgetBlockStart >= Params().GetChainHeight(ChainHeight::H7)) {
+        scriptChange = GetScriptForDestination(Params().GetTxFeeAddress().Get());
+    } else {
+        scriptChange << OP_RETURN << ToByteVector(hash);
+    }
+
+    vector<pair<CScript, CAmount> > vecSend;
+    vecSend.push_back(make_pair(scriptChange, nFeeRequired));
 
     CAmount nFeeRet = 0;
     std::string strFail = "";
-    vector<pair<CScript, CAmount> > vecSend;
-    vecSend.push_back(make_pair(scriptChange, BUDGET_FEE_TX));
-
-    CCoinControl* coinControl = NULL;
+    CCoinControl* coinControl = nullptr;
     bool success = CreateTransaction(vecSend, tx, reservekey, nFeeRet, strFail, coinControl, ALL_COINS, useIX, (CAmount)0, false);
     if (!success) {
         LogPrintf("GetBudgetSystemCollateralTX: Error - %s\n", strFail);

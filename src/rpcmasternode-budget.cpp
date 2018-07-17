@@ -235,7 +235,7 @@ UniValue preparebudget(const UniValue& params, bool fHelp)
     // }
 
     CWalletTx wtx;
-    if (!pwalletMain->GetBudgetSystemCollateralTX(wtx, budgetProposalBroadcast.GetHash(), useIX)) {
+    if (!pwalletMain->GetBudgetSystemCollateralTX(wtx, budgetProposalBroadcast.GetHash(), budgetProposalBroadcast.GetBlockStart(), useIX)) {
         throw runtime_error("Error making collateral transaction for proposal. Please check your wallet balance.");
     }
 
@@ -319,7 +319,7 @@ UniValue submitbudget(const UniValue& params, bool fHelp)
 
     std::string strError = "";
     int nConf = 0;
-    if (!IsBudgetCollateralValid(hash, budgetProposalBroadcast.GetHash(), strError, budgetProposalBroadcast.nTime, nConf)) {
+    if (!IsBudgetCollateralValid(hash, budgetProposalBroadcast.GetHash(), nBlockStart, strError, budgetProposalBroadcast.nTime, nConf)) {
         throw runtime_error("Proposal FeeTX is not valid - " + hash.ToString() + " - " + strError);
     }
 
