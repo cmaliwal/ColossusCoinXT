@@ -2194,6 +2194,9 @@ CAmount GetMasternodePayment(int nHeight, int nMasternodeCount, CAmount nMoneySu
 {
     if (nHeight < Params().GetChainHeight(ChainHeight::H4))
         return GetBlockValueReward(nHeight) * 60 / 100; // old rules 60% goes to the masternode
+    else if (nHeight >= Params().GetChainHeight(ChainHeight::H6))
+        return (GetBlockValueReward(nHeight) - GetBlockValueDevFund(nHeight)) * 60 / 100; // 60% goes to the masternode again
+    else; // see-saw algorithm [H4; H6)
 
     const CAmount nReward = GetBlockValueReward(nHeight) - GetBlockValueDevFund(nHeight);
     const CAmount nNodeCoins = nMasternodeCount * Params().GetRequiredMasternodeCollateral();

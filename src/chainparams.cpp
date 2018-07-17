@@ -387,7 +387,7 @@ public:
             return 53384;
 
         case ChainHeight::H6:
-            return std::numeric_limits<int>::max(); // FIXME
+            return 80640;
 
         case ChainHeight::H7:
             return 80640;
