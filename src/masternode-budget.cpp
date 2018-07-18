@@ -188,7 +188,7 @@ void CBudgetManager::SubmitFinalBudget()
         vecTxBudgetPayments.push_back(txBudgetPayment);
     }
 
-    if (vecTxBudgetPayments.size() < 1) {
+    if (vecTxBudgetPayments.empty()) {
         LogPrint("masternode","CBudgetManager::SubmitFinalBudget - Found No Proposals For Period\n");
         return;
     }
@@ -878,6 +878,7 @@ std::vector<CBudgetProposal*> CBudgetManager::GetBudget()
         //prop start/end should be inside this period
         if (pbudgetProposal->fValid && pbudgetProposal->nBlockStart <= nBlockStart &&
             pbudgetProposal->nBlockEnd >= nBlockEnd &&
+            pbudgetProposal->GetYeas() > 0 &&
             pbudgetProposal->GetYeas() - pbudgetProposal->GetNays() >= mnodeman.CountEnabled(ActiveProtocol()) / 10 &&
             pbudgetProposal->IsEstablished()) {
 
@@ -1570,8 +1571,6 @@ bool CBudgetProposal::IsValid(std::string& strError, bool fCheckCollateral)
 
     //can only pay out 10% of the possible coins (min value of coins)
     if (nAmount > budget.GetTotalBudget(nBlockStart)) {
-        // DRAGAN: 
-        //strError = "Proposal " + strProposalName + ": Payment more than max"; // pivx
         strError = strprintf("Payment more than max of %s", FormatMoney(budget.GetTotalBudget(nBlockStart)));
         return false;
     }
