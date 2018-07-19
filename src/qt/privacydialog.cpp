@@ -193,12 +193,24 @@ void PrivacyDialog::on_pushButtonMintzPIV_clicked()
         return;
     }
 
+    CAmount minDenom = libzerocoin::CoinDenomination::ZQ_MIN * COIN;
+
     // Minting amount must be > 0
-    if (nAmount < libzerocoin::CoinDenomination::ZQ_MIN * COIN) {
-        std::string strMsg = strprintf(_("Minimal denomination (and the amount) is '%s'!"), FormatMoney(libzerocoin::CoinDenomination::ZQ_MIN * COIN));
+    if (nAmount < minDenom) {
+        std::string strMsg = strprintf(_("Minimal denomination (and the amount) is '%s'!"), FormatMoney(minDenom));
         QMessageBox::information(this, tr("Mint Zerocoin"),
                                  tr(strMsg.c_str()), QMessageBox::Ok,
                                  QMessageBox::Ok);
+        return;
+        //ui->TEMintStatus->setPlainText(tr("Message: Enter an amount > 0."));
+        //return;
+    }
+
+    if (nAmount != (nAmount / minDenom) * minDenom) {
+        std::string strMsg = strprintf(_("Use multiples of '%s' (minimal denomination)!"), FormatMoney(minDenom));
+        QMessageBox::information(this, tr("Mint Zerocoin"),
+            tr(strMsg.c_str()), QMessageBox::Ok,
+            QMessageBox::Ok);
         return;
         //ui->TEMintStatus->setPlainText(tr("Message: Enter an amount > 0."));
         //return;

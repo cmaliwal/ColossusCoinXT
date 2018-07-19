@@ -1639,7 +1639,12 @@ CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
     }
 
     {
-        LOCK2(cs_main, cs_wallet);
+        //LOCK2(cs_main, cs_wallet);
+        // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
+        // mempool.cs is acquired within IsTrusted and at each iteration, 
+        // it makes sense to pull it out in here (and no obvious issues or downsides?)
+        LOCK3(cs_main, mempool.cs, cs_wallet);
+
         // Get Unused coins
         list<CZerocoinMint> listPubCoin = CWalletDB(strWalletFile).ListMintedCoins(true, fMatureOnly, true);
         for (auto& mint : listPubCoin) {

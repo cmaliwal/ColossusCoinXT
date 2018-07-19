@@ -290,9 +290,10 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock blockFrom, const CTra
         const string msg = strprintf("CheckStakeKernelHash() : min age violation - nTimeBlockFrom=%d nStakeMinAge=%d nTimeTx=%d", nTimeBlockFrom, nMinStakeAge, nTimeTx);
         if (Params().NetworkID() == CBaseChainParams::MAIN)
             return error(msg.c_str());
-        else
+        else {
             DebugPrintf(msg.c_str());
             return false;
+        }
     }
 
     //grab difficulty
