@@ -16,16 +16,17 @@ namespace libzerocoin {
 
 CoinDenomination IntToZerocoinDenomination(int64_t amount)
 {
+    // ZCDENOMINATIONS: hardcoded denom values
     CoinDenomination denomination;
     switch (amount) {
-    case 100:    denomination = CoinDenomination::ZQ_ONE; break;
-    case 500:    denomination = CoinDenomination::ZQ_FIVE; break;
-    case 1000:   denomination = CoinDenomination::ZQ_TEN; break;
-    case 5000:   denomination = CoinDenomination::ZQ_FIFTY; break;
-    case 10000:  denomination = CoinDenomination::ZQ_ONE_HUNDRED; break;
-    case 50000:  denomination = CoinDenomination::ZQ_FIVE_HUNDRED; break;
-    case 100000: denomination = CoinDenomination::ZQ_ONE_THOUSAND; break;
-    case 500000: denomination = CoinDenomination::ZQ_FIVE_THOUSAND; break;
+    case 50:    denomination = CoinDenomination::ZQ_ONE; break;
+    case 100:    denomination = CoinDenomination::ZQ_FIVE; break;
+    case 500:   denomination = CoinDenomination::ZQ_TEN; break;
+    case 1000:   denomination = CoinDenomination::ZQ_FIFTY; break;
+    case 5000:  denomination = CoinDenomination::ZQ_ONE_HUNDRED; break;
+    case 10000:  denomination = CoinDenomination::ZQ_FIVE_HUNDRED; break;
+    case 50000: denomination = CoinDenomination::ZQ_ONE_THOUSAND; break;
+    case 100000: denomination = CoinDenomination::ZQ_FIVE_THOUSAND; break;
     default:     denomination = CoinDenomination::ZQ_ERROR; break;
     }
 
@@ -34,16 +35,17 @@ CoinDenomination IntToZerocoinDenomination(int64_t amount)
 
 int64_t ZerocoinDenominationToInt(const CoinDenomination& denomination)
 {
+    // ZCDENOMINATIONS: hardcoded denom values
     int64_t Value = 0;
     switch (denomination) {
-    case CoinDenomination::ZQ_ONE: Value = 100; break;
-    case CoinDenomination::ZQ_FIVE: Value = 500; break;
-    case CoinDenomination::ZQ_TEN: Value = 1000; break;
-    case CoinDenomination::ZQ_FIFTY : Value = 5000; break;
-    case CoinDenomination::ZQ_ONE_HUNDRED: Value = 10000; break;
-    case CoinDenomination::ZQ_FIVE_HUNDRED: Value = 50000; break;
-    case CoinDenomination::ZQ_ONE_THOUSAND: Value = 100000; break;
-    case CoinDenomination::ZQ_FIVE_THOUSAND: Value = 500000; break;
+    case CoinDenomination::ZQ_ONE: Value = 50; break;
+    case CoinDenomination::ZQ_FIVE: Value = 100; break;
+    case CoinDenomination::ZQ_TEN: Value = 500; break;
+    case CoinDenomination::ZQ_FIFTY : Value = 1000; break;
+    case CoinDenomination::ZQ_ONE_HUNDRED: Value = 5000; break;
+    case CoinDenomination::ZQ_FIVE_HUNDRED: Value = 10000; break;
+    case CoinDenomination::ZQ_ONE_THOUSAND: Value = 50000; break;
+    case CoinDenomination::ZQ_FIVE_THOUSAND: Value = 100000; break;
     default: Value = 0; break;
     }
 

@@ -48,7 +48,7 @@ using namespace std;
  **/
 UniValue getinfo(const UniValue& params, bool fHelp)
 {
-    // ZCDENOMINATIONS: fix this
+    // ZCDENOMINATIONS: hardcoded denom values
     if (fHelp || params.size() != 0)
         throw runtime_error(
             "getinfo\n"
@@ -69,6 +69,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
             "  \"moneysupply\" : \"supply\"       (numeric) The money supply when this block was added to the blockchain\n"
             "  \"zPIVsupply\" :\n"
             "  {\n"
+            "     \"50\" : n,             (numeric) supply of 50 zCOLX denomination\n"
             "     \"100\" : n,            (numeric) supply of 100 zCOLX denomination\n"
             "     \"500\" : n,            (numeric) supply of 500 zCOLX denomination\n"
             "     \"1000\" : n,           (numeric) supply of 1000 zCOLX denomination\n"
@@ -76,7 +77,6 @@ UniValue getinfo(const UniValue& params, bool fHelp)
             "     \"10000\" : n,          (numeric) supply of 10000 zCOLX denomination\n"
             "     \"50000\" : n,          (numeric) supply of 50000 zCOLX denomination\n"
             "     \"100000\" : n,         (numeric) supply of 100000 zCOLX denomination\n"
-            "     \"500000\" : n,         (numeric) supply of 500000 zCOLX denomination\n"
             "     \"total\" : n,        (numeric) The total supply of all zCOLX denominations\n"
             "  }\n"
             "  \"keypoololdest\": xxxxxx,    (numeric) the timestamp (seconds since GMT epoch) of the oldest pre-generated key in the key pool\n"

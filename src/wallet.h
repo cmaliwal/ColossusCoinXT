@@ -58,8 +58,9 @@ static const unsigned int MAX_FREE_TRANSACTION_CREATE_SIZE = 1000;
 // Zerocoin denomination which creates exactly one of each denominations:
 // 6666 = 1*5000 + 1*1000 + 1*500 + 1*100 + 1*50 + 1*10 + 1*5 + 1
 // 666600 = 1*500000 + 1*100000 + 1*50000 + 1*10000 + 1*5000 + 1*1000 + 1*500 + 100
+// 166650 = 1*100000 + 1*50000 + 1*10000 + 1*5000 + 1*1000 + 1*500 + 1*100 + 1*50
 // ZCDENOMINATIONS: fix this
-static const int ZQ_6666 = 666600; // 6666;
+static const int ZQ_6666 = 166650; // 666600; // 6666;
 
 class CAccountingEntry;
 class CCoinControl;
@@ -1052,6 +1053,7 @@ public:
     //Used with Obfuscation. Will return largest nondenom, then denominations, then very small inputs
     int Priority() const
     {
+        // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this)?
         BOOST_FOREACH (CAmount d, obfuScationDenominations)
             if (tx->vout[i].nValue == d) return 10000;
         if (tx->vout[i].nValue < 1 * COIN) return 20000;

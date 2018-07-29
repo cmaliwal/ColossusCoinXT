@@ -938,6 +938,7 @@ bool CWallet::IsDenominated(const CTransaction& tx) const
 
 bool CWallet::IsDenominatedAmount(CAmount nInputAmount) const
 {
+    // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this)?
     BOOST_FOREACH (CAmount d, obfuScationDenominations)
         if (nInputAmount == d)
             return true;
@@ -1649,6 +1650,13 @@ CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
         list<CZerocoinMint> listPubCoin = CWalletDB(strWalletFile).ListMintedCoins(true, fMatureOnly, true);
         for (auto& mint : listPubCoin) {
             libzerocoin::CoinDenomination denom = mint.GetDenomination();
+
+            if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
+                // ZC50DENOM: temporary to be able to load old wallet
+                error("GetZerocoinBalance() : invalid denomination!? Probably versioning.");
+                continue;
+            }
+
             nTotal += libzerocoin::ZerocoinDenominationToAmount(denom);
             myZerocoinSupply.at(denom)++;
         }
@@ -1684,6 +1692,13 @@ CAmount CWallet::GetUnconfirmedZerocoinBalance() const
         for (auto& mint : listMints){
             if (!mint.GetHeight() || mint.GetHeight() > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) {
                 libzerocoin::CoinDenomination denom = mint.GetDenomination();
+
+                if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
+                    // ZC50DENOM: temporary to be able to load old wallet
+                    error("GetUnconfirmedZerocoinBalance() : invalid denomination!? Probably versioning.");
+                    continue;
+                }
+
                 nUnconfirmed += libzerocoin::ZerocoinDenominationToAmount(denom);
                 mapUnconfirmed.at(denom)++;
             }
@@ -1756,8 +1771,16 @@ std::map<libzerocoin::CoinDenomination, CAmount> CWallet::GetMyZerocoinDistribut
     {
         LOCK2(cs_main, cs_wallet);
         list<CZerocoinMint> listPubCoin = CWalletDB(strWalletFile).ListMintedCoins(true, true, true);
-        for (auto& mint : listPubCoin)
-            spread.at(mint.GetDenomination())++;
+        for (auto& mint : listPubCoin) {
+            libzerocoin::CoinDenomination denom = mint.GetDenomination();
+            if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
+                // ZC50DENOM: temporary to be able to load old wallet
+                error("GetMyZerocoinDistribution() : invalid denomination!? Probably versioning.");
+                continue;
+            }
+
+            spread.at(denom)++;
+        }
     }
     return spread;
 }
@@ -2166,6 +2189,7 @@ bool less_then_denom(const COutput& out1, const COutput& out2)
 
     bool found1 = false;
     bool found2 = false;
+    // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this)?
     BOOST_FOREACH (CAmount d, obfuScationDenominations) // loop through predefined denoms
     {
         if (pcoin1->vout[out1.i].nValue == d) found1 = true;
@@ -2386,6 +2410,7 @@ bool CWallet::SelectCoins(const CAmount& nTargetValue, set<pair<const CWalletTx*
     // DK: (note to self) fix this, 0.1 COLX is no longer relevant, dust? 1 COLX
     if (coin_type == ONLY_DENOMINATED) {
         // Make outputs by looping through denominations, from large to small
+        // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this)?
         BOOST_FOREACH (CAmount v, obfuScationDenominations) {
             BOOST_FOREACH (const COutput& out, vCoins) {
                 // ZC999FIX: should this be COIN, dust or ZQ_MIN? or what?
@@ -2444,6 +2469,7 @@ bool CWallet::SelectCoinsByDenominations(int nDenom, CAmount nValueMin, CAmount 
     if (!(nDenom & (1 << 4))) fFound1 = true;
     if (!(nDenom & (1 << 5))) fFoundDot1 = true;
 
+    // ZCDENOMINATIONS: hardcoded denom values, not sure what to do w/ this? obfuscation pools
     BOOST_FOREACH (const COutput& out, vCoins) {
         // masternode-like input should not be selected by AvailableCoins now anyway
         //if(out.tx->vout[out.i].nValue == 10000*COIN) continue;
@@ -3356,6 +3382,7 @@ string CWallet::PrepareObfuscationDenominate(int minRounds, int maxRounds)
     int nStep = 0;
     int nStepsMax = 5 + GetRandInt(5);
     while (nStep < nStepsMax) {
+        // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this)?
         BOOST_FOREACH (CAmount v, obfuScationDenominations) {
             // only use the ones that are approved
             bool fAccepted = false;

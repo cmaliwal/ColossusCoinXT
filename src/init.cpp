@@ -529,7 +529,8 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageGroup(_("Zerocoin options:"));
     strUsage += HelpMessageOpt("-enablezeromint=<n>", strprintf(_("Enable automatic Zerocoin minting (0-1, default: %u)"), 1));
     strUsage += HelpMessageOpt("-zeromintpercentage=<n>", strprintf(_("Percentage of automatically minted Zerocoin  (1-100, default: %u)"), 10));
-    strUsage += HelpMessageOpt("-preferredDenom=<n>", strprintf(_("Preferred Denomination for automatically minted Zerocoin  (100/500/1000/5000/10000/50000/100000/500000), 0 for no preference. default: %u)"), 0));
+    // ZCDENOMINATIONS: hardcoded denom values
+    strUsage += HelpMessageOpt("-preferredDenom=<n>", strprintf(_("Preferred Denomination for automatically minted Zerocoin  (50/100/500/1000/5000/10000/50000/100000), 0 for no preference. default: %u)"), 0));
     strUsage += HelpMessageOpt("-backupzpiv=<n>", strprintf(_("Enable automatic wallet backups triggered after each zCOLX minting (0-1, default: %u)"), 1));
 
     strUsage += HelpMessageGroup(_("SwiftX options:"));
@@ -1863,6 +1864,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
        1COLX+1000 == (.1COLX+100)*10
        10COLX+10000 == (1COLX+1000)*10
     */
+    // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this),
+    // ... but it's still relevant (wallet, selectCoins uses this?)
     obfuScationDenominations.push_back((10000 * COIN) + 10000000);
     obfuScationDenominations.push_back((1000 * COIN) + 1000000);
     obfuScationDenominations.push_back((100 * COIN) + 100000);

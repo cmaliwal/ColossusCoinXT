@@ -1108,7 +1108,12 @@ void CBudgetManager::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
     if (fLiteMode) return;
     if (!masternodeSync.IsBlockchainSynced()) return;
 
-    LOCK(cs_budget);
+    //LOCK(cs_budget);
+    // DLOCKSFIX:
+    // this fast ends up at requiring cs_main/mempool (on most paths here)
+    // I tried optimizing to avoid over-locking things but IMO not worth it 
+    // (we need all 3 most of the time)
+    LOCK3(cs_main, mempool.cs, cs_budget);
 
     if (strCommand == "mnvs") { //Masternode vote sync
         uint256 nProp;

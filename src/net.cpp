@@ -1568,19 +1568,22 @@ void ThreadMessageHandler()
                 // (cs_main should go first, cs_vSend is always called from inside
                 TRY_LOCK(cs_main, lockMain);
                 if (lockMain) {
-                    if (pnode->nVersion != 0)
-                    {
-                        // DLOCKSFIX: AddressRefreshBroadcast is moved to a signal of its own
-                        // to separate the locks. It's an isolated piece of code, just something 
-                        // we have to do from time to time and SendMessages was used as a trigger
-                        TRY_LOCK(cs_vNodes, lockNodes);
-                        if (lockNodes) {
-                            g_signals.AddressRefreshBroadcast();
+                    // DLOCKSFIX: order of locks: cs_main, mempool.cs, ...
+                    // I'm reluctantly doing this but almost always mempool goes along
+                    TRY_LOCK(mempool.cs, lockMempool);
+                    if (lockMempool) {
+                        if (pnode->nVersion != 0)
+                        {
+                            // DLOCKSFIX: AddressRefreshBroadcast <= a signal of its own. The idea is to separate the locks, as it's isolated code. Just something we have to do from time to time, SendMessages was used as a trigger
+                            TRY_LOCK(cs_vNodes, lockNodes);
+                            if (lockNodes) {
+                                g_signals.AddressRefreshBroadcast();
+                            }
                         }
-                    }
-                    TRY_LOCK(pnode->cs_vSend, lockSend);
-                    if (lockSend) {
-                        g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
+                        TRY_LOCK(pnode->cs_vSend, lockSend);
+                        if (lockSend) {
+                            g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
+                        }
                     }
                 }
             }

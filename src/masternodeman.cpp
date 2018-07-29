@@ -996,6 +996,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
 
         CValidationState state;
         CMutableTransaction tx = CMutableTransaction();
+        // MNCOLLATERALFIX: this is wrong, this should be an amount just below 10 MIL so x1,000 
         CTxOut vout = CTxOut(9999.99 * COIN, obfuScationPool.collateralPubKey);
         tx.vin.push_back(vin);
         tx.vout.push_back(vout);

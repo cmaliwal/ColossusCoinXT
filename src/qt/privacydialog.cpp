@@ -57,28 +57,78 @@ PrivacyDialog::PrivacyDialog(QWidget* parent) : QDialog(parent),
     ui->labelCoinControlQuantity->addAction(clipboardQuantityAction);
     ui->labelCoinControlAmount->addAction(clipboardAmountAction);
 
+    // ZCDENOMINATIONS: hardcoded denom values
     // Denomination labels
-    ui->labelzDenom1Text->setText(tr("Denom. with value <b>100</b>:"));
-    ui->labelzDenom2Text->setText(tr("Denom. with value <b>500</b>:"));
-    ui->labelzDenom3Text->setText(tr("Denom. with value <b>1000</b>:"));
-    ui->labelzDenom4Text->setText(tr("Denom. with value <b>5000</b>:"));
-    ui->labelzDenom5Text->setText(tr("Denom. with value <b>10000</b>:"));
-    ui->labelzDenom6Text->setText(tr("Denom. with value <b>50000</b>:"));
-    ui->labelzDenom7Text->setText(tr("Denom. with value <b>100000</b>:"));
-    ui->labelzDenom8Text->setText(tr("Denom. with value <b>500000</b>:"));
+    std::string strDenomOne = strprintf("Denom. with value <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_ONE));
+    ui->labelzDenom1Text->setText(tr(strDenomOne.c_str()));
+
+    std::string strDenomFive = strprintf("Denom. with value <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_FIVE));
+    ui->labelzDenom2Text->setText(tr(strDenomFive.c_str()));
+
+    std::string strDenomTen = strprintf("Denom. with value <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_TEN));
+    ui->labelzDenom3Text->setText(tr(strDenomTen.c_str()));
+
+    std::string strDenomFifty = strprintf("Denom. with value <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_FIFTY));
+    ui->labelzDenom4Text->setText(tr(strDenomFifty.c_str()));
+
+    std::string strDenomHundred = strprintf("Denom. with value <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED));
+    ui->labelzDenom5Text->setText(tr(strDenomHundred.c_str()));
+
+    std::string strDenomFiveHundred = strprintf("Denom. with value <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_FIVE_HUNDRED));
+    ui->labelzDenom6Text->setText(tr(strDenomFiveHundred.c_str()));
+
+    std::string strDenomOneThousand = strprintf("Denom. with value <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND));
+    ui->labelzDenom7Text->setText(tr(strDenomOneThousand.c_str()));
+
+    std::string strDenomFiveThousand = strprintf("Denom. with value <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND));
+    ui->labelzDenom8Text->setText(tr(strDenomFiveThousand.c_str()));
+
+    //ui->labelzDenom1Text->setText(tr("Denom. with value <b>50</b>:"));
+    //ui->labelzDenom2Text->setText(tr("Denom. with value <b>100</b>:"));
+    //ui->labelzDenom3Text->setText(tr("Denom. with value <b>500</b>:"));
+    //ui->labelzDenom4Text->setText(tr("Denom. with value <b>1000</b>:"));
+    //ui->labelzDenom5Text->setText(tr("Denom. with value <b>5000</b>:"));
+    //ui->labelzDenom6Text->setText(tr("Denom. with value <b>10000</b>:"));
+    //ui->labelzDenom7Text->setText(tr("Denom. with value <b>50000</b>:"));
+    //ui->labelzDenom8Text->setText(tr("Denom. with value <b>100000</b>:"));
 
     // AutoMint status
     ui->label_AutoMintStatus->setText(tr("AutoMint Status:"));
 
+    // ZCDENOMINATIONS: hardcoded denom values
     // Global Supply labels
-    ui->labelZsupplyText1->setText(tr("Denom. <b>100</b>:"));
-    ui->labelZsupplyText5->setText(tr("Denom. <b>500</b>:"));
-    ui->labelZsupplyText10->setText(tr("Denom. <b>1000</b>:"));
-    ui->labelZsupplyText50->setText(tr("Denom. <b>5000</b>:"));
-    ui->labelZsupplyText100->setText(tr("Denom. <b>10000</b>:"));
-    ui->labelZsupplyText500->setText(tr("Denom. <b>50000</b>:"));
-    ui->labelZsupplyText1000->setText(tr("Denom. <b>100000</b>:"));
-    ui->labelZsupplyText5000->setText(tr("Denom. <b>500000</b>:"));
+    std::string strSupplyOne = strprintf("Denom. <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_ONE));
+    ui->labelZsupplyText1->setText(tr(strSupplyOne.c_str()));
+
+    std::string strSupplyFive = strprintf("Denom. <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_FIVE));
+    ui->labelZsupplyText5->setText(tr(strSupplyFive.c_str()));
+
+    std::string strSupplyTen = strprintf("Denom. <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_TEN));
+    ui->labelZsupplyText10->setText(tr(strSupplyTen.c_str()));
+
+    std::string strSupplyFifty = strprintf("Denom. <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_FIFTY));
+    ui->labelZsupplyText50->setText(tr(strSupplyFifty.c_str()));
+
+    std::string strSupplyHundred = strprintf("Denom. <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED));
+    ui->labelZsupplyText100->setText(tr(strSupplyHundred.c_str()));
+
+    std::string strSupplyFiveHundred = strprintf("Denom. <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_FIVE_HUNDRED));
+    ui->labelZsupplyText500->setText(tr(strSupplyFiveHundred.c_str()));
+
+    std::string strSupplyOneThousand = strprintf("Denom. <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND));
+    ui->labelZsupplyText1000->setText(tr(strSupplyOneThousand.c_str()));
+
+    std::string strSupplyFiveThousand = strprintf("Denom. <b>%ld</b>:", ZerocoinDenominationToInt(libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND));
+    ui->labelZsupplyText5000->setText(tr(strSupplyFiveThousand.c_str()));
+
+    //ui->labelZsupplyText1->setText(tr("Denom. <b>50</b>:"));
+    //ui->labelZsupplyText5->setText(tr("Denom. <b>100</b>:"));
+    //ui->labelZsupplyText10->setText(tr("Denom. <b>500</b>:"));
+    //ui->labelZsupplyText50->setText(tr("Denom. <b>1000</b>:"));
+    //ui->labelZsupplyText100->setText(tr("Denom. <b>5000</b>:"));
+    //ui->labelZsupplyText500->setText(tr("Denom. <b>10000</b>:"));
+    //ui->labelZsupplyText1000->setText(tr("Denom. <b>50000</b>:"));
+    //ui->labelZsupplyText5000->setText(tr("Denom. <b>100000</b>:"));
     
     // COLX settings
     QSettings settings;
@@ -245,7 +295,15 @@ void PrivacyDialog::on_pushButtonMintzPIV_clicked()
 
     for (CZerocoinMint mint : vMints) {
         boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-        strStats = strStats + QString::number(mint.GetDenomination()) + " ";
+
+        libzerocoin::CoinDenomination denom = mint.GetDenomination();
+        if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
+            // ZC50DENOM: temporary to be able to load old wallet
+            error("PrivacyDialog::on_pushButtonMintzPIV_clicked() : invalid denomination!? Probably versioning.");
+            continue;
+        }
+
+        strStats = strStats + QString::number(denom) + " ";
         ui->TEMintStatus->setPlainText(strStatsHeader + strStats);
         ui->TEMintStatus->repaint ();
 
@@ -624,11 +682,20 @@ void PrivacyDialog::setBalance(const CAmount& balance, const CAmount& unconfirme
     int nBestHeight = chainActive.Height();
     for (auto& mint : listMints){
         // All denominations
-        mapDenomBalances.at(mint.GetDenomination())++;
+
+        libzerocoin::CoinDenomination denom = mint.GetDenomination();
+
+        if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
+            // ZC50DENOM: temporary to be able to load old wallet
+            error("PrivacyDialog::setBalance() : invalid denomination!? Probably versioning.");
+            continue;
+        }
+
+        mapDenomBalances.at(denom)++;
 
         if (!mint.GetHeight() || chainActive.Height() - mint.GetHeight() <= Params().Zerocoin_MintRequiredConfirmations()) {
             // All unconfirmed denominations
-            mapUnconfirmed.at(mint.GetDenomination())++;
+            mapUnconfirmed.at(denom)++;
         }
         else {
             // After a denomination is confirmed it might still be immature because < 3 of the same denomination were minted after it
@@ -636,14 +703,14 @@ void PrivacyDialog::setBalance(const CAmount& balance, const CAmount& unconfirme
             int nHeight2CheckpointsDeep = nBestHeight - (nBestHeight % 10) - 20;
             int nMintsAdded = 0;
             while (pindex->nHeight < nHeight2CheckpointsDeep) { //at least 2 checkpoints from the top block
-                nMintsAdded += count(pindex->vMintDenominationsInBlock.begin(), pindex->vMintDenominationsInBlock.end(), mint.GetDenomination());
+                nMintsAdded += count(pindex->vMintDenominationsInBlock.begin(), pindex->vMintDenominationsInBlock.end(), denom);
                 if (nMintsAdded >= Params().Zerocoin_RequiredAccumulation())
                     break;
                 pindex = chainActive[pindex->nHeight + 1];
             }
             if (nMintsAdded < Params().Zerocoin_RequiredAccumulation()){
                 // Immature denominations
-                mapImmature.at(mint.GetDenomination())++;
+                mapImmature.at(denom)++;
             }
         }
     }

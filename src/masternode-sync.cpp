@@ -260,7 +260,15 @@ void CMasternodeSync::Process()
     if (Params().NetworkID() != CBaseChainParams::REGTEST &&
         !IsBlockchainSynced() && RequestedMasternodeAssets > MASTERNODE_SYNC_SPORKS) return;
 
-    // DLOCKSFIX: order of locks: cs_vNodes, cs_vSend
+    // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_vNodes, cs_vSend
+    // CountEnabled is almost always called during sync, ends up in CMasternode::Check, cs_main/mempool
+    // Also this is often called on its own, from obfuscation thread and similar, i.e. no cs_main lock
+    // make sure we don't have any time sleeps or lengthy ops, this loops and syncs? not sure
+    //TRY_LOCK(cs_main, lockMain);
+    //if (!lockMain) return;
+    //TRY_LOCK(mempool.cs, lockMempool);
+    //if (!lockMempool) return;
+
     TRY_LOCK(cs_vNodes, lockRecv);
     if (!lockRecv) return;
 

@@ -1787,6 +1787,7 @@ bool CObfuscationPool::CreateDenominated(CAmount nTotalValue)
     }
 
     // ****** Add denoms ************ /
+    // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this)?
     BOOST_REVERSE_FOREACH (CAmount v, obfuScationDenominations) {
         int nOutputs = 0;
 
@@ -1963,6 +1964,7 @@ int CObfuscationPool::GetDenominations(const std::vector<CTxOut>& vout, bool fSi
 {
     std::vector<pair<int64_t, int> > denomUsed;
 
+    // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this)?
     // make a list of denominations, with zero uses
     BOOST_FOREACH (int64_t d, obfuScationDenominations)
         denomUsed.push_back(make_pair(d, 0));
@@ -2021,6 +2023,7 @@ int CObfuscationPool::GetDenominationsByAmount(CAmount nAmount, int nDenomTarget
 
     std::vector<CTxOut> vout1;
 
+    // ZCDENOMINATIONS: hardcoded denom values, this is really old stuff (not even PIVX fixed this)?
     // Make outputs by looping through denominations, from small to large
     BOOST_REVERSE_FOREACH (CAmount v, obfuScationDenominations) {
         if (nDenomTarget != 0) {

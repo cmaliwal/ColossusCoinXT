@@ -1149,8 +1149,13 @@ bool BlockToPubcoinList(const CBlock& block, list<PublicCoin>& listPubcoins, boo
 
             CValidationState state;
             PublicCoin pubCoin(Params().Zerocoin_Params());
-            if(!TxOutToPublicCoin(txOut, pubCoin, state))
+            if (!TxOutToPublicCoin(txOut, pubCoin, state)) {
+                if (!Params().Zerocoin_IsCheckZerocoinMintOn()) {
+                    error("BlockToPubcoinList(): TxOutToPublicCoin() failed (skipping)");
+                    continue;
+                }
                 return false;
+            }
 
             listPubcoins.emplace_back(pubCoin);
         }
@@ -1191,8 +1196,13 @@ bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMin
 
             CValidationState state;
             PublicCoin pubCoin(Params().Zerocoin_Params());
-            if(!TxOutToPublicCoin(txOut, pubCoin, state))
+            if (!TxOutToPublicCoin(txOut, pubCoin, state)) {
+                if (!Params().Zerocoin_IsCheckZerocoinMintOn()) {
+                    error("BlockToZerocoinMintList(): TxOutToPublicCoin() failed (skipping)");
+                    continue;
+                }
                 return false;
+            }
 
             CZerocoinMint mint = CZerocoinMint(pubCoin.getDenomination(), pubCoin.getValue(), 0, 0, false);
             mint.SetTxHash(tx.GetHash());
@@ -1215,8 +1225,13 @@ bool BlockToMintValueVector(const CBlock& block, const CoinDenomination denom, v
 
             CValidationState state;
             PublicCoin coin(Params().Zerocoin_Params());
-            if(!TxOutToPublicCoin(txOut, coin, state))
+            if (!TxOutToPublicCoin(txOut, coin, state)) {
+                if (!Params().Zerocoin_IsCheckZerocoinMintOn()) {
+                    error("BlockToMintValueVector(): TxOutToPublicCoin() failed (skipping)");
+                    continue;
+                }
                 return false;
+            }
 
             if (coin.getDenomination() != denom)
                 continue;
@@ -1423,7 +1438,7 @@ bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, CValidationS
         if (!MoneyRange(nValueOut))
             return state.DoS(100, error("CheckTransaction() : txout total out of range"),
                 REJECT_INVALID, "bad-txns-txouttotal-toolarge");
-        if (fZerocoinActive && txout.IsZerocoinMint()) {
+        if (fZerocoinActive && txout.IsZerocoinMint() && Params().Zerocoin_IsCheckZerocoinMintOn()) {
             if(!CheckZerocoinMint(tx.GetHash(), txout, state, false))
                 return state.DoS(100, error("CheckTransaction() : invalid zerocoin mint"));
         }
@@ -2867,8 +2882,13 @@ bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex
                         continue;
 
                     PublicCoin pubCoin(Params().Zerocoin_Params());
-                    if (!TxOutToPublicCoin(txout, pubCoin, state))
+                    if (!TxOutToPublicCoin(txout, pubCoin, state)) {
+                        if (!Params().Zerocoin_IsCheckZerocoinMintOn()) {
+                            error("DisconnectBlock(): TxOutToPublicCoin() failed (skipping)");
+                            continue;
+                        }
                         return error("DisconnectBlock(): TxOutToPublicCoin() failed");
+                    }
 
                     if(!zerocoinDB->EraseCoinMint(pubCoin.getValue()))
                         return error("DisconnectBlock(): Failed to erase coin mint");
@@ -4847,8 +4867,8 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
     // DLOCKSFIX: TRY_LOCK is safer here, the only piece doing an unconditional lock
     // maybe we should do the mempool.cs as well? as it's almost always needed, and that way
     // we'd reduce issues down the line?
-    //LOCK2(cs_main, mempool.cs);
-    LOCK(cs_main);   // Replaces the former TRY_LOCK loop because busy waiting wastes too much resources
+    LOCK2(cs_main, mempool.cs);
+    //LOCK(cs_main);   // Replaces the former TRY_LOCK loop because busy waiting wastes too much resources
 
     MarkBlockAsReceived(pblock->GetHash());
     if (!checked) {

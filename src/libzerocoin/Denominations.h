@@ -18,15 +18,15 @@ namespace libzerocoin {
 
 enum  CoinDenomination {
     ZQ_ERROR = 0,
-    ZQ_ONE = 100, //1,
-    ZQ_FIVE = 500, //5,
-    ZQ_TEN = 1000, //10,
-    ZQ_FIFTY = 5000, //50,
-    ZQ_ONE_HUNDRED = 10000, //100,
-    ZQ_FIVE_HUNDRED = 50000, //500,
-    ZQ_ONE_THOUSAND = 100000, //1000,
-    ZQ_FIVE_THOUSAND = 500000, //5000
-    ZQ_MIN = 100,
+    ZQ_ONE = 50, //1,
+    ZQ_FIVE = 100, //5,
+    ZQ_TEN = 500, //10,
+    ZQ_FIFTY = 1000, //50,
+    ZQ_ONE_HUNDRED = 5000, //100,
+    ZQ_FIVE_HUNDRED = 10000, //500,
+    ZQ_ONE_THOUSAND = 50000, //1000,
+    ZQ_FIVE_THOUSAND = 100000, //5000
+    ZQ_MIN = 50,
 };
 
 // Order is with the Smallest Denomination first and is important for a particular routine that this order is maintained

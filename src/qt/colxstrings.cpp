@@ -133,9 +133,10 @@ QT_TRANSLATE_NOOP("colx-core", ""
 "need to anonymize some more coins."),
 QT_TRANSLATE_NOOP("colx-core", ""
 "Output debugging information (default: %u, supplying <category> is optional)"),
+// ZCDENOMINATIONS: hardcoded denom values
 QT_TRANSLATE_NOOP("colx-core", ""
 "Preferred Denomination for automatically minted Zerocoin  "
-"(100/500/1000/5000/10000/50000/100000/500000), 0 for no preference. default: %u)"), //"(1/5/10/50/100/500/1000/5000), 0 for no preference. default: %u)"),
+"(50/100/500/1000/5000/10000/50000/100000), 0 for no preference. default: %u)"), //"(1/5/10/50/100/500/1000/5000), 0 for no preference. default: %u)"),
 QT_TRANSLATE_NOOP("colx-core", ""
 "Query for peer addresses via DNS lookup, if low on addresses (default: 1 "
 "unless -connect)"),
