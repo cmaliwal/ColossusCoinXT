@@ -73,12 +73,12 @@ static const Checkpoints::CCheckpointData data = {
 
 static Checkpoints::MapCheckpoints mapCheckpointsTestnet =
     boost::assign::map_list_of(0, uint256("6cd37a546cfaafeee652fd0f3a85ba64c0f539f771a27fca9610cdc2f3278932"))
-        (78300, uint256("7ee7297c6673d5eca2cba9df0f2c48f5023ecdefac715a82c8bfbf8dac923666"));
+        (50000, uint256("19bc88fbd7170e675976803b3786b5c9ab5027944a0f78178772b6eaa6c06c4d"));
 
 static const Checkpoints::CCheckpointData dataTestnet = {
     &mapCheckpointsTestnet,
-    1520769358,
-    148800,
+    1528011294,
+    100000,
     250};
 
 static Checkpoints::MapCheckpoints mapCheckpointsRegtest =
@@ -384,13 +384,9 @@ public:
             return 35500;
 
         case ChainHeight::H5:
-            return 53384;
-
         case ChainHeight::H6:
-            return 80640;
-
         case ChainHeight::H7:
-            return 80640;
+            return 53000;
 
         default:
             assert(false);
