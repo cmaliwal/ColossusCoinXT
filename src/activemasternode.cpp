@@ -12,7 +12,7 @@
 #include "spork.h"
 
 //
-// Bootup the Masternode, look for a 10000 ColossusXT input and register on the network
+// Bootup the Masternode, look for a 10M ColossusXT input and register on the network
 //
 void CActiveMasternode::ManageStatus()
 {
@@ -72,7 +72,8 @@ void CActiveMasternode::ManageStatus()
 
         LogPrintf("CActiveMasternode::ManageStatus() - Checking inbound connection to '%s'\n", service.ToString());
 
-        CNode* pnode = ConnectNode((CAddress)service, NULL, false);
+        // DS: fix remote IP resolving as local IP when starting hot masternode
+        CNode* pnode = ConnectNode((CAddress)service, service.ToString().c_str(), false);
         if (!pnode) {
             notCapableReason = "Could not connect to " + service.ToString();
             LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
