@@ -23,54 +23,32 @@ BOOST_AUTO_TEST_CASE(amount_to_denomination_test)
     cout << "Running amount_to_denomination_test...\n";
 
     //valid amount (min edge)
-    CAmount amount = 100 * COIN;
-    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount) == ZQ_ONE, "For 100*COIN denomination should be ZQ_ONE");
+    BOOST_CHECK(ZQ_ONE == ZQ_MIN);
+    BOOST_CHECK(AmountToZerocoinDenomination(50 * COIN) == ZQ_ONE);
 
     //valid amount (max edge)
-    CAmount amount1 = 500000 * COIN;
-    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount1) == ZQ_FIVE_THOUSAND, "For 500000*COIN denomination should be ZQ_ONE");
+    BOOST_CHECK(AmountToZerocoinDenomination(100000 * COIN) == ZQ_FIVE_THOUSAND);
 
-    // ZCDENOMINATIONS: AccumulatorMap::GetCheckpoint() is asserting
-    ////valid amount (max edge, new)
-    CAmount amount10000 = 10000 * COIN;
-    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount10000) == ZQ_ONE_HUNDRED, "For 10000*COIN denomination should be ZQ_ONE");
+    //valid amount
+    BOOST_CHECK(AmountToZerocoinDenomination(5000 * COIN) == ZQ_ONE_HUNDRED);
 
     //invalid amount (too much)
-    CAmount amount2 = 700000 * COIN;
-    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount2) == ZQ_ERROR, "For 700000*COIN denomination should be Invalid -> ZQ_ERROR");
+    BOOST_CHECK(AmountToZerocoinDenomination(700000 * COIN) == ZQ_ERROR);
 
     //invalid amount (not enough)
-    CAmount amount3 = 1;
-    BOOST_CHECK_MESSAGE(AmountToZerocoinDenomination(amount3) == ZQ_ERROR, "For 1 denomination should be Invalid -> ZQ_ERROR");
+    BOOST_CHECK(AmountToZerocoinDenomination(1 * COIN) == ZQ_ERROR);
 }
 
 BOOST_AUTO_TEST_CASE(denomination_to_value_test)
 {
     cout << "Running ZerocoinDenominationToValue_test...\n";
 
-    int64_t Value = 100 * COIN;
-    CoinDenomination denomination = ZQ_ONE;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 100");
-
-    Value = 1000 * COIN;
-    denomination = ZQ_TEN;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 1000");
-
-    Value = 5000 * COIN;
-    denomination = ZQ_FIFTY;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 5000");
-
-    Value = 50000 * COIN;
-    denomination = ZQ_FIVE_HUNDRED;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 50000");
-
-    Value = 10000 * COIN;
-    denomination = ZQ_ONE_HUNDRED;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 10000");
-
-    Value = 0 * COIN;
-    denomination = ZQ_ERROR;
-    BOOST_CHECK_MESSAGE(ZerocoinDenominationToAmount(denomination) == Value, "Wrong Value - should be 0");
+    BOOST_CHECK(ZerocoinDenominationToAmount(ZQ_ONE) == 50 * COIN);
+    BOOST_CHECK(ZerocoinDenominationToAmount(ZQ_TEN) == 500 * COIN);
+    BOOST_CHECK(ZerocoinDenominationToAmount(ZQ_FIFTY) == 1000 * COIN);
+    BOOST_CHECK(ZerocoinDenominationToAmount(ZQ_ONE_HUNDRED) == 5000 * COIN);
+    BOOST_CHECK(ZerocoinDenominationToAmount(ZQ_FIVE_HUNDRED) == 10000 * COIN);
+    BOOST_CHECK(ZerocoinDenominationToAmount(ZQ_ERROR) == 0 * COIN);
 }
 
 BOOST_AUTO_TEST_CASE(zerocoin_spend_test241)
