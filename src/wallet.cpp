@@ -1651,8 +1651,7 @@ CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
         for (auto& mint : listPubCoin) {
             libzerocoin::CoinDenomination denom = mint.GetDenomination();
 
-            if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
-                // ZC50DENOM: temporary to be able to load old wallet
+            if (denom == libzerocoin::ZQ_ERROR) {
                 error("GetZerocoinBalance() : invalid denomination!? Probably versioning.");
                 continue;
             }
@@ -1693,8 +1692,7 @@ CAmount CWallet::GetUnconfirmedZerocoinBalance() const
             if (!mint.GetHeight() || mint.GetHeight() > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) {
                 libzerocoin::CoinDenomination denom = mint.GetDenomination();
 
-                if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
-                    // ZC50DENOM: temporary to be able to load old wallet
+                if (denom == libzerocoin::ZQ_ERROR) {
                     error("GetUnconfirmedZerocoinBalance() : invalid denomination!? Probably versioning.");
                     continue;
                 }
@@ -1773,8 +1771,7 @@ std::map<libzerocoin::CoinDenomination, CAmount> CWallet::GetMyZerocoinDistribut
         list<CZerocoinMint> listPubCoin = CWalletDB(strWalletFile).ListMintedCoins(true, true, true);
         for (auto& mint : listPubCoin) {
             libzerocoin::CoinDenomination denom = mint.GetDenomination();
-            if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
-                // ZC50DENOM: temporary to be able to load old wallet
+            if (denom == libzerocoin::ZQ_ERROR) {
                 error("GetMyZerocoinDistribution() : invalid denomination!? Probably versioning.");
                 continue;
             }

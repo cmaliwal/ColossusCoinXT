@@ -1149,13 +1149,8 @@ bool BlockToPubcoinList(const CBlock& block, list<PublicCoin>& listPubcoins, boo
 
             CValidationState state;
             PublicCoin pubCoin(Params().Zerocoin_Params());
-            if (!TxOutToPublicCoin(txOut, pubCoin, state)) {
-                if (!Params().Zerocoin_IsCheckZerocoinMintOn()) {
-                    error("BlockToPubcoinList(): TxOutToPublicCoin() failed (skipping)");
-                    continue;
-                }
+            if (!TxOutToPublicCoin(txOut, pubCoin, state))
                 return false;
-            }
 
             listPubcoins.emplace_back(pubCoin);
         }
@@ -1196,13 +1191,8 @@ bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMin
 
             CValidationState state;
             PublicCoin pubCoin(Params().Zerocoin_Params());
-            if (!TxOutToPublicCoin(txOut, pubCoin, state)) {
-                if (!Params().Zerocoin_IsCheckZerocoinMintOn()) {
-                    error("BlockToZerocoinMintList(): TxOutToPublicCoin() failed (skipping)");
-                    continue;
-                }
+            if (!TxOutToPublicCoin(txOut, pubCoin, state))
                 return false;
-            }
 
             CZerocoinMint mint = CZerocoinMint(pubCoin.getDenomination(), pubCoin.getValue(), 0, 0, false);
             mint.SetTxHash(tx.GetHash());
@@ -1225,13 +1215,8 @@ bool BlockToMintValueVector(const CBlock& block, const CoinDenomination denom, v
 
             CValidationState state;
             PublicCoin coin(Params().Zerocoin_Params());
-            if (!TxOutToPublicCoin(txOut, coin, state)) {
-                if (!Params().Zerocoin_IsCheckZerocoinMintOn()) {
-                    error("BlockToMintValueVector(): TxOutToPublicCoin() failed (skipping)");
-                    continue;
-                }
+            if (!TxOutToPublicCoin(txOut, coin, state))
                 return false;
-            }
 
             if (coin.getDenomination() != denom)
                 continue;
@@ -1438,7 +1423,7 @@ bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, CValidationS
         if (!MoneyRange(nValueOut))
             return state.DoS(100, error("CheckTransaction() : txout total out of range"),
                 REJECT_INVALID, "bad-txns-txouttotal-toolarge");
-        if (fZerocoinActive && txout.IsZerocoinMint() && Params().Zerocoin_IsCheckZerocoinMintOn()) {
+        if (fZerocoinActive && txout.IsZerocoinMint()) {
             if(!CheckZerocoinMint(tx.GetHash(), txout, state, false))
                 return state.DoS(100, error("CheckTransaction() : invalid zerocoin mint"));
         }
@@ -2882,13 +2867,8 @@ bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex
                         continue;
 
                     PublicCoin pubCoin(Params().Zerocoin_Params());
-                    if (!TxOutToPublicCoin(txout, pubCoin, state)) {
-                        if (!Params().Zerocoin_IsCheckZerocoinMintOn()) {
-                            error("DisconnectBlock(): TxOutToPublicCoin() failed (skipping)");
-                            continue;
-                        }
+                    if (!TxOutToPublicCoin(txout, pubCoin, state))
                         return error("DisconnectBlock(): TxOutToPublicCoin() failed");
-                    }
 
                     if(!zerocoinDB->EraseCoinMint(pubCoin.getValue()))
                         return error("DisconnectBlock(): Failed to erase coin mint");

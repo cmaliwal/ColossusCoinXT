@@ -297,8 +297,7 @@ void PrivacyDialog::on_pushButtonMintzPIV_clicked()
         boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 
         libzerocoin::CoinDenomination denom = mint.GetDenomination();
-        if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
-            // ZC50DENOM: temporary to be able to load old wallet
+        if (denom == libzerocoin::ZQ_ERROR) {
             error("PrivacyDialog::on_pushButtonMintzPIV_clicked() : invalid denomination!? Probably versioning.");
             continue;
         }
@@ -685,8 +684,7 @@ void PrivacyDialog::setBalance(const CAmount& balance, const CAmount& unconfirme
 
         libzerocoin::CoinDenomination denom = mint.GetDenomination();
 
-        if (denom == libzerocoin::ZQ_ERROR && !Params().Zerocoin_IsCheckZerocoinMintOn()) {
-            // ZC50DENOM: temporary to be able to load old wallet
+        if (denom == libzerocoin::ZQ_ERROR) {
             error("PrivacyDialog::setBalance() : invalid denomination!? Probably versioning.");
             continue;
         }

@@ -133,7 +133,6 @@ public:
     int Zerocoin_Block_FirstFraudulent() const { return nBlockFirstFraudulent; }
     int Zerocoin_Block_LastGoodCheckpoint() const { return nBlockLastGoodCheckpoint; }
     int Block_Enforce_Invalid() const { return nBlockEnforceInvalidUTXO; }
-    bool Zerocoin_IsCheckZerocoinMintOn() const { return fIsCheckZerocoinMintOn; }
 
     int GetMasternodePaymentSigTotal() const { return nMasternodePaymentSigTotal; }
     int GetMasternodePaymentSigRequired() const { return nMasternodePaymentSigRequired; }
@@ -208,7 +207,6 @@ protected:
     int nBlockFirstFraudulent;
     int nBlockLastGoodCheckpoint;
     int nBlockEnforceInvalidUTXO;
-    bool fIsCheckZerocoinMintOn;
 
     int nMasternodePaymentSigTotal;
     int nMasternodePaymentSigRequired;
