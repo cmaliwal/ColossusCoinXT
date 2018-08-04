@@ -627,6 +627,8 @@ void BitcoinGUI::setClientModel(ClientModel* clientModel)
 #endif // ENABLE_WALLET
         unitDisplayControl->setOptionsModel(clientModel->getOptionsModel());
         connect(clientModel->getOptionsModel(), SIGNAL(zeromintEnableChanged(bool)), this, SLOT(setAutoMintStatus()));
+        // this is probably preferred but overkill, there's a timer that should do the work, and rare case.
+        //connect(clientModel, SIGNAL(numBlocksChanged(int)), this, SLOT(setAutoMintStatus()));
 
         //Show trayIcon
         if (trayIcon)
@@ -1190,7 +1192,8 @@ void BitcoinGUI::setStakingStatus()
 
 void BitcoinGUI::setAutoMintStatus()
 {
-    if (fEnableZeromint) {
+    bool fZerocoinActive = chainActive.Height() >= Params().Zerocoin_StartHeight();
+    if (fEnableZeromint && fZerocoinActive) {
         labelAutoMintIcon->show();
         labelAutoMintIcon->setIcon(QIcon(":/icons/automint_active").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
         labelAutoMintIcon->setToolTip(tr("AutoMint is currently enabled and set to ") + QString::number(nZeromintPercentage) + "%.\n");

@@ -266,6 +266,15 @@ void PrivacyDialog::on_pushButtonMintzPIV_clicked()
         //return;
     }
 
+    bool fZerocoinActive = chainActive.Height() >= Params().Zerocoin_StartHeight();
+    if (!fZerocoinActive) {
+        std::string strMsg = strprintf(_("Zerocoin is not yet active. Finish synchronizing and check if you're connected to the right network (and if you're using the right version of the wallet). height: '%d' (zc: %d)!"), chainActive.Height(), Params().Zerocoin_StartHeight());
+        QMessageBox::information(this, tr("Mint Zerocoin"),
+            tr(strMsg.c_str()), QMessageBox::Ok,
+            QMessageBox::Ok);
+        return;
+    }
+
     ui->TEMintStatus->setPlainText(tr("Minting ") + ui->labelMintAmountValue->text() + " zCOLX...");
     ui->TEMintStatus->repaint ();
 
