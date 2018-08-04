@@ -3590,7 +3590,8 @@ void static UpdateTip(CBlockIndex* pindexNew)
     chainActive.SetTip(pindexNew);
 
     // If turned on AutoZeromint will automatically convert COLX to zCOLX
-    if (pwalletMain->isZeromintEnabled ())
+    bool fZerocoinActive = chainActive.Height() >= Params().Zerocoin_StartHeight();
+    if (pwalletMain->isZeromintEnabled () && fZerocoinActive)
         pwalletMain->AutoZeromint ();
 
     // New best block
