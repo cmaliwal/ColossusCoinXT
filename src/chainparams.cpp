@@ -246,13 +246,13 @@ public:
             return 388800;
 
         case ChainHeight::H5:
-            return std::numeric_limits<int>::max(); // FIXME
+            return 500000;
 
         case ChainHeight::H6:
-            return std::numeric_limits<int>::max(); // FIXME
+            return 500000;
 
         case ChainHeight::H7:
-            return std::numeric_limits<int>::max(); // FIXME
+            return 550000;
 
         default:
             assert(false);
