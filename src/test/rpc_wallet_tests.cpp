@@ -68,11 +68,12 @@ BOOST_AUTO_TEST_CASE(rpc_wallet)
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
-    CPubKey demoPubkey = pwalletMain->GenerateNewKey();
-    CBitcoinAddress demoAddress = CBitcoinAddress(CTxDestination(demoPubkey.GetID()));
     UniValue retValue;
     string strAccount = "walletDemoAccount";
     string strPurpose = "receive";
+
+    CPubKey demoPubkey = pwalletMain->GenerateNewKey();
+    CBitcoinAddress demoAddress = CBitcoinAddress(CTxDestination(demoPubkey.GetID()));
     BOOST_CHECK_NO_THROW({ /*Initialize Wallet with an account */
         CWalletDB walletdb(pwalletMain->strWalletFile);
         CAccount account;
@@ -83,6 +84,13 @@ BOOST_AUTO_TEST_CASE(rpc_wallet)
 
     CPubKey setaccountDemoPubkey = pwalletMain->GenerateNewKey();
     CBitcoinAddress setaccountDemoAddress = CBitcoinAddress(CTxDestination(setaccountDemoPubkey.GetID()));
+    BOOST_CHECK_NO_THROW({ /*Initialize Wallet with another account */
+        CWalletDB walletdb(pwalletMain->strWalletFile);
+        CAccount account;
+        account.vchPubKey = setaccountDemoPubkey;
+        pwalletMain->SetAddressBook(account.vchPubKey.GetID(), strAccount, strPurpose);
+        walletdb.WriteAccount(strAccount, account);
+    });
 
     /*********************************
      * 			setaccount
@@ -142,7 +150,7 @@ BOOST_AUTO_TEST_CASE(rpc_wallet)
     BOOST_CHECK_NO_THROW(CallRPC("getaccountaddress \"\""));
     BOOST_CHECK_NO_THROW(CallRPC("getaccountaddress accountThatDoesntExists")); // Should generate a new account
     BOOST_CHECK_NO_THROW(retValue = CallRPC("getaccountaddress " + strAccount));
-    BOOST_CHECK(CBitcoinAddress(retValue.get_str()).Get() == demoAddress.Get());
+    BOOST_CHECK(CBitcoinAddress(retValue.get_str()).Get() == setaccountDemoAddress.Get());
 
     /*********************************
      * 			getaccount
