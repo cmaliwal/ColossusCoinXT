@@ -67,7 +67,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
             "  \"difficulty\": xxxxxx,       (numeric) the current difficulty\n"
             "  \"testnet\": true|false,      (boolean) if the server is using testnet or not\n"
             "  \"moneysupply\" : \"supply\"       (numeric) The money supply when this block was added to the blockchain\n"
-            "  \"zPIVsupply\" :\n"
+            "  \"zCOLXsupply\" :\n"
             "  {\n"
             "     \"50\" : n,             (numeric) supply of 50 zCOLX denomination\n"
             "     \"100\" : n,            (numeric) supply of 100 zCOLX denomination\n"
@@ -131,7 +131,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
         zpivObj.push_back(Pair(to_string(denom), ValueFromAmount(chainActive.Tip()->mapZerocoinSupply.at(denom) * (denom*COIN))));
     }
     zpivObj.push_back(Pair("total", ValueFromAmount(chainActive.Tip()->GetZerocoinSupply())));
-    obj.push_back(Pair("zPIVsupply", zpivObj));
+    obj.push_back(Pair("zCOLXsupply", zpivObj));
 
 #ifdef ENABLE_WALLET
     if (pwalletMain) {

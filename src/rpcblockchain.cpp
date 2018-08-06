@@ -121,7 +121,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
         zpivObj.push_back(Pair(to_string(denom), ValueFromAmount(blockindex->mapZerocoinSupply.at(denom) * (denom*COIN))));
     }
     zpivObj.push_back(Pair("total", ValueFromAmount(blockindex->GetZerocoinSupply())));
-    result.push_back(Pair("zPIVsupply", zpivObj));
+    result.push_back(Pair("zCOLXsupply", zpivObj));
 
     return result;
 }
@@ -307,7 +307,7 @@ UniValue getblock(const UniValue& params, bool fHelp)
             "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
             "  \"nextblockhash\" : \"hash\"       (string) The hash of the next block\n"
             "  \"moneysupply\" : \"supply\"       (numeric) The money supply when this block was added to the blockchain\n"
-            "  \"zPIVsupply\" :\n"
+            "  \"zCOLXsupply\" :\n"
             "  {\n"
             "     \"50\" : n,             (numeric) supply of 50 zCOLX denomination\n"
             "     \"100\" : n,            (numeric) supply of 100 zCOLX denomination\n"
