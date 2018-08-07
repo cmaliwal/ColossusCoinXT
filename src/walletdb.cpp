@@ -491,7 +491,6 @@ bool ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue, CW
             ssKey >> script;
             char fYes;
             ssValue >> fYes;
-            // DRAGAN:
             if (fYes == '1')
                 pwallet->LoadMultiSig(script);
 
@@ -761,7 +760,6 @@ DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
     if (wss.fAnyUnordered)
         result = ReorderTransactions(pwallet);
 
-    // DRAGAN: 
     pwallet->laccentries.clear();
     ListAccountCreditDebit("*", pwallet->laccentries);
     BOOST_FOREACH(CAccountingEntry& entry, pwallet->laccentries) {

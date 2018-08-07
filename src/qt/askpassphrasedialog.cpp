@@ -83,7 +83,6 @@ AskPassphraseDialog::AskPassphraseDialog(Mode mode, QWidget* parent, WalletModel
     }
 
     // It doesn't make sense to show the checkbox for sending COLX because you wouldn't check it anyway.
-    // ZC: zCOLX => ?? // Q:
     if (context == Context::Send_PIV || context == Context::Send_zPIV) {
         ui->anonymizationCheckBox->hide();
     }

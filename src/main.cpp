@@ -79,7 +79,6 @@ bool fTxIndex = true;
 bool fIsBareMultisigStd = true;
 bool fCheckBlockIndex = false;
 bool fVerifyingBlocks = false;
-// ZCDENOMINATIONS: should we fix this?
 unsigned int nCoinCacheSize = 5000;
 bool fAlerts = DEFAULT_ALERTS;
 int64_t nReserveBalance = 0;
@@ -868,58 +867,6 @@ int GetIXConfirmations(uint256 nTXHash)
     return 0;
 }
 
-// DRAGAN: removed, not used, recheck // Q: // RECHECK: 
-//// ppcoin: total coin age spent in transaction, in the unit of coin-days.
-//// Only those coins meeting minimum age requirement counts. As those
-//// transactions not in main chain are not currently indexed so we
-//// might not find out about their coin age. Older transactions are
-//// guaranteed to be in main chain by sync-checkpoint. This rule is
-//// introduced to help nodes establish a consistent view of the coin
-//// age (trust score) of competing branches.
-//bool GetCoinAge(const CTransaction& tx, const unsigned int nTxTime, uint64_t& nCoinAge)
-//{
-//    uint256 bnCentSecond = 0; // coin age in the unit of cent-seconds
-//    nCoinAge = 0;
-//
-//    CBlockIndex* pindex = NULL;
-//    BOOST_FOREACH (const CTxIn& txin, tx.vin) {
-//        // First try finding the previous transaction in database
-//        CTransaction txPrev;
-//        uint256 hashBlockPrev;
-//        if (!GetTransaction(txin.prevout.hash, txPrev, hashBlockPrev, true)) {
-//            LogPrintf("GetCoinAge: failed to find vin transaction \n");
-//            continue; // previous transaction not in main chain
-//        }
-//
-//        BlockMap::iterator it = mapBlockIndex.find(hashBlockPrev);
-//        if (it != mapBlockIndex.end())
-//            pindex = it->second;
-//        else {
-//            LogPrintf("GetCoinAge() failed to find block index \n");
-//            continue;
-//        }
-//
-//        // Read block header
-//        CBlockHeader prevblock = pindex->GetBlockHeader();
-//
-//        if (prevblock.nTime + nStakeMinAge > nTxTime)
-//            continue; // only count coins meeting min age requirement
-//
-//        if (nTxTime < prevblock.nTime) {
-//            LogPrintf("GetCoinAge: Timestamp Violation: txtime less than txPrev.nTime");
-//            return false; // Transaction timestamp violation
-//        }
-//
-//        int64_t nValueIn = txPrev.vout[txin.prevout.n].nValue;
-//        bnCentSecond += uint256(nValueIn) * (nTxTime - prevblock.nTime);
-//    }
-//
-//    uint256 bnCoinDay = bnCentSecond / COIN / (24 * 60 * 60);
-//    LogPrintf("coin age bnCoinDay=%s\n", bnCoinDay.ToString().c_str());
-//    nCoinAge = bnCoinDay.GetCompact();
-//    return true;
-//}
-//
 bool MoneyRange(CAmount nValueOut)
 {
     return nValueOut >= 0 && nValueOut <= Params().MaxMoneyOut();
@@ -2082,8 +2029,6 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos)
 
     // Check the header
     if (block.IsProofOfWork()) {
-        // DRAGAN: changed, extra condition, // Q: is this still needed?
-        //if (!CheckProofOfWork(block.GetHash(), block.nBits))
         if (block.GetHash() != Params().HashGenesisBlock() && !CheckProofOfWork(block.GetHash(), block.nBits))
             return error("ReadBlockFromDisk : Errors in block header");
     }
@@ -3240,12 +3185,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         return true;
     }
 
-    // DRAGAN: removed, COLX specifics, no longer relevant // Q: // RECHECK:
-    //if (pindex->nHeight <= Params().LAST_POW_BLOCK() && block.IsProofOfStake())
-    //    return state.DoS(100, error("ConnectBlock() : PoS period not active"),
-    //        REJECT_INVALID, "PoS-early");
-
-    // ZCTEST: 
     if (pindex->nHeight > Params().LAST_POW_BLOCK() && block.IsProofOfWork())
         return state.DoS(100, error("ConnectBlock() : PoW period ended"),
             REJECT_INVALID, "PoW-ended");
@@ -3264,18 +3203,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // Now that the whole chain is irreversibly beyond that time it is applied to all blocks except the
     // two in the chain that violate it. This prevents exploiting the issue against nodes in their
     // initial block download.
-    // DRAGAN: the precondition seems reasonable? maybe different const // Q: // RECHECK: 
-    //bool fEnforceBIP30 = (!pindex->phashBlock) || // Enforce on CreateNewBlock invocations which don't have a hash.
-    //                     !((pindex->nHeight == 91842 && pindex->GetBlockHash() == uint256("0x00000000000a4d0a398161ffc163c503763b1f4360639393e0e4c8e300e0caec")) ||
-    //                         (pindex->nHeight == 91880 && pindex->GetBlockHash() == uint256("0x00000000000743f190a18c5577a3c2d2a1f610ae9601ac046a38084ccb7cd721")));
-    //if (fEnforceBIP30) {
-    //    BOOST_FOREACH (const CTransaction& tx, block.vtx) {
-    //        const CCoins* coins = view.AccessCoins(tx.GetHash());
-    //        if (coins && !coins->IsPruned())
-    //            return state.DoS(100, error("ConnectBlock() : tried to overwrite transaction"),
-    //                REJECT_INVALID, "bad-txns-BIP30");
-    //    }
-    //}
     for (const CTransaction& tx : block.vtx) {
         const CCoins* coins = view.AccessCoins(tx.GetHash());
         if (coins && !coins->IsPruned())
@@ -3611,15 +3538,12 @@ void static UpdateTip(CBlockIndex* pindexNew)
         int nUpgraded = 0;
         const CBlockIndex* pindex = chainActive.Tip();
         for (int i = 0; i < 100 && pindex != NULL; i++) {
-            // ZCTEST: this seems ok (even if our block is on 4 now), it just notes down (on the obsolete side, that being the testnet)
             if (pindex->nVersion > CBlock::CURRENT_VERSION)
                 ++nUpgraded;
             pindex = pindex->pprev;
         }
-        // ZCTEST: only logs CURRENT_VERSION is ok to be higher
         if (nUpgraded > 0)
             LogPrintf("SetBestChain: %d of last 100 blocks above version %d\n", nUpgraded, (int)CBlock::CURRENT_VERSION);
-        // ZCTEST: only logs CURRENT_VERSION is ok to be higher
         if (nUpgraded > 100 / 2) {
             // strMiscWarning is read by GetWarnings(), called by Qt and the JSON-RPC code to warn the user:
             strMiscWarning = _("Warning: This version is obsolete, upgrade required!");
@@ -4032,8 +3956,6 @@ bool ActivateBestChain(CValidationState& state, CBlock* pblock, bool fAlreadyChe
             {
                 LOCK(cs_vNodes);
                 BOOST_FOREACH (CNode* pnode, vNodes)
-                    // DRAGAN: condition changed, COLX specifics // Q: // RECHECK:
-                    //if (chainActive.Height() > (pnode->nStartingHeight != -1 ? pnode->nStartingHeight - 2000 : nBlockEstimate))
                     if (chainActive.Height() > nBlockEstimate)
                         pnode->PushInventory(CInv(MSG_BLOCK, hashNewTip));
             }
@@ -4327,7 +4249,6 @@ bool FindUndoPos(CValidationState& state, int nFile, CDiskBlockPos& pos, unsigne
 
 bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool fCheckPOW)
 {
-    // DRAGAN: added, COLX specific condition (in couple places) // Q: // RECHECK
     if (block.GetHash() == Params().HashGenesisBlock())
         return true;
 
@@ -4350,8 +4271,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     // Check timestamp
     LogPrint("debug", "%s: block=%s  is proof of stake=%d\n", __func__, block.GetHash().ToString().c_str(), block.IsProofOfStake());
-    // DRAGAN: constant changed
-    //if (block.GetBlockTime() > GetAdjustedTime() + (block.IsProofOfStake() ? 180 : 7200)) // 3 minute future drift for PoS
     if (block.GetBlockTime() > GetAdjustedTime() + (block.IsProofOfStake() ? 60 : 7200)) // 1 minute future drift for PoS
         return state.Invalid(error("CheckBlock() : block timestamp too far in the future"),
             REJECT_INVALID, "time-too-new");
@@ -4361,10 +4280,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
         bool mutated;
         uint256 hashMerkleRoot2 = block.BuildMerkleTree(&mutated);
         if (block.hashMerkleRoot != hashMerkleRoot2) {
-            //// ZCTEST: // ZCMAINNET: tried but no easy way to handle this error
-            //// seems merkle tree is calculated differently (version, algo etc.)
-            //LogPrintf("%s: hashMerkleRoot mismatch (%d, %u)\n", __func__, block.nVersion, block.nNonce);
-
             return state.DoS(100, error("CheckBlock() : hashMerkleRoot mismatch"),
                 REJECT_INVALID, "bad-txnmrklroot", true);
         }
@@ -4384,14 +4299,12 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     // Size limits
     unsigned int nMaxBlockSize = MAX_BLOCK_SIZE_CURRENT;
     if (block.vtx.empty() || block.vtx.size() > nMaxBlockSize || ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION) > nMaxBlockSize) {
-        //// ZCTEST: // ZCMAINNET: just turning it off, probably max size could work better (if set to 2...)
         return state.DoS(100, error("CheckBlock() : size limits failed"),
             REJECT_INVALID, "bad-blk-length");
     }
 
     // First transaction must be coinbase, the rest must not be
     if (block.vtx.empty() || !block.vtx[0].IsCoinBase()) {
-        //// ZCTEST: // ZCTESTNET: just turning it off
         return state.DoS(100, error("CheckBlock() : first tx is not coinbase"),
             REJECT_INVALID, "bad-cb-missing");
     }
@@ -4484,7 +4397,6 @@ bool CheckWork(const CBlock block, CBlockIndex* const pindexPrev)
         double n2 = ConvertBitsToDouble(nBitsRequired);
 
         if (abs(n1 - n2) > n1 * 0.5) {
-            // ZCTEST: // ZCMAINNET: 
             return error("%s : incorrect proof of work (DGW pre-fork) - %f %f %f at %d", __func__, abs(n1 - n2), n1, n2, pindexPrev->nHeight + 1);
         }
 
@@ -4846,8 +4758,6 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
     }
 
     // DLOCKSFIX: TRY_LOCK is safer here, the only piece doing an unconditional lock
-    // maybe we should do the mempool.cs as well? as it's almost always needed, and that way
-    // we'd reduce issues down the line?
     LOCK2(cs_main, mempool.cs);
     //LOCK(cs_main);   // Replaces the former TRY_LOCK loop because busy waiting wastes too much resources
 
@@ -6886,29 +6796,6 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
         TRY_LOCK(cs_main, lockMain); // Acquire cs_main for IsInitialBlockDownload() and CNodeState()
         if (!lockMain)
             return true;
-
-        // DLOCKSFIX: moved to a signal of its own, to separate the locks 
-        // it's an isolated piece of code (not relating to any befor or after in here), it's
-        // just something we have to do from time to time and SendMessages was used as trigger
-        // SEE: net.cpp
-        //AddressRefreshBroadcast();
-        //// Address refresh broadcast
-        //static int64_t nLastRebroadcast;
-        //if (!IsInitialBlockDownload() && (GetTime() - nLastRebroadcast > 24 * 60 * 60)) {
-        //    // DLOCKSFIX: order of locks: cs_main, cs_vSend, cs_vNodes
-        //    // masternode-sync.cpp: cs_vNodes, cs_vSend
-        //    // ...there's apparently no easy way to handle this?
-        //    LOCK(cs_vNodes);
-        //    BOOST_FOREACH (CNode* pnode, vNodes) {
-        //        // Periodically clear setAddrKnown to allow refresh broadcasts
-        //        if (nLastRebroadcast)
-        //            pnode->setAddrKnown.clear();
-        //        // Rebroadcast our address
-        //        AdvertizeLocal(pnode);
-        //    }
-        //    if (!vNodes.empty())
-        //        nLastRebroadcast = GetTime();
-        //}
 
         //
         // Message: addr

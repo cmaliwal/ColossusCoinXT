@@ -8,7 +8,6 @@
 #else
 #define UNUSED
 #endif
-// ZCDENOMINATIONS: fix this
 static const char UNUSED *colx_strings[] = {
 QT_TRANSLATE_NOOP("colx-core", " mints deleted\n"),
 QT_TRANSLATE_NOOP("colx-core", " mints updated, "),

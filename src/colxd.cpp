@@ -5,8 +5,6 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-// DRAGAN: different thread/start/shutdown handling (Pivx), pretty much no merge
-
 #include "context.h"
 #include "clientversion.h"
 #include "init.h"
@@ -151,8 +149,6 @@ bool AppInit(int argc, char* argv[])
 #endif
         SoftSetBoolArg("-server", true);
 
-        // DRAGAN: scheduler is added (pivx) which may change the thread related, review // Q:
-        // (but it's tied up to quite a few changes elsewhere, and unrelated to any colx changes)
         fRet = AppInit2(threadGroup, scheduler);
     } catch (std::exception& e) {
         PrintExceptionContinue(&e, "AppInit()");

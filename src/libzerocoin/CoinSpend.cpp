@@ -60,7 +60,7 @@ bool CoinSpend::Verify(const Accumulator& a) const
     return (a.getDenomination() == this->denomination) && commitmentPoK.Verify(serialCommitmentToCoinValue, accCommitmentToCoinValue) && accumulatorPoK.Verify(a, accCommitmentToCoinValue) && serialNumberSoK.Verify(coinSerialNumber, serialCommitmentToCoinValue, signatureHash());
 }
 
-// ZCTEST: 
+// ZCTEST: used for tests only, could be removed
 bool CoinSpend::Verify(const Accumulator& a, string& reason) const
 {
     if (a.getDenomination() != this->denomination) {

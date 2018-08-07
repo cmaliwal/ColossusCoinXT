@@ -362,7 +362,6 @@ bool isObscured(QWidget* w)
     return !(checkPoint(QPoint(0, 0), w) && checkPoint(QPoint(w->width() - 1, 0), w) && checkPoint(QPoint(0, w->height() - 1), w) && checkPoint(QPoint(w->width() - 1, w->height() - 1), w) && checkPoint(QPoint(w->width() / 2, w->height() / 2), w));
 }
 
-// ZC: Unsure about this merge, this is colx change/fix, and seems the latest one // Q:
 void openLocalFile(const boost::filesystem::path& p)
 {
     if (boost::filesystem::exists(p))

@@ -13,7 +13,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
-// DRAGAN: make sure the condition is met (masternode.h)
 #define MN_WINNER_MINIMUM_AGE 8000    // Age in seconds. This should be > MASTERNODE_REMOVAL_SECONDS to avoid misconfigured new nodes in the list.
 
 /** Masternode manager */
@@ -360,7 +359,6 @@ int CMasternodeMan::stable_size ()
 {
     int nStable_size = 0;
     int nMinProtocol = ActiveProtocol();
-    // DRAGAN: pivx change, review
     int64_t nMasternode_Min_Age = MN_WINNER_MINIMUM_AGE;
     int64_t nMasternode_Age = 0;
 
@@ -603,7 +601,6 @@ CMasternode* CMasternodeMan::GetCurrentMasterNode(int mod, int64_t nBlockHeight,
 int CMasternodeMan::GetMasternodeRank(const CTxIn& vin, int64_t nBlockHeight, int minProtocol, bool fOnlyActive)
 {
     std::vector<pair<int64_t, CTxIn> > vecMasternodeScores;
-    // DRAGAN: pivx change, review
     int64_t nMasternode_Min_Age = MN_WINNER_MINIMUM_AGE;
     int64_t nMasternode_Age = 0;
 
@@ -997,7 +994,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
         CValidationState state;
         CMutableTransaction tx = CMutableTransaction();
         // MNCOLLATERALFIX: this is wrong, this should be an amount just below 10 MIL so x1,000 
-        CTxOut vout = CTxOut(9999.99 * COIN, obfuScationPool.collateralPubKey);
+        CTxOut vout = CTxOut(9999999.99 * COIN, obfuScationPool.collateralPubKey);
         tx.vin.push_back(vin);
         tx.vout.push_back(vout);
 

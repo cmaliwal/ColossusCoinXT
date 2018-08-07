@@ -573,7 +573,6 @@ UniValue getstakingstatus(const UniValue& params, bool fHelp)
     obj.push_back(Pair("haveconnections", !vNodes.empty()));
     if (pwalletMain) {
         obj.push_back(Pair("walletunlocked", !pwalletMain->IsLocked()));
-        // DRAGAN: this is the late colx change/fix, differs from pivx
         obj.push_back(Pair("mintablecoins", pwalletMain->MintableCoins(chainActive.Height() + 1)));
         //obj.push_back(Pair("mintablecoins", pwalletMain->MintableCoins()));
         obj.push_back(Pair("enoughcoins", nReserveBalance <= pwalletMain->GetBalance()));

@@ -3,8 +3,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-// DRAGAN: quite a few changes (pivx) but no merge (or related to colx changes)
-
 #include "chain.h"
 #include "primitives/block.h"
 #include "primitives/transaction.h"

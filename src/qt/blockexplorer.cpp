@@ -467,7 +467,6 @@ void BlockExplorer::showEvent(QShowEvent*)
         m_History.push_back(text);
         updateNavButtons();
 
-        // DRAGAN: merged
         //if (!GetBoolArg("-txindex", false)) {
         if (!GetBoolArg("-txindex", true)) {
             QString Warning = tr("Not all transactions will be shown. To view all transactions you need to set txindex=1 in the configuration file (colx.conf).");

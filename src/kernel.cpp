@@ -218,9 +218,6 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64_t& nStakeMod
         LogPrintf("ComputeNextStakeModifier: new modifier=%s time=%s\n", boost::lexical_cast<std::string>(nStakeModifierNew).c_str(), DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexPrev->GetBlockTime()).c_str());
     }
 
-    // DRAGAN: ?
-    //LogPrintf("%s 220\n", __func__);
-
     nStakeModifier = nStakeModifierNew;
     fGeneratedStakeModifier = true;
     return true;
@@ -325,7 +322,6 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock blockFrom, const CTra
     int nHeightStart = chainActive.Height();
     for (i = 0; i < (nHashDrift); i++) //iterate the hashing
     {
-        // DRAGAN: latest PIVX addition, does it change COLX fixes here? review // Q: 
         //new block came in, move on
         if (chainActive.Height() != nHeightStart)
             break;

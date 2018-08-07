@@ -338,7 +338,6 @@ bool IsReachable(enum Network net)
 {
     LOCK(cs_mapLocalHost);
     return !vfLimited[net];
-    // ZCMASTER: missing some comments, testing only?
     // ZC: off - this is where we turn it on/off to test, review // Q:
     //return vfReachable[net] && !vfLimited[net];
 }
@@ -1542,8 +1541,6 @@ void ThreadMessageHandler()
             {
                 // DLOCKSFIX: send is most often needed within receive, resulting in
                 // deadlock warnings (cs_vSend at the end of chain, while we also have cs_vSend, cs_main)
-                //TRY_LOCK(pnode->cs_vSend, lockSend); if (lockRecv && lockSend)
-                // ...this didn't work well, to remove (still testing)
 
                 TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
                 if (lockRecv) {

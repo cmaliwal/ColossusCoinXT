@@ -262,7 +262,6 @@ void SendCoinsDialog::on_sendButton_clicked()
     if (CoinControlDialog::coinControl->fSplitBlock)
         CoinControlDialog::coinControl->nSplitBlock = int(ui->splitBlockLineEdit->text().toInt());
 
-    // DRAGAN: the whole chunk of code here (obfuscation related) was deleted (pvix) including a colx fix, review // Q:
     QString strFunds = "";
     QString strFee = "";
     recipients[0].inputType = ALL_COINS;
@@ -893,7 +892,6 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
             if (!model->getPubKey(keyid, pubkey)) // Unknown change address
             {
                 ui->labelCoinControlChangeLabel->setText(tr("Warning: Unknown change address"));
-                // DRAGAN: was a colx fix, review // Q:
                 CoinControlDialog::coinControl->destChange = addr.Get();
             } else // Known change address
             {

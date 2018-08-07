@@ -5,7 +5,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-// DRAGAN: non relevant changes, no merge
 
 #ifndef BITCOIN_HASH_H
 #define BITCOIN_HASH_H

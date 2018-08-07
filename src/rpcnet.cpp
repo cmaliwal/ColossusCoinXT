@@ -177,7 +177,6 @@ UniValue addnode(const UniValue& params, bool fHelp)
             "2. \"command\"  (string, required) 'add' to add a node to the list, 'remove' to remove a node from the list, 'onetry' to try a connection to the node once\n"
             "\nExamples:\n" +
             HelpExampleCli("addnode", "\"192.168.0.6:51474\" \"onetry\"") + HelpExampleRpc("addnode", "\"192.168.0.6:51474\", \"onetry\""));
-            // DRAGAN: should it be '51474' (fixed) or Params().GetDefaultPort
 
     string strNode = params[0].get_str();
 
@@ -231,7 +230,6 @@ UniValue disconnectnode(const UniValue& params, bool fHelp)
 UniValue getaddednodeinfo(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 1 || params.size() > 2)
-        // DRAGAN: should it be '51474' (fixed) or Params().GetDefaultPort
         throw runtime_error(
             "getaddednodeinfo dns ( \"node\" )\n"
             "\nReturns information about the given added node, or all added nodes\n"

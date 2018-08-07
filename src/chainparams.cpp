@@ -352,10 +352,32 @@ public:
                                        // here because we only have a 8 block finalization window on testnet
 
         /** Height or Time Based Activations **/
+        
+        // height at which we start checking the serials (of the spent), duplicates etc.
+        // this should be at our current height (similar to last good checkpoint), but this needs testing
+        //nBlockEnforceSerialRange = 53000; // for next release? this needs testing (not stable / tested)
         nBlockEnforceSerialRange = std::numeric_limits<int>::max(); //Enforce serial range starting this block
+
+        // some background:
+        // - height at which a recalc of the accu-s will be forced (from the last good checkpoint)
+        // - last-good-check < first-bad-tx < block-recalc < current-height
+        // - Basically, we recalc and filter out the fraudulent outpoint-s (of the spent)
+        // - i.e. this works hand in hand w/ the below first bad tx
+        // the way it should be used:
+        // - we set last-good, first-bad, recalc-block when we want to 'clean up', certain segment, point
+        // - there should be no other checkpoints in between [last-good, block-recalc]
+        // - should be after a while, when we notice first bad-tx-s and we wanna clear those.
+        // (I'm guessing this was introduced w/ the feature, IMO automatic or done occasionally to clean)
         nBlockRecalculateAccumulators = std::numeric_limits<int>::max(); //Trigger a recalculation of accumulators
+
+        // first bad-tx (spent) height, when we notice it, nothing before (should be maxed out to start w/)
+        // the above (recalcs) won't even start till we set up the first bad-tx height
         nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
+
+        // this should be set to whatever is our current height (and until we notice any bad tx-s)
         nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
+
+        // similar to the bad-tx above, we should set this when we notice issues (w/ outputs)
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
 
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
