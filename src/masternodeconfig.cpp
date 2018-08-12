@@ -64,7 +64,16 @@ bool CMasternodeConfig::read(std::string& strErr)
         if (ip.find(':') == string::npos)
             ip = strprintf("%s:%d", ip, Params().GetDefaultPort());
 
-        const int nPort = CService(ip).GetPort();
+        int nPort = 0;
+        std::string hostname = "";
+        SplitHostPort(ip, nPort, hostname);
+        if (nPort == 0 || hostname.empty()) {
+            strErr = strprintf(_("Failed to parse host:port string (%s)\n"), ip) +
+                     strprintf(_("Line: %d"), linenumber) + "\n\"" + line + "\"";
+            streamConfig.close();
+            return false;
+        }
+
         if (Params().NetworkID() == CBaseChainParams::MAIN) {
             if (nPort != Params().GetDefaultPort()) {
                 strErr = strprintf(_("Invalid port %d detected in masternode.conf\n"), nPort) +
