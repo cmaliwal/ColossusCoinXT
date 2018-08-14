@@ -445,7 +445,7 @@
       <string>Buy COLX</string>
      </property>
      <property name="icon">
-      <iconset>
+      <iconset resource="../colx.qrc">
        <normaloff>:/icons/bitcoin</normaloff>:/icons/bitcoin</iconset>
      </property>
     </widget>
@@ -1754,7 +1754,7 @@
       <string>Sell COLX</string>
      </property>
      <property name="icon">
-      <iconset>
+      <iconset resource="../colx.qrc">
        <normaloff>:/icons/bitcoin</normaloff>:/icons/bitcoin</iconset>
      </property>
     </widget>
@@ -2944,7 +2944,7 @@
       <string>Generate COLX Deposit Address</string>
      </property>
      <property name="icon">
-      <iconset>
+      <iconset resource="../colx.qrc">
        <normaloff>:/icons/bitcoin</normaloff>:/icons/bitcoin</iconset>
      </property>
     </widget>
@@ -3206,7 +3206,7 @@
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap>:/icons/transaction_1</pixmap>
+       <pixmap resource="../colx.qrc">:/icons/transaction_1</pixmap>
       </property>
       <property name="scaledContents">
        <bool>true</bool>
@@ -3253,7 +3253,7 @@
       <string>Update API Keys</string>
      </property>
      <property name="icon">
-      <iconset>
+      <iconset resource="../colx.qrc">
        <normaloff>:/icons/bitcoin</normaloff>:/icons/bitcoin</iconset>
      </property>
     </widget>
@@ -3407,6 +3407,8 @@
    </widget>
   </widget>
  </widget>
- <resources/>
+ <resources>
+  <include location="../colx.qrc"/>
+ </resources>
  <connections/>
 </ui>

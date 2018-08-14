@@ -72,11 +72,13 @@ static const Checkpoints::CCheckpointData data = {
 };
 
 static Checkpoints::MapCheckpoints mapCheckpointsTestnet =
-    boost::assign::map_list_of(0, uint256("6cd37a546cfaafeee652fd0f3a85ba64c0f539f771a27fca9610cdc2f3278932"));
+    boost::assign::map_list_of(0, uint256("6cd37a546cfaafeee652fd0f3a85ba64c0f539f771a27fca9610cdc2f3278932"))
+        (50000, uint256("19bc88fbd7170e675976803b3786b5c9ab5027944a0f78178772b6eaa6c06c4d"));
+
 static const Checkpoints::CCheckpointData dataTestnet = {
     &mapCheckpointsTestnet,
-    1520769358,
-    0,
+    1528011294,
+    100000,
     250};
 
 static Checkpoints::MapCheckpoints mapCheckpointsRegtest =
@@ -86,6 +88,15 @@ static const Checkpoints::CCheckpointData dataRegtest = {
     1454124731,
     0,
     100};
+
+libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
+{
+    assert(this);
+    static CBigNum bnTrustedModulus(zerocoinModulus);
+    static libzerocoin::ZerocoinParams ZCParams = libzerocoin::ZerocoinParams(bnTrustedModulus);
+
+    return &ZCParams;
+}
 
 class CMainParams : public CChainParams
 {
@@ -125,6 +136,7 @@ public:
         nBudgetPercent = 10;
         nDevFundPercent = 10;
         nBudgetPaymentCycle = 60*60*24*30; // 1 month
+        nMaxSuperBlocksPerCycle = 100;
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 6;
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
@@ -181,12 +193,32 @@ public:
         fSkipProofOfWorkCheck = false;
         fTestnetToBeDeprecatedFieldRPC = false;
         fHeadersFirstSyncingActive = false;
-
         nPoolMaxTransactions = 3;
 
         strSporkKey = "0423f2b48d99f15a0bceedbe9b05a06d028aca587c3a0f0ee4a7dff6b0859181c1225b5842a17e8bb74758b8f1757a82025631f3276bec0734c6f61de71c1e4d28";
         strObfuscationPoolDummyAddress = "D87q2gC9j6nNrnzCsg4aY6bHMLsT9nUhEw";
         nStartMasternodePayments = 1403728576; //Wed, 25 Jun 2014 20:36:16 GMT
+
+        /** Zerocoin */
+        zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
+            "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"
+            "6507761337985909570009733045974880842840179742910064245869181719511874612151517265463228221686998754918242243363"
+            "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
+            "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
+            "31438167899885040445364023527381951378636564391212010397122822120720357";
+        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMinZerocoinMintFee = 1 * COIN;
+        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
+        nRequiredAccumulation = 1;
+        nDefaultSecurityLevel = 42; // medium security level for accumulators
+        nBudget_Fee_Confirmations = 6; // Number of confirmations for the finalization fee
+
+        /** Height or Time Based Activations **/
+        nBlockEnforceSerialRange = std::numeric_limits<int>::max(); //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = std::numeric_limits<int>::max(); //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -212,6 +244,15 @@ public:
 
         case ChainHeight::H4:
             return 388800;
+
+        case ChainHeight::H5:
+            return 500000;
+
+        case ChainHeight::H6:
+            return 500000;
+
+        case ChainHeight::H7:
+            return 550000;
 
         default:
             assert(false);
@@ -307,6 +348,39 @@ public:
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
         strObfuscationPoolDummyAddress = "y57cqfGRkekRyDRNeJiLtYVEbvhXrNbmox";
         nStartMasternodePayments = 1420837558; //Fri, 09 Jan 2015 21:05:58 GMT
+        nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short
+                                       // here because we only have a 8 block finalization window on testnet
+
+        /** Height or Time Based Activations **/
+        
+        // height at which we start checking the serials (of the spent), duplicates etc.
+        // this should be at our current height (similar to last good checkpoint), but this needs testing
+        //nBlockEnforceSerialRange = 53000; // for next release? this needs testing (not stable / tested)
+        nBlockEnforceSerialRange = std::numeric_limits<int>::max(); //Enforce serial range starting this block
+
+        // some background:
+        // - height at which a recalc of the accu-s will be forced (from the last good checkpoint)
+        // - last-good-check < first-bad-tx < block-recalc < current-height
+        // - Basically, we recalc and filter out the fraudulent outpoint-s (of the spent)
+        // - i.e. this works hand in hand w/ the below first bad tx
+        // the way it should be used:
+        // - we set last-good, first-bad, recalc-block when we want to 'clean up', certain segment, point
+        // - there should be no other checkpoints in between [last-good, block-recalc]
+        // - should be after a while, when we notice first bad-tx-s and we wanna clear those.
+        // (I'm guessing this was introduced w/ the feature, IMO automatic or done occasionally to clean)
+        nBlockRecalculateAccumulators = std::numeric_limits<int>::max(); //Trigger a recalculation of accumulators
+
+        // first bad-tx (spent) height, when we notice it, nothing before (should be maxed out to start w/)
+        // the above (recalcs) won't even start till we set up the first bad-tx height
+        nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
+
+        // this should be set to whatever is our current height (and until we notice any bad tx-s)
+        nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
+
+        // similar to the bad-tx above, we should set this when we notice issues (w/ outputs)
+        nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
+
+        strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -327,7 +401,12 @@ public:
         case ChainHeight::H2:
         case ChainHeight::H3:
         case ChainHeight::H4:
-            return 35500; // on testnet
+            return 35500;
+
+        case ChainHeight::H5:
+        case ChainHeight::H6:
+        case ChainHeight::H7:
+            return 53000;
 
         default:
             assert(false);
@@ -367,8 +446,8 @@ public:
         nRejectBlockOutdatedMajority = 950;
         nToCheckBlockUpgradeMajority = 1000;
         nMinerThreads = 1;
-        nTargetTimespan = 24 * 60 * 60; // Pivx: 1 day
-        nTargetSpacing = 1 * 60;        // Pivx: 1 minutes
+        nTargetTimespan = 24 * 60 * 60; // COLX: 1 day
+        nTargetSpacing = 1 * 60;        // COLX: 1 minutes
         nPastBlocksMin = 200;
         bnProofOfWorkLimit = ~uint256(0) >> 1;
         genesis.nTime = 1454124731;

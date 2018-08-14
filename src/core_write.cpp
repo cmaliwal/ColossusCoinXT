@@ -10,7 +10,8 @@
 #include "script/standard.h"
 #include "serialize.h"
 #include "streams.h"
-#include "univalue/univalue.h"
+// DRAGAN: univalue/include - via CFLAGS  //#include <univalue.h>
+#include "univalue.h"
 #include "util.h"
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"

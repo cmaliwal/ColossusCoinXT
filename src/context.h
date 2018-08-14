@@ -79,6 +79,16 @@ public:
      */
     std::string GetUpdateUrlFile() const;
 
+    /**
+     * Return startup time.
+     */
+    int64_t GetStartupTime() const;
+
+    /**
+     * Adjust startup time.
+     */
+    void SetStartupTime(int64_t nTime);
+
 private:
     CContext(const CContext&);
     CContext& operator=(const CContext&);
@@ -87,6 +97,7 @@ private:
     bool bUpdateAvailable_ = false;
     std::string sUpdateUrlTag_;
     std::string sUpdateUrlFile_;
+    int64_t nStartupTime_ = 0;
 };
 
 #endif // BITCOIN_CONTEXT_H

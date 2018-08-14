@@ -1,5 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin developers
+// Copyright (c) 2014-2015 The Dash developers
+// Copyright (c) 2015-2017 The PIVX Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,6 +14,7 @@
 #include "protocol.h"
 #include "uint256.h"
 #include "amount.h"
+#include "libzerocoin/Params.h"
 
 #include <vector>
 
@@ -19,7 +22,7 @@ class CBitcoinAddress;
 
 typedef unsigned char MessageStartChars[MESSAGE_START_SIZE];
 
-struct CDNSSeedData
+struct CDNSSeedData 
 {
     std::string name, host;
     CDNSSeedData(const std::string& strName, const std::string& strHost) : name(strName), host(strHost) {}
@@ -33,7 +36,10 @@ enum class ChainHeight
     H1, // 1, Premine, Reward 2500 COLX
     H2, // 151202, Reward 1250 COLX
     H3, // 302401, Reward 1000 COLX
-    H4  // 388800, Reward 1250 COLX, new budget and dev funds, only block version >= 4 is valid
+    H4, // 388800, Reward 1500 COLX, see-saw algorithm, new budget params and dev fund payments, only block version >= 4 is valid
+    H5, // Zerocoin, only block version >= 5 is valid
+    H6, // See-saw disabled, go back to 60% MN / 40% staker
+    H7  // New budget Fee 25'000 COLX
 };
 
 /**
@@ -108,13 +114,32 @@ public:
     std::string SporkKey() const { return strSporkKey; }
     std::string ObfuscationPoolDummyAddress() const { return strObfuscationPoolDummyAddress; }
     int64_t StartMasternodePayments() const { return nStartMasternodePayments; }
+    int64_t Budget_Fee_Confirmations() const { return nBudget_Fee_Confirmations; }
     CBaseChainParams::Network NetworkID() const { return networkID; }
+
+    /** Zerocoin **/
+    std::string Zerocoin_Modulus() const { return zerocoinModulus; }
+    libzerocoin::ZerocoinParams* Zerocoin_Params() const;
+    int Zerocoin_MaxSpendsPerTransaction() const { return nMaxZerocoinSpendsPerTransaction; }
+    CAmount Zerocoin_MintFee() const { return nMinZerocoinMintFee; }
+    int Zerocoin_MintRequiredConfirmations() const { return nMintRequiredConfirmations; }
+    int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
+    int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
+
+    /** Height or Time Based Activations **/
+    int Zerocoin_StartHeight() const { return GetChainHeight(ChainHeight::H5); }
+    int Zerocoin_Block_EnforceSerialRange() const { return nBlockEnforceSerialRange; }
+    int Zerocoin_Block_RecalculateAccumulators() const { return nBlockRecalculateAccumulators; }
+    int Zerocoin_Block_FirstFraudulent() const { return nBlockFirstFraudulent; }
+    int Zerocoin_Block_LastGoodCheckpoint() const { return nBlockLastGoodCheckpoint; }
+    int Block_Enforce_Invalid() const { return nBlockEnforceInvalidUTXO; }
 
     int GetMasternodePaymentSigTotal() const { return nMasternodePaymentSigTotal; }
     int GetMasternodePaymentSigRequired() const { return nMasternodePaymentSigRequired; }
     int64_t GetBudgetPercent() const { return nBudgetPercent; }
     int64_t GetDevFundPercent() const { return nDevFundPercent; }
     int64_t GetBudgetPaymentCycle() const { return nBudgetPaymentCycle; }
+    int GetMaxSuperBlocksPerCycle() const { return nMaxSuperBlocksPerCycle; }
     unsigned int GetModifierInterval() const { return nModifierInterval; }
     unsigned int GetModifierIntervalRatio() const { return nModifierIntervalRatio; }
     CAmount GetRequiredMasternodeCollateral() const { return nRequiredMasternodeCollateral; }
@@ -169,11 +194,26 @@ protected:
     std::string strObfuscationPoolDummyAddress;
     int64_t nStartMasternodePayments;
 
+    std::string zerocoinModulus;
+    int nMaxZerocoinSpendsPerTransaction;
+    CAmount nMinZerocoinMintFee;
+    int nMintRequiredConfirmations;
+    int nRequiredAccumulation;
+    int nDefaultSecurityLevel;
+    int64_t nBudget_Fee_Confirmations;
+
+    int nBlockEnforceSerialRange;
+    int nBlockRecalculateAccumulators;
+    int nBlockFirstFraudulent;
+    int nBlockLastGoodCheckpoint;
+    int nBlockEnforceInvalidUTXO;
+
     int nMasternodePaymentSigTotal;
     int nMasternodePaymentSigRequired;
     int64_t nBudgetPercent;
     int64_t nDevFundPercent;
     int64_t nBudgetPaymentCycle;
+    int nMaxSuperBlocksPerCycle;
     unsigned int nModifierInterval;
     unsigned int nModifierIntervalRatio;
     CAmount nRequiredMasternodeCollateral;

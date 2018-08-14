@@ -23,14 +23,13 @@ BOOST_AUTO_TEST_CASE(sanity)
     BOOST_CHECK(Checkpoints::CheckBlock(2090, p2090));
     BOOST_CHECK(Checkpoints::CheckBlock(3250, p3250));
 
-
     // Wrong hashes at checkpoints should fail:
     BOOST_CHECK(!Checkpoints::CheckBlock(2090, p3250));
     BOOST_CHECK(!Checkpoints::CheckBlock(3250, p2090));
 
     // ... but any hash not at a checkpoint should succeed:
-    BOOST_CHECK(Checkpoints::CheckBlock(2090+1, p3250));
-    BOOST_CHECK(Checkpoints::CheckBlock(3250+1, p2090));
+    BOOST_CHECK(Checkpoints::CheckBlock(2090 + 1, p3250));
+    BOOST_CHECK(Checkpoints::CheckBlock(3250 + 1, p2090));
 
     BOOST_CHECK(Checkpoints::GetTotalBlocksEstimate() >= 3250);
 }

@@ -102,6 +102,12 @@ public:
     /** New block has been accepted */
     boost::signals2::signal<void(const uint256& hash)> NotifyBlockTip;
 
+    /** New block has been accepted and is over a certain size */
+    boost::signals2::signal<void(int size, const uint256& hash)> NotifyBlockSize;
+
+    /** Banlist did change. */
+    boost::signals2::signal<void (void)> BannedListChanged;
+
     /** Notify user that new version of the software is available for downloading */
     boost::signals2::signal<void()> NotifyUpdateAvailable;
 

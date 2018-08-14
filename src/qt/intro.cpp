@@ -189,7 +189,7 @@ bool Intro::pickDataDirectory()
     }
 
     // update settings
-    settings.setValue("strDataDir", dataDir);
+        settings.setValue("strDataDir", dataDir);
 
     /* Only override -datadir if different from the default, to make it possible to
      * override -datadir in the colx.conf file in the default data directory
@@ -197,7 +197,7 @@ bool Intro::pickDataDirectory()
      */
     if (dataDir != getDefaultDataDirectory())
         SoftSetArg("-datadir", GUIUtil::qstringToBoostPath(dataDir).string()); // use OS locale for path setting
-
+  
     return true;
 }
 

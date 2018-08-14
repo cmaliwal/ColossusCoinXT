@@ -119,7 +119,12 @@ public:
                 break;
             }
             if (showTransaction) {
-                LOCK2(cs_main, wallet->cs_wallet);
+                //LOCK2(cs_main, wallet->cs_wallet);
+                // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
+                // mempool.cs is acquired within index(int idx) and at each iteration, 
+                // it makes sense to pull it out in here (and no obvious issues or downsides?)
+                LOCK3(cs_main, mempool.cs, wallet->cs_wallet);
+
                 // Find transaction in wallet
                 std::map<uint256, CWalletTx>::iterator mi = wallet->mapWallet.find(hash);
                 if (mi == wallet->mapWallet.end()) {
@@ -177,12 +182,19 @@ public:
             // simply re-use the cached status.
             TRY_LOCK(cs_main, lockMain);
             if (lockMain) {
-                TRY_LOCK(wallet->cs_wallet, lockWallet);
-                if (lockWallet && rec->statusUpdateNeeded()) {
-                    std::map<uint256, CWalletTx>::iterator mi = wallet->mapWallet.find(rec->hash);
+                // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
+                // updateStatus, IsTrusted, GetDepthInMainChain => mempool.cs
+                // mempool.cs is acquired within updateStatus and at each iteration, 
+                // it makes sense to pull it out in here (and no obvious issues or downsides?)
+                TRY_LOCK(mempool.cs, lockMempool);
+                if (lockMempool) {
+                    TRY_LOCK(wallet->cs_wallet, lockWallet);
+                    if (lockWallet && rec->statusUpdateNeeded()) {
+                        std::map<uint256, CWalletTx>::iterator mi = wallet->mapWallet.find(rec->hash);
 
-                    if (mi != wallet->mapWallet.end()) {
-                        rec->updateStatus(mi->second);
+                        if (mi != wallet->mapWallet.end()) {
+                            rec->updateStatus(mi->second);
+                        }
                     }
                 }
             }
@@ -355,6 +367,16 @@ QString TransactionTableModel::formatTxType(const TransactionRecord* wtx) const
         return tr("Obfuscation Create Denominations");
     case TransactionRecord::Obfuscated:
         return tr("Obfuscated");
+    case TransactionRecord::ZerocoinMint:
+        return tr("Converted COLX to zCOLX");
+    case TransactionRecord::ZerocoinSpend:
+        return tr("Spent zCOLX");
+    case TransactionRecord::RecvFromZerocoinSpend:
+        return tr("Received COLX from zCOLX");
+    case TransactionRecord::ZerocoinSpend_Change_zPiv:
+        return tr("Minted Change as zCOLX from zCOLX Spend");
+    case TransactionRecord::ZerocoinSpend_FromMe:
+        return tr("Converted zCOLX to COLX");
 
     default:
         return QString();
@@ -371,9 +393,11 @@ QVariant TransactionTableModel::txAddressDecoration(const TransactionRecord* wtx
     case TransactionRecord::RecvWithObfuscation:
     case TransactionRecord::RecvWithAddress:
     case TransactionRecord::RecvFromOther:
+    case TransactionRecord::RecvFromZerocoinSpend:
         return QIcon(":/icons/tx_input");
     case TransactionRecord::SendToAddress:
     case TransactionRecord::SendToOther:
+    case TransactionRecord::ZerocoinSpend:
         return QIcon(":/icons/tx_output");
     default:
         return QIcon(":/icons/tx_inout");
@@ -397,11 +421,17 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord* wtx, b
     case TransactionRecord::SendToAddress:
     case TransactionRecord::Generated:
     case TransactionRecord::StakeMint:
+    case TransactionRecord::ZerocoinSpend:
+    case TransactionRecord::ZerocoinSpend_FromMe:
+    case TransactionRecord::RecvFromZerocoinSpend:
         return lookupAddress(wtx->address, tooltip);
     case TransactionRecord::Obfuscated:
         return lookupAddress(wtx->address, tooltip) + watchAddress;
     case TransactionRecord::SendToOther:
         return QString::fromStdString(wtx->address) + watchAddress;
+    case TransactionRecord::ZerocoinMint:
+    case TransactionRecord::ZerocoinSpend_Change_zPiv:
+        return tr("zCOLX Accumulator");
     case TransactionRecord::SendToSelf:
     default:
         return tr("(n/a)") + watchAddress;
@@ -549,8 +579,12 @@ QVariant TransactionTableModel::data(const QModelIndex& index, int role) const
     case Qt::TextAlignmentRole:
         return column_alignments[index.column()];
     case Qt::ForegroundRole:
-        // Non-confirmed (but not immature) as transactions are grey
-        if (!rec->status.countsForBalance && rec->status.status != TransactionStatus::Immature) {
+        // Conflicted, most probably orphaned
+        if (rec->status.status == TransactionStatus::Conflicted || rec->status.status == TransactionStatus::NotAccepted) {
+            return COLOR_CONFLICTED;
+        }
+        // Unconfimed or immature
+        if ((rec->status.status == TransactionStatus::Unconfirmed) || (rec->status.status == TransactionStatus::Immature)) {
             return COLOR_UNCONFIRMED;
         }
         if (index.column() == Amount && (rec->credit + rec->debit) < 0) {
