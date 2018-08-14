@@ -68,7 +68,6 @@ bool LogAcceptCategory(const char* category);
 int LogPrintStr(const std::string& str);
 
 #define LogPrintf(...) LogPrint(NULL, __VA_ARGS__)
-// ZC: colx only add
 #define DebugPrintf(...) if (fDebug) LogPrint(NULL, __VA_ARGS__)
 
 /**

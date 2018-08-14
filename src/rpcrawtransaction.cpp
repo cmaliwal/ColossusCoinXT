@@ -198,7 +198,6 @@ UniValue getrawtransaction(const UniValue& params, bool fHelp)
 #ifdef ENABLE_WALLET
 UniValue listunspent(const UniValue& params, bool fHelp)
 {
-    // DRAGAN: # of params change
     if (fHelp || params.size() > 4)
         throw runtime_error(
             "listunspent ( minconf maxconf  [\"address\",...] )\n"
@@ -747,7 +746,6 @@ UniValue signrawtransaction(const UniValue& params, bool fHelp)
 
 UniValue sendrawtransaction(const UniValue& params, bool fHelp)
 {
-    // DRAGAN: # of params
     if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
             "sendrawtransaction \"hexstring\" ( allowhighfees )\n"

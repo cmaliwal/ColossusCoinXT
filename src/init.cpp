@@ -166,7 +166,6 @@ public:
 static CCoinsViewDB* pcoinsdbview = NULL;
 static CCoinsViewErrorCatcher* pcoinscatcher = NULL;
 
-// DRAGAN: called from colx, colxd, might not work (the new way)
 void Interrupt(boost::thread_group& threadGroup)
 {
     InterruptHTTPServer();
@@ -194,8 +193,6 @@ void PrepareShutdown()
     /// module was initialized.
     RenameThread("colx-shutoff");
     mempool.AddTransactionsUpdated(1);
-    // DRAGAN: the new way, first enable libevent vs boost/asio
-    //StopRPCThreads();
     StopHTTPRPC();
     StopREST();
     StopRPC();
@@ -454,7 +451,6 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageGroup(_("ZeroMQ notification options:"));
     strUsage += HelpMessageOpt("-zmqpubhashblock=<address>", _("Enable publish hash block in <address>"));
     strUsage += HelpMessageOpt("-zmqpubhashtx=<address>", _("Enable publish hash transaction in <address>"));
-    // DRAGAN: SwiftX naming changed?
     strUsage += HelpMessageOpt("-zmqpubhashtxlock=<address>", _("Enable publish hash transaction (locked via SwiftX) in <address>"));
     strUsage += HelpMessageOpt("-zmqpubrawblock=<address>", _("Enable publish raw block in <address>"));
     strUsage += HelpMessageOpt("-zmqpubrawtx=<address>", _("Enable publish raw transaction in <address>"));
@@ -525,7 +521,6 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-masternodeaddr=<n>", strprintf(_("Set external address:port to get to this masternode (example: %s)"), "128.127.106.235:Params().GetDefaultPort()"));
     strUsage += HelpMessageOpt("-budgetvotemode=<mode>", _("Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)"));
 
-    // DRAGAN: this is latest, flags changed as well (also obfuscation, util, qt/overviewpage to be synced)
     strUsage += HelpMessageGroup(_("Zerocoin options:"));
     strUsage += HelpMessageOpt("-enablezeromint=<n>", strprintf(_("Enable automatic Zerocoin minting (0-1, default: %u)"), 1));
     strUsage += HelpMessageOpt("-zeromintpercentage=<n>", strprintf(_("Percentage of automatically minted Zerocoin  (1-100, default: %u)"), 10));
@@ -558,19 +553,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-rpcpassword=<pw>", _("Password for JSON-RPC connections"));
     strUsage += HelpMessageOpt("-rpcport=<port>", strprintf(_("Listen for JSON-RPC connections on <port> (default: %u or testnet: %u)"), 51473, 51475));
     strUsage += HelpMessageOpt("-rpcallowip=<ip>", _("Allow JSON-RPC connections from specified source. Valid for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24). This option can be specified multiple times"));
-    // DRAGAN: DEFAULT_HTTP_THREADS instead of 4 (as it was fixed before)
     strUsage += HelpMessageOpt("-rpcthreads=<n>", strprintf(_("Set the number of threads to service RPC calls (default: %d)"), DEFAULT_HTTP_THREADS));
-
-    // DRAGAN: these were removed as colx-cli (pivx-cli) no longer uses boost/asio but libevent, no ssl either
-    // i.e. it's not clear how to proceed here (see more in attached comments)
-    //strUsage += HelpMessageOpt("-rpckeepalive", strprintf(_("RPC support for HTTP persistent connections (default: %d)"), 1));
-
-    //strUsage += HelpMessageGroup(_("RPC SSL options: (see the Bitcoin Wiki for SSL setup instructions)"));
-    //strUsage += HelpMessageOpt("-rpcssl", _("Use OpenSSL (https) for JSON-RPC connections"));
-    //strUsage += HelpMessageOpt("-rpcsslcertificatechainfile=<file.cert>", strprintf(_("Server certificate file (default: %s)"), "server.cert"));
-    //strUsage += HelpMessageOpt("-rpcsslprivatekeyfile=<file.pem>", strprintf(_("Server private key (default: %s)"), "server.pem"));
-    //strUsage += HelpMessageOpt("-rpcsslciphers=<ciphers>", strprintf(_("Acceptable ciphers (default: %s)"), "TLSv1.2+HIGH:TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!3DES:@STRENGTH"));
-
     if (GetBoolArg("-help-debug", false)) {
         strUsage += HelpMessageOpt("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE));
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
@@ -723,7 +706,6 @@ bool AppInitServers(boost::thread_group& threadGroup)
 /** Initialize colx.
  *  @pre Parameters should be parsed and config file should be read.
  */
-// DRAGAN: signature of this method has changed (affecting colx/colxd.cpp-s, calls)
 bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 {
 // ********************************************************* Step 1: setup
@@ -750,8 +732,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (setProcDEPPol != NULL) setProcDEPPol(PROCESS_DEP_ENABLE);
 #endif
 
-    // DRAGAN: this moved to util.cpp (by Pvix), just refactored, different error msg
-    // return InitError(strprintf("Error: Winsock library failed to start (WSAStartup returned error %d)", ret));
     if (!SetupNetworking())
         return InitError("Error: Initializing networking failed");
 
@@ -781,11 +761,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     sa_hup.sa_flags = 0;
     sigaction(SIGHUP, &sa_hup, NULL);
 
-    // DRAGAN: this was under preprocessor conditional? // Q:
-    //#if defined(__SVR4) && defined(__sun)
     // Ignore SIGPIPE, otherwise it will bring the daemon down if the client closes unexpectedly
     signal(SIGPIPE, SIG_IGN);
-    //#endif
 #endif
 
     // ********************************************************* Step 2: parameter interactions
@@ -1045,7 +1022,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(_("Unable to sign spork message, wrong key?"));
     }
 
-    // DRAGAN: TODO: turn this off for now, to avoid any threading related changes for now
     // Start the lightweight task scheduler thread
     CScheduler::Function serviceLoop = boost::bind(&CScheduler::serviceQueue, &scheduler);
     threadGroup.create_thread(boost::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
@@ -1057,9 +1033,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
      */
     if (fServer) {
         uiInterface.InitMessage.connect(SetRPCWarmupStatus);
-        //StartRPCThreads();
-        // DRAGAN: this is new code, but too tied up (rpcserver changed completely) // PVIX: // Q:
-        // again not sure which way to proceed (fully follow through the integration, or stop short?)
         if (!AppInitServers(threadGroup))
             return InitError(_("Unable to start HTTP server. See debug log for details."));
     }
@@ -1248,7 +1221,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         }
     }
 
-    // DRAGAN: this is pretty big change, but seems ok/similar (improvements only) // Q:
     // NETWORKING
     // Check for host lookup allowed before parsing any network related parameters
     fNameLookup = GetBoolArg("-dns", DEFAULT_NAME_LOOKUP);
@@ -1835,10 +1807,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 //    nAnonymizePivxAmount = GetArg("-anonymizepivxamount", 0);
 //    if (nAnonymizePivxAmount > 999999) nAnonymizePivxAmount = 999999;
 //    if (nAnonymizePivxAmount < 2) nAnonymizePivxAmount = 2;
-    // DRAGAN: obsolete (naming change no longer relevant)
-    //nAnonymizePivxAmount = GetArg("-anonymizecolxamount", 0);
-    //if (nAnonymizePivxAmount > 999999) nAnonymizePivxAmount = 999999;
-    //if (nAnonymizePivxAmount < 2) nAnonymizePivxAmount = 2;
 
     fEnableSwiftTX = GetBoolArg("-enableswifttx", fEnableSwiftTX);
     nSwiftTXDepth = GetArg("-swifttxdepth", nSwiftTXDepth);
@@ -1903,7 +1871,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION))
         StartTorControl(threadGroup);
 
-    // DRAGAN: TODO: this goes to net.cpp/h, recheck/sync, nope it for now
     StartNode(threadGroup, scheduler);
 
 #ifdef ENABLE_WALLET

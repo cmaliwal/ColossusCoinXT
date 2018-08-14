@@ -143,7 +143,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);
     // Limit to betweeen 1K and MAX_BLOCK_SIZE-1K for sanity:
-    // ZC: this is just a macro/param change (done in other places), seems fine 
     unsigned int nBlockMaxSizeNetwork = MAX_BLOCK_SIZE_CURRENT;
     nBlockMaxSize = std::max((unsigned int)1000, std::min((nBlockMaxSizeNetwork - 1000), nBlockMaxSize));
 
@@ -192,7 +191,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             if (tx.IsCoinBase() || tx.IsCoinStake() || !IsFinalTx(tx, nHeight)) {
                 continue;
             }
-            // ZC: to check this out // Q: 
             if(GetAdjustedTime() > GetSporkValue(SPORK_20_ZEROCOIN_MAINTENANCE_MODE) && tx.ContainsZerocoins()) {
                 continue;
             }
@@ -201,7 +199,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             double dPriority = 0;
             CAmount nTotalIn = 0;
             bool fMissingInputs = false;
-            // ZC: check this out, adds zerocoin handling for tx input, priority // Q: 
             uint256 txid = tx.GetHash();
             for (const CTxIn& txin : tx.vin) {
                 //zerocoinspend has special vin
@@ -320,7 +317,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
                 continue;
 
             // Legacy limits on sigOps:
-            // ZC: just limits handling changed
             unsigned int nMaxBlockSigOps = MAX_BLOCK_SIGOPS_CURRENT;
             unsigned int nTxSigOps = GetLegacySigOpCount(tx);
             if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps)
@@ -345,8 +341,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
             if (!view.HaveInputs(tx))
                 continue;
-
-            // ZC: just checking for double spending, seems ok
 
             // double check that there are no double spent zCOLX spends in this block or tx
             if (tx.IsZerocoinSpend()) {
@@ -377,7 +371,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             CAmount nTxFees = view.GetValueIn(tx) - tx.GetValueOut();
 
             nTxSigOps += GetP2SHSigOpCount(tx, view);
-            // ZC: just limits
             if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps)
                 continue;
 
@@ -400,7 +393,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             nBlockSigOps += nTxSigOps;
             nFees += nTxFees;
 
-            // ZC: 
             for (const CBigNum bnSerial : vTxSerials)
                 vBlockSerials.emplace_back(bnSerial);
 
@@ -458,7 +450,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             UpdateTime(pblock, pindexPrev);
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
         pblock->nNonce = 0;
-        // ZC: added acc checkpoint
         uint256 nCheckpoint = 0;
         AccumulatorMap mapAccumulators;
         if (!CalculateAccumulatorCheckpoint(nHeight, nCheckpoint, mapAccumulators))
@@ -537,7 +528,6 @@ bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
         wallet.mapRequestCount[pblock->GetHash()] = 0;
     }
 
-    // ZC: this is related to signals (new), recheck if consequences // Q: 
     // Inform about the new block
     GetMainSignals().BlockFound(pblock->GetHash());
 
@@ -693,9 +683,6 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
             // Check for stop or if block needs to be rebuilt
             boost::this_thread::interruption_point();
             // Regtest mode doesn't require peers
-            // DRAGAN: this is removed, not sure (pivx) // Q: 
-            //if (vNodes.empty() && Params().MiningRequiresPeers())
-              //  break;
             if (pblock->nNonce >= 0xffff0000)
                 break;
             if (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 60)

@@ -5,8 +5,6 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-// DRAGAN: bring in sync w/ other things, no merge 
-
 #include "chainparamsbase.h"
 #include "clientversion.h"
 #include "rpcclient.h"

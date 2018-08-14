@@ -146,50 +146,6 @@ UniValue setgenerate(const UniValue& params, bool fHelp)
             fGenerate = false;
     }
 
-    // DRAGAN: this part was removed (colx) but is still in pivx (i.e. might be related to the above etc.) // Q:
-    //// -regtest mode: don't return until nGenProcLimit blocks are generated
-    //if (fGenerate && Params().MineBlocksOnDemand()) {
-    //    int nHeightStart = 0;
-    //    int nHeightEnd = 0;
-    //    int nHeight = 0;
-    //    int nGenerate = (nGenProcLimit > 0 ? nGenProcLimit : 1);
-    //    CReserveKey reservekey(pwalletMain);
-
-    //    { // Don't keep cs_main locked
-    //        LOCK(cs_main);
-    //        nHeightStart = chainActive.Height();
-    //        nHeight = nHeightStart;
-    //        nHeightEnd = nHeightStart + nGenerate;
-    //    }
-    //    unsigned int nExtraNonce = 0;
-    //    UniValue blockHashes(UniValue::VARR);
-    //    while (nHeight < nHeightEnd) {
-    //        unique_ptr<CBlockTemplate> pblocktemplate(CreateNewBlockWithKey(reservekey, pwalletMain, false));
-    //        if (!pblocktemplate.get())
-    //            throw JSONRPCError(RPC_INTERNAL_ERROR, "Wallet keypool empty");
-    //        CBlock* pblock = &pblocktemplate->block;
-    //        {
-    //            LOCK(cs_main);
-    //            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-    //        }
-    //        while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits)) {
-    //            // Yes, there is a chance every nonce could fail to satisfy the -regtest
-    //            // target -- 1 in 2^(2^32). That ain't gonna happen.
-    //            ++pblock->nNonce;
-    //        }
-    //        CValidationState state;
-    //        if (!ProcessNewBlock(state, NULL, pblock))
-    //            throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
-    //        ++nHeight;
-    //        blockHashes.push_back(pblock->GetHash().GetHex());
-    //    }
-    //    return blockHashes;
-    //} else // Not -regtest: start generate thread, return immediately
-    //{
-    //    mapArgs["-gen"] = (fGenerate ? "1" : "0");
-    //    mapArgs["-genproclimit"] = itostr(nGenProcLimit);
-    //    GenerateBitcoins(fGenerate, pwalletMain, nGenProcLimit);
-    //}
     mapArgs["-gen"] = (fGenerate ? "1" : "0");
     mapArgs["-genproclimit"] = itostr(nGenProcLimit);
     GenerateBitcoins(fGenerate, pwalletMain, nGenProcLimit);
@@ -669,7 +625,6 @@ UniValue submitblock(const UniValue& params, bool fHelp)
             return "inconclusive";
         state = sc.state;
 
-        // DRAGAN: this was added in colx
         for (CNode* node : vNodes)
             node->PushInventory(CInv(MSG_BLOCK, block.GetHash()));
     }

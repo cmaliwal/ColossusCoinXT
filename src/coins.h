@@ -271,7 +271,6 @@ public:
     //! check whether a particular output is still available
     bool IsAvailable(unsigned int nPos) const
     {
-        // DRAGAN: added extra zerocoin related condition, IsZerocoinMint? // Q: 
         return (nPos < vout.size() && !vout[nPos].IsNull() && !vout[nPos].scriptPubKey.IsZerocoinMint());
     }
 

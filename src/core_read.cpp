@@ -33,7 +33,6 @@ CScript ParseScript(std::string s)
     static map<string, opcodetype> mapOpNames;
 
     if (mapOpNames.empty()) {
-        // DRAGAN: OP-s now go up to OP_ZEROCOINSPEND (previously OP_NOP10)
         for (int op = 0; op <= OP_ZEROCOINSPEND; op++) {
             // Allow OP_RESERVED to get into mapOpNames
             if (op < OP_NOP && op != OP_RESERVED)

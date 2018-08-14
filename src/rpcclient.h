@@ -6,11 +6,6 @@
 #ifndef BITCOIN_RPCCLIENT_H
 #define BITCOIN_RPCCLIENT_H
 
-// DRAGAN: json_spirit seems to be phased out (by univalue), leaving it as a reminder // Q:
-//#include "json/json_spirit_reader_template.h"
-//#include "json/json_spirit_utils.h"
-//#include "json/json_spirit_writer_template.h"
-
 #include <univalue.h>
 
 UniValue RPCConvertValues(const std::string& strMethod, const std::vector<std::string>& strParams);

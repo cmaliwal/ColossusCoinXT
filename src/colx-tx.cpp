@@ -192,7 +192,6 @@ static void MutateTxAddInput(CMutableTransaction& tx, const string& strInput)
     uint256 txid(strTxid);
 
     static const unsigned int minTxOutSz = 9;
-    // DRAGAN: (pvix) just reorganized around legacy preprocessor macros
     unsigned int nMaxSize = MAX_BLOCK_SIZE_LEGACY;
     static const unsigned int maxVout = nMaxSize / minTxOutSz;
 

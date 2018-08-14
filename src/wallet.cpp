@@ -7,6 +7,7 @@
 
 #include "wallet.h"
 
+#include "context.h"
 #include "accumulators.h"
 #include "base58.h"
 #include "checkpoints.h"
@@ -51,7 +52,6 @@ bool fPayAtLeastCustomFee = true;
  * Override with -mintxfee
  */
 CFeeRate CWallet::minTxFee = CFeeRate(10 * COIN);
-int64_t nStartupTime = GetAdjustedTime();
 
 /** @defgroup mapWallet
  *
@@ -80,7 +80,6 @@ const CWalletTx* CWallet::GetWalletTx(const uint256& hash) const
     return &(it->second);
 }
 
-// ZC: colx only, still used in miner.cpp code fix
 bool CWallet::SignTx(CMutableTransaction& tx, unsigned int nIn) const
 {
     if (nIn >= tx.vin.size())
@@ -637,30 +636,6 @@ int64_t CWallet::IncOrderPosNext(CWalletDB* pwalletdb)
     return nRet;
 }
 
-// ZC: only used here and colx (removed from pivx, probably not needed in colx either)
-//CWallet::TxItems CWallet::OrderedTxItems(std::list<CAccountingEntry>& acentries, std::string strAccount)
-//{
-//    AssertLockHeld(cs_wallet); // mapWallet
-//    CWalletDB walletdb(strWalletFile);
-//
-//    // First: get all CWalletTx and CAccountingEntry into a sorted-by-order multimap.
-//    TxItems txOrdered;
-//
-//    // Note: maintaining indices in the database of (account,time) --> txid and (account, time) --> acentry
-//    // would make this much faster for applications that do this a lot.
-//    for (map<uint256, CWalletTx>::iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
-//        CWalletTx* wtx = &((*it).second);
-//        txOrdered.insert(make_pair(wtx->nOrderPos, TxPair(wtx, (CAccountingEntry*)0)));
-//    }
-//    acentries.clear();
-//    walletdb.ListAccountCreditDebit(strAccount, acentries);
-//    BOOST_FOREACH (CAccountingEntry& entry, acentries) {
-//        txOrdered.insert(make_pair(entry.nOrderPos, TxPair((CWalletTx*)0, &entry)));
-//    }
-//
-//    return txOrdered;
-//}
-
 void CWallet::MarkDirty()
 {
     {
@@ -1133,7 +1108,6 @@ CAmount CWalletTx::GetAnonymizableCredit(bool fUseCache) const
         const CTxIn vin = CTxIn(hashTx, i);
 
         if (pwallet->IsSpent(hashTx, i) || pwallet->IsLockedCoin(hashTx, i)) continue;
-        // ZC999FIX: this doesn't look right, 10000 is PIVX MN amount, we use 10 MIL
         if (fMasterNode && vout[i].nValue == Params().GetRequiredMasternodeCollateral()) continue; // do not count MN-like outputs
 
         const int rounds = pwallet->GetInputObfuscationRounds(vin);
@@ -1198,7 +1172,6 @@ CAmount CWalletTx::GetUnlockedCredit() const
         const CTxOut& txout = vout[i];
 
         if (pwallet->IsSpent(hashTx, i) || pwallet->IsLockedCoin(hashTx, i)) continue;
-        // ZC999FIX: this doesn't look right, 10000 is PIVX MN amount, we use 10 MIL
         if (fMasterNode && vout[i].nValue == Params().GetRequiredMasternodeCollateral()) continue; // do not count MN-like outputs
 
         nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
@@ -1232,7 +1205,6 @@ CAmount CWalletTx::GetLockedCredit() const
             nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
         }
 
-        // ZC999FIX: this doesn't look right, 10000 is PIVX MN amount, we use 10 MIL
         // Add masternode collaterals which are handled like locked coins
         if (fMasterNode && vout[i].nValue == Params().GetRequiredMasternodeCollateral()) {
             nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
@@ -1351,7 +1323,6 @@ CAmount CWalletTx::GetLockedWatchOnlyCredit() const
             nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
         }
 
-        // ZC999FIX: this doesn't look right, 10000 is PIVX MN amount, we use 10 MIL
         // Add masternode collaterals which are handled likc locked coins
         if (fMasterNode && vout[i].nValue == Params().GetRequiredMasternodeCollateral()) {
             nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
@@ -2065,17 +2036,13 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
                 if (nCoinType == ONLY_DENOMINATED) {
                     found = IsDenominatedAmount(pcoin->vout[i].nValue);
                 } else if (nCoinType == ONLY_NOT10000IFMN) {
-                    // ZC: COLX change
                     found = !(fMasterNode && pcoin->vout[i].nValue == Params().GetRequiredMasternodeCollateral());
                 } else if (nCoinType == ONLY_NONDENOMINATED_NOT10000IFMN) {
                     if (IsCollateralAmount(pcoin->vout[i].nValue)) continue; // do not use collateral amounts
                     found = !IsDenominatedAmount(pcoin->vout[i].nValue);
-                    // ZC: COLX change
                     if (found && fMasterNode) found = pcoin->vout[i].nValue != Params().GetRequiredMasternodeCollateral(); // do not use Hot MN funds
                 } else if (nCoinType == ONLY_10000) {
-                    // ZC: COLX change
                     found = pcoin->vout[i].nValue == Params().GetRequiredMasternodeCollateral();
-                    //found = pcoin->vout[i].nValue == 10000 * COIN;
                 } else {
                     found = true;
                 }
@@ -2256,9 +2223,6 @@ bool CWallet::MintableCoins(int nTargetHeight) const
             nTxTime = mapBlockIndex.at(out.tx->hashBlock)->GetBlockTime();
         }
 
-        // ZC: tripple change merge - GetAdjustedTime from pivx and param from colx, recheck // Q:
-        //if (GetAdjustedTime() - nTxTime > nStakeMinAge)
-        //if (GetTime() - out.tx->GetTxTime() > Params().GetMinStakeAge(nTargetHeight))
         if (GetAdjustedTime() - nTxTime > Params().GetMinStakeAge(nTargetHeight))
             return true;
     }
@@ -2553,7 +2517,6 @@ bool CWallet::SelectCoinsDark(CAmount nValueMin, CAmount nValueMax, std::vector<
     nValueRet = 0;
 
     vector<COutput> vCoins;
-    // ZCTEST: this gives some compile issue, // TODO: 
     AvailableCoins(vCoins, true, coinControl, nObfuscationRoundsMin < 0 ? ONLY_NONDENOMINATED_NOT10000IFMN : ONLY_DENOMINATED);
 
     set<pair<const CWalletTx*, unsigned int> > setCoinsRet2;
@@ -3160,7 +3123,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             vwtxPrev.push_back(pcoin.first);
             txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-            // ZC: colx later fix (below if pivx code), review // Q:
             //presstab HyperStake - calculate the total size of our new output not including the stake reward to decide whether to split the stake outputs
             uint64_t nSplitSize = pcoin.first->vout[pcoin.second].nValue;
 
@@ -3189,7 +3151,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     }
 
     // Calculate reward
-    // ZC: colx change
     nCredit += GetBlockValueReward(chainActive.Height() + 1);
 
     // Set output amount
@@ -3282,7 +3243,6 @@ bool CWallet::AddAccountingEntry(const CAccountingEntry& acentry, CWalletDB & pw
     laccentries.push_back(acentry);
     CAccountingEntry & entry = laccentries.back();
 
-    // ZC: 
     wtxOrdered.insert(make_pair(entry.nOrderPos, TxPair((CWalletTx*)0, &entry)));
     // FIXME: not implemented
     // wtxOrdered.insert(make_pair(entry.nOrderPos, TxPair((CWalletTx*)0, &entry)));
@@ -4116,12 +4076,12 @@ void CWallet::AutoZeromint()
     // Wait until blockchain + masternodes are fully synced and wallet is unlocked.
     if (!masternodeSync.IsSynced() || IsLocked()){
         // Re-adjust startup time in case syncing needs a long time.
-        nStartupTime = GetAdjustedTime();
+        GetContext().SetStartupTime(GetAdjustedTime());
         return;
     }
 
     // After sync wait even more to reduce load when wallet was just started
-    int64_t nWaitTime = GetAdjustedTime() - nStartupTime;
+    int64_t nWaitTime = GetAdjustedTime() - GetContext().GetStartupTime();
     if (nWaitTime < AUTOMINT_DELAY){
         LogPrint("zero", "CWallet::AutoZeromint(): time since sync-completion or last Automint (%ld sec) < default waiting time (%ld sec). Waiting again...\n", nWaitTime, AUTOMINT_DELAY);
         return;
@@ -4206,7 +4166,7 @@ void CWallet::AutoZeromint()
         LogPrintf("CWallet::AutoZeromint() @ block %ld: successfully minted %ld zCOLX. Current percentage of zCOLX: %lf%%\n",
                   chainActive.Tip()->nHeight, nMintAmount, dPercentage);
         // Re-adjust startup time to delay next Automint for 5 minutes
-        nStartupTime = GetAdjustedTime();
+        GetContext().SetStartupTime(GetAdjustedTime());
     }
     else {
         LogPrintf("CWallet::AutoZeromint(): Nothing minted because either not enough funds available or the requested denomination size (%d) is not yet reached.\n", nPreferredDenom);

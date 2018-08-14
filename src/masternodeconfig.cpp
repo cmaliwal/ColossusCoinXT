@@ -28,10 +28,9 @@ bool CMasternodeConfig::read(std::string& strErr)
     if (!streamConfig.good()) {
         FILE* configFile = fopen(pathMasternodeConfigFile.string().c_str(), "a");
         if (configFile != NULL) {
-            // DRAGAN: should it be '51474' or Params().GetDefaultPort
             std::string strHeader = "# Masternode config file\n"
                                     "# Format: alias IP:port masternodeprivkey collateral_output_txid collateral_output_index\n"
-                                    "# Example: mn1 127.0.0.2:51474 93HaYBVUCYjEMeeH1Y4sBGLALQZE1Yc1K64xiqgX37tGBDQL8Xg 2bcd3c84c84f87eaa86e4e56834c92927a07f9e18718810b92e0d0324456a67c 0\n";
+                                    "# Example: mn1 127.0.0.2:51572 93HaYBVUCYjEMeeH1Y4sBGLALQZE1Yc1K64xiqgX37tGBDQL8Xg 2bcd3c84c84f87eaa86e4e56834c92927a07f9e18718810b92e0d0324456a67c 0\n";
             fwrite(strHeader.c_str(), std::strlen(strHeader.c_str()), 1, configFile);
             fclose(configFile);
         }
@@ -61,22 +60,35 @@ bool CMasternodeConfig::read(std::string& strErr)
             }
         }
 
+        // If port is not specified - append default
+        if (ip.find(':') == string::npos)
+            ip = strprintf("%s:%d", ip, Params().GetDefaultPort());
+
+        int nPort = 0;
+        std::string hostname = "";
+        SplitHostPort(ip, nPort, hostname);
+        if (nPort == 0 || hostname.empty()) {
+            strErr = strprintf(_("Failed to parse host:port string (%s)\n"), ip) +
+                     strprintf(_("Line: %d"), linenumber) + "\n\"" + line + "\"";
+            streamConfig.close();
+            return false;
+        }
+
         if (Params().NetworkID() == CBaseChainParams::MAIN) {
-            if (CService(ip).GetPort() != Params().GetDefaultPort()) {
-                strErr = _("Invalid port detected in masternode.conf") + "\n" +
+            if (nPort != Params().GetDefaultPort()) {
+                strErr = strprintf(_("Invalid port %d detected in masternode.conf\n"), nPort) +
                          strprintf(_("Line: %d"), linenumber) + "\n\"" + line + "\"" + "\n" +
-                         _("(must be Params().GetDefaultPort() for mainnet)");
+                         strprintf(_("(must be %d)"), Params().GetDefaultPort());
                 streamConfig.close();
                 return false;
             }
-        } else if (CService(ip).GetPort() == Params().GetDefaultPort()) {
+        } else if (nPort == Params().GetDefaultPort()) {
             strErr = _("Invalid port detected in masternode.conf") + "\n" +
                      strprintf(_("Line: %d"), linenumber) + "\n\"" + line + "\"" + "\n" +
                      _("(Params().GetDefaultPort() could be used only on mainnet)");
             streamConfig.close();
             return false;
         }
-
 
         add(alias, ip, privKey, txHash, outputIndex);
     }

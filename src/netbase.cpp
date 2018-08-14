@@ -3,8 +3,6 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-// DRAGAN: networking, sockets related (pivx) changes, no relevant merge, internal changes probably
-
 #ifdef HAVE_CONFIG_H
 #include "config/colx-config.h"
 #endif

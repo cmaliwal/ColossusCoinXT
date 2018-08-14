@@ -91,7 +91,7 @@ public:
     CBigNum getSerialComm() const { return serialCommitmentToCoinValue; }
 
     bool Verify(const Accumulator& a) const;
-    // ZCTEST: 
+    // ZCTEST: used for tests only, could be removed
     bool Verify(const Accumulator& a, string& reason) const;
     bool HasValidSerial(ZerocoinParams* params) const;
     CBigNum CalculateValidSerial(ZerocoinParams* params);

@@ -300,7 +300,6 @@ int minimizeChange(
     mapAltChange = getChange(nAltChangeAmount);
     int AltChangeCount = getNumberOfCoinsUsed(mapAltChange);
 
-    // ZC999FIX: 'minimize change' fix, this was 0 and totally nonsensical
     bool isAltFaulty = nAltChangeAmount != 0 && AltChangeCount == 0;
 
     if (isAltFaulty)

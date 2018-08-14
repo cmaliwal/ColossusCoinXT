@@ -2,8 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-// DRAGAN: some code (within), no merge, non relevant?
-
 #include "ecwrapper.h"
 
 #include "serialize.h"

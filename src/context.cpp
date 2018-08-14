@@ -4,6 +4,7 @@
 
 #include "context.h"
 #include "sync.h"
+#include "timedata.h"
 
 #include <memory>
 #include <stdexcept>
@@ -34,7 +35,10 @@ CContext& GetContext()
         return *context_;
 }
 
-CContext::CContext() {}
+CContext::CContext()
+{
+    nStartupTime_ = GetAdjustedTime();
+}
 
 CContext::~CContext() {}
 
@@ -63,4 +67,14 @@ std::string CContext::GetUpdateUrlFile() const
 {
     LOCK(csUpdate_);
     return sUpdateUrlFile_;
+}
+
+int64_t CContext::GetStartupTime() const
+{
+    return nStartupTime_;
+}
+
+void CContext::SetStartupTime(int64_t nTime)
+{
+    nStartupTime_ = nTime;
 }

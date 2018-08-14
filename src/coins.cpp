@@ -223,7 +223,6 @@ CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
     if (tx.IsCoinBase())
         return 0;
 
-    // DRAGAN: added extra zerocoin based condition block, missing on purpose? // Q: 
     //todo are there any security precautions to take here?
     if (tx.IsZerocoinSpend())
         return tx.GetZerocoinSpent();
@@ -237,7 +236,6 @@ CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
 
 bool CCoinsViewCache::HaveInputs(const CTransaction& tx) const
 {
-    // DRAGAN: added extra zerocoin based condition, was it missing on purpose? // Q: 
     if (!tx.IsCoinBase() && !tx.IsZerocoinSpend()) {
         for (unsigned int i = 0; i < tx.vin.size(); i++) {
             const COutPoint& prevout = tx.vin[i].prevout;

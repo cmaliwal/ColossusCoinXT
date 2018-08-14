@@ -67,7 +67,6 @@ CoinDenomination AmountToZerocoinDenomination(CAmount amount)
 // use case: converting COLX to zCOLX without user worrying about denomination math themselves
 CoinDenomination AmountToClosestDenomination(CAmount nAmount, CAmount& nRemaining)
 {
-    // ZC999FIX: 
     if (nAmount < CoinDenomination::ZQ_MIN * COIN) // if (nAmount < 1 * COIN)
         return ZQ_ERROR;
 

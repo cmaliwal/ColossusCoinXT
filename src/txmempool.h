@@ -16,7 +16,6 @@
 
 class CAutoFile;
 
-// DRAGAN: has changed (pivx), review if it affects qt
 inline double AllowFreeThreshold()
 {
     return COIN * 1440 / 250;

@@ -33,10 +33,6 @@ public:
     static const int32_t VERSION4 = 4; // new budget percent and masternode see-saw reward
     static const int32_t VERSION5 = 5; // zerocoins
     static const int32_t CURRENT_VERSION = VERSION5;
-    // ZCTEST: // ZCMAINNET: this is ok to stay higher (when used with older/obsolete code/nodes), it's only used to note down, 
-    // warn about the obsoleteness (on the other side) and when blocks are created with this version
-    // Problem is that testnet node is already returning version '4' (I guess new budget thingy), so 
-    // we need to raise the bar a bit higher
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
