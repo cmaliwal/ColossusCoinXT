@@ -7,6 +7,7 @@
 
 #include "wallet.h"
 
+#include "context.h"
 #include "accumulators.h"
 #include "base58.h"
 #include "checkpoints.h"
@@ -51,7 +52,6 @@ bool fPayAtLeastCustomFee = true;
  * Override with -mintxfee
  */
 CFeeRate CWallet::minTxFee = CFeeRate(10 * COIN);
-int64_t nStartupTime = GetAdjustedTime();
 
 /** @defgroup mapWallet
  *
@@ -4076,12 +4076,12 @@ void CWallet::AutoZeromint()
     // Wait until blockchain + masternodes are fully synced and wallet is unlocked.
     if (!masternodeSync.IsSynced() || IsLocked()){
         // Re-adjust startup time in case syncing needs a long time.
-        nStartupTime = GetAdjustedTime();
+        GetContext().SetStartupTime(GetAdjustedTime());
         return;
     }
 
     // After sync wait even more to reduce load when wallet was just started
-    int64_t nWaitTime = GetAdjustedTime() - nStartupTime;
+    int64_t nWaitTime = GetAdjustedTime() - GetContext().GetStartupTime();
     if (nWaitTime < AUTOMINT_DELAY){
         LogPrint("zero", "CWallet::AutoZeromint(): time since sync-completion or last Automint (%ld sec) < default waiting time (%ld sec). Waiting again...\n", nWaitTime, AUTOMINT_DELAY);
         return;
@@ -4166,7 +4166,7 @@ void CWallet::AutoZeromint()
         LogPrintf("CWallet::AutoZeromint() @ block %ld: successfully minted %ld zCOLX. Current percentage of zCOLX: %lf%%\n",
                   chainActive.Tip()->nHeight, nMintAmount, dPercentage);
         // Re-adjust startup time to delay next Automint for 5 minutes
-        nStartupTime = GetAdjustedTime();
+        GetContext().SetStartupTime(GetAdjustedTime());
     }
     else {
         LogPrintf("CWallet::AutoZeromint(): Nothing minted because either not enough funds available or the requested denomination size (%d) is not yet reached.\n", nPreferredDenom);
