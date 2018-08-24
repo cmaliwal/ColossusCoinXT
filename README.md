@@ -24,7 +24,7 @@ ColossusXT is an open source, peer-to-peer, energy-saving, community driven, dec
 
 https://bitcointalk.org/index.php?topic=2141880.0
 
-### Roadmap 2018: ![Roadmap 2018](https://i.imgur.com/TUVMC3t.jpg) 
+### Roadmap 2018: ![Roadmap 2018](https://i.imgur.com/geB6rVu.jpg) 
 
 ### Blockchain Explorer:
 
@@ -52,5 +52,5 @@ https://colossusxt.io/2018/01/colx-terms-of-service-tos/
 ColossusXT software is an experimental software. There is no guarantee given here.
 Use it at your own risk and please do your due diligence when investing.
 
-### ColossusXT – Extremely resource friendly | Lightning fast | Stealth Anonymous 
+### ColossusXT â€“ Extremely resource friendly | Lightning fast | Stealth Anonymous 
 ![](https://i.imgur.com/NnR0Y18.png) 
