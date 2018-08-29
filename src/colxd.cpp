@@ -149,6 +149,12 @@ bool AppInit(int argc, char* argv[])
 #endif
         SoftSetBoolArg("-server", true);
 
+        // make auto-mint default to be 'false' for colxd (keep qt wallet w/ auto-mint on by default) 
+        if (!mapArgs.count("-enablezeromint")) {
+            SoftSetBoolArg("-enablezeromint", false);
+            LogPrintf("colxd EnableZeroMint default set to: 0 (false)\n");
+        }
+
         fRet = AppInit2(threadGroup, scheduler);
     } catch (std::exception& e) {
         PrintExceptionContinue(&e, "AppInit()");

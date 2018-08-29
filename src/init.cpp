@@ -1783,6 +1783,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
 
     fEnableZeromint = GetBoolArg("-enablezeromint", true);
+    LogPrintf("EnableZeroMint is: %d\n", fEnableZeromint);
 
     nZeromintPercentage = GetArg("-zeromintpercentage", 10);
     if (nZeromintPercentage > 100) nZeromintPercentage = 100;
