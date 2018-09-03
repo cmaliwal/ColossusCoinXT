@@ -458,17 +458,19 @@ bool CMasternodeBroadcast::Create(CTxIn txin, CService service, CKey keyCollater
 
 bool CMasternodeBroadcast::CheckDefaultPort(std::string strService, std::string& strErrorRet, std::string strContext, bool fAllowLookup)
 {
-    // accept any port on testnet
-    if (Params().NetworkID() == CBaseChainParams::TESTNET)
-        return true;
-
     CService service = CService(strService, fAllowLookup);
     int nDefaultPort = Params().GetDefaultPort();
     
-    if (service.GetPort() != nDefaultPort) {
-        strErrorRet = strprintf("Invalid port %u for masternode %s, only %d is supported on %s-net.", 
-                                        service.GetPort(), strService, nDefaultPort, Params().NetworkIDString());
-        LogPrint("masternode", "%s - %s\n", strContext, strErrorRet);
+    if (Params().NetworkID() == CBaseChainParams::MAIN) {
+        if (service.GetPort() != nDefaultPort) {
+            strErrorRet = strprintf("Invalid port %u for masternode %s, only %d is supported on %s-net.",
+                                            service.GetPort(), strService, nDefaultPort, Params().NetworkIDString());
+            LogPrint("masternode", "%s - %s\n", strContext, strErrorRet);
+            return false;
+        }
+    }
+    else if (service.GetPort() == Params(CBaseChainParams::MAIN).GetDefaultPort()) {
+        LogPrint("masternode","Invalid port %u for masternode %s, it is allowed only on mainnet\n", service.GetPort(), service.ToStringIPPort());
         return false;
     } else
         return true;
@@ -523,9 +525,14 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos)
     }
 
     if (Params().NetworkID() == CBaseChainParams::MAIN) {
-        if (addr.GetPort() != Params().GetDefaultPort()) return false;
-    } else if (addr.GetPort() == Params().GetDefaultPort())
+        if (addr.GetPort() != Params().GetDefaultPort()) {
+            LogPrint("masternode","mnb - Invalid port %u for masternode %s\n", addr.GetPort(), addr.ToStringIPPort());
+            return false;
+        }
+    } else if (addr.GetPort() == Params(CBaseChainParams::MAIN).GetDefaultPort()) {
+        LogPrint("masternode","mnb - Invalid port %u for masternode %s, it is allowed only on mainnet\n", addr.GetPort(), addr.ToStringIPPort());
         return false;
+    }
 
     //search existing Masternode list, this is where we update existing Masternodes with new mnb broadcasts
     CMasternode* pmn = mnodeman.Find(vin);

@@ -932,9 +932,14 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
         }
 
         if (Params().NetworkID() == CBaseChainParams::MAIN) {
-            if (addr.GetPort() != Params().GetDefaultPort()) return;
-        } else if (addr.GetPort() == Params().GetDefaultPort())
+            if (addr.GetPort() != Params().GetDefaultPort()) {
+                LogPrint("masternode","dsee - Invalid port %u for masternode %s\n", addr.GetPort(), addr.ToStringIPPort());
+                return;
+            }
+        } else if (addr.GetPort() == Params(CBaseChainParams::MAIN).GetDefaultPort()) {
+            LogPrint("masternode","dsee - Invalid port %u for masternode %s, it is allowed only on mainnet\n", addr.GetPort(), addr.ToStringIPPort());
             return;
+        }
 
         //search existing Masternode list, this is where we update existing Masternodes with new dsee broadcasts
         CMasternode* pmn = this->Find(vin);
