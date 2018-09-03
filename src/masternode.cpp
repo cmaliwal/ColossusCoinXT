@@ -211,7 +211,7 @@ void CMasternode::Check(bool forceCheck)
     if (!unitTest) {
         CValidationState state;
         CMutableTransaction tx = CMutableTransaction();
-        CTxOut vout = CTxOut(9999999.99 * COIN, obfuScationPool.collateralPubKey);
+        CTxOut vout = CTxOut(Params().GetRequiredMasternodeCollateral() - 100 * COIN, obfuScationPool.collateralPubKey);
         tx.vin.push_back(vin);
         tx.vout.push_back(vout);
 
@@ -578,15 +578,15 @@ bool CMasternodeBroadcast::CheckInputsAndAdd(int& nDoS)
 
     if (pmn != NULL) {
         // nothing to do here if we already know about this masternode and it's enabled
-        if (pmn->IsEnabled()) return true;
-        // if it's not enabled, remove old MN first and continue
-        else
+        if (pmn->IsEnabled())
+            return true;
+        else // if it's not enabled, remove old MN first and continue
             mnodeman.Remove(pmn->vin);
     }
 
     CValidationState state;
     CMutableTransaction tx = CMutableTransaction();
-    CTxOut vout = CTxOut(9999999.99 * COIN, obfuScationPool.collateralPubKey);
+    CTxOut vout = CTxOut(Params().GetRequiredMasternodeCollateral() - 100 * COIN, obfuScationPool.collateralPubKey);
     tx.vin.push_back(vin);
     tx.vout.push_back(vout);
 
@@ -596,6 +596,7 @@ bool CMasternodeBroadcast::CheckInputsAndAdd(int& nDoS)
             // not mnb fault, let it to be checked again later
             mnodeman.mapSeenMasternodeBroadcast.erase(GetHash());
             masternodeSync.mapSeenSyncMNB.erase(GetHash());
+            LogPrint("masternode", "mnb - Unable to lock cs_main, will try again later\n");
             return false;
         }
 
