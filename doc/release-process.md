@@ -250,7 +250,18 @@ rm SHA256SUMS
 (the digest algorithm is forced to sha256 to avoid confusion of the `Hash:` header that GPG adds with the SHA256 used for the files)
 Note: check that SHA256SUMS itself doesn't end up in SHA256SUMS, which is a spurious/nonsensical entry.
 
-- Upload zips and installers, as well as `SHA256SUMS.asc` from last step, to the GitHub release (see below)
+- Prepare file `update.info` of the next structure (wallet will be able to detect new release automatically):
+```
+win32=https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.1.1/colx-1.1.1-win32-setup-unsigned.exe
+win64=https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.1.1/colx-1.1.1-win64-setup-unsigned.exe
+linux32=https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.1.1/colx-1.1.1-i686-pc-linux-gnu.tar.gz
+linux64=https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.1.1/colx-1.1.1-x86_64-linux-gnu.tar.gz
+osx=https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.1.1/colx-1.1.1-osx-unsigned.dmg
+arm=https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.1.1/colx-1.1.1-arm-linux-gnueabihf.tar.gz
+aarch64=https://github.com/ColossusCoinXT/ColossusCoinXT/releases/download/v1.1.1/colx-1.1.1-arm-linux-gnueabihf.tar.gz
+```
+
+- Upload zips and installers, as well as `SHA256SUMS.asc` and `update.info` from last step, to the GitHub release (see below)
 
 - Announce the release:
 

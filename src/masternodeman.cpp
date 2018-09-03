@@ -932,9 +932,14 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
         }
 
         if (Params().NetworkID() == CBaseChainParams::MAIN) {
-            if (addr.GetPort() != Params().GetDefaultPort()) return;
-        } else if (addr.GetPort() == Params().GetDefaultPort())
+            if (addr.GetPort() != Params().GetDefaultPort()) {
+                LogPrint("masternode","dsee - Invalid port %u for masternode %s\n", addr.GetPort(), addr.ToStringIPPort());
+                return;
+            }
+        } else if (addr.GetPort() == Params(CBaseChainParams::MAIN).GetDefaultPort()) {
+            LogPrint("masternode","dsee - Invalid port %u for masternode %s, it is allowed only on mainnet\n", addr.GetPort(), addr.ToStringIPPort());
             return;
+        }
 
         //search existing Masternode list, this is where we update existing Masternodes with new dsee broadcasts
         CMasternode* pmn = this->Find(vin);
@@ -993,8 +998,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
 
         CValidationState state;
         CMutableTransaction tx = CMutableTransaction();
-        // MNCOLLATERALFIX: this is wrong, this should be an amount just below 10 MIL so x1,000 
-        CTxOut vout = CTxOut(9999999.99 * COIN, obfuScationPool.collateralPubKey);
+        CTxOut vout = CTxOut(Params().GetRequiredMasternodeCollateral() - 100 * COIN, obfuScationPool.collateralPubKey);
         tx.vin.push_back(vin);
         tx.vout.push_back(vout);
 
