@@ -1803,7 +1803,7 @@ static bool ThreadCheckForUpdates(CContext& context)
         urlInfo = urlInfoNew;
 
     string info;
-    if (!CURLDownloadToMem(urlInfo, info, error)) {
+    if (!CURLDownloadToMem(urlInfo, nullptr, info, error)) {
         LogPrintf("%s: %s\n", __func__, error);
         return true; // continue thread execution
     }

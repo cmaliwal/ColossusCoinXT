@@ -49,8 +49,11 @@ private:
 
 struct MemoryBuffer
 {
-  char* memory;
-  size_t size;
+    MemoryBuffer():
+        memory(nullptr), size(0) {}
+
+    char* memory;
+    size_t size;
 };
 
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
@@ -71,6 +74,33 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
     }
 }
 
+static size_t WriteFileCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+  size_t written = fwrite(contents, size, nmemb, (FILE*)userp);
+  return written;
+}
+
+struct ProgressData
+{
+    ProgressData():
+        download(true), fn(nullptr) {}
+
+    bool download;
+    ProgressReport fn;
+};
+
+static int ProgressCallback(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+{
+    if (clientp) {
+        ProgressData *pd = reinterpret_cast<ProgressData*>(clientp);
+        if (pd->download)
+            return pd->fn(dltotal, dlnow);
+        else
+            return pd->fn(ultotal, ulnow);
+    } else
+        return 0;
+}
+
 //
 // public API
 //
@@ -78,9 +108,9 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 bool CURLGetRedirect(const CUrl& url, CUrl& redirect, string& error)
 {
     CurlScopeInit curl;
-    CURLcode res;
-    char *location;
-    long response_code;
+    CURLcode res = CURLE_OK;
+    char *location = nullptr;
+    long response_code = 0;
 
     redirect.clear();
     error.clear();
@@ -129,7 +159,7 @@ bool CURLGetRedirect(const CUrl& url, CUrl& redirect, string& error)
 }
 
 
-bool CURLDownloadToMem(const CUrl& url, string& buff, string& error)
+bool CURLDownloadToMem(const CUrl& url, ProgressReport fn, string& buff, string& error)
 {
     CurlScopeInit curl;
     CURLcode res;
@@ -168,6 +198,21 @@ bool CURLDownloadToMem(const CUrl& url, string& buff, string& error)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
+    /* follow max 3 redirects */
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 3L);
+
+    ProgressData pd;
+    pd.download = true;
+    pd.fn = fn;
+
+    /* progress meter */
+    if (fn) {
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, ProgressCallback);
+        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &pd);
+    }
+
     /* get it! */
     res = curl_easy_perform(curl);
 
@@ -175,27 +220,89 @@ bool CURLDownloadToMem(const CUrl& url, string& buff, string& error)
     if (res != CURLE_OK) {
         error = strprintf("curl_easy_perform failed: %s", curl_easy_strerror(res));
     } else {
-        long response_code = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-        if (response_code / 100 != 2) {
-            error = strprintf("response code is not OK: %d", response_code);
-            DebugPrintf("%s: response code=%d, response content=%s", __func__, response_code, string(chunk.memory, chunk.size));
-        } else {
-            /*
-            * Now, our chunk.memory points to a memory block that is chunk.size
-            * bytes big and contains the remote file.
-            */
-            DebugPrintf("%s: %lu bytes retrieved\n", __func__, (long)chunk.size);
-            buff.assign(chunk.memory, chunk.size);
-        }
+        /*
+        * Now, our chunk.memory points to a memory block that is chunk.size
+        * bytes big and contains the remote file.
+        */
+        DebugPrintf("%s: %lu bytes retrieved\n", __func__, (long)chunk.size);
+        buff.assign(chunk.memory, chunk.size);
     }
 
-    free(chunk.memory);
+    if (chunk.memory)
+        free(chunk.memory);
+
     return !buff.empty();
 }
 
-bool CURLDownloadToFile(const CUrl& url, const string& path, ProgressReport callback, string& error)
+bool CURLDownloadToFile(const CUrl& url, const string& path, ProgressReport fn, string& error)
 {
-    error = "not implemented";
-    return false;
+    CurlScopeInit curl;
+    error.clear();
+
+    if (url.empty()) {
+        error = "url is empty";
+        return false;
+    }
+
+    if (path.empty()) {
+        error = "path is empty";
+        return false;
+    }
+
+    if (!curl.instance()) {
+        error = "curl init failed";
+        return false;
+    }
+
+    /* specify URL to get */
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+    /* send all data to this function  */
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteFileCallback);
+
+    /* open the file */
+    FILE *pagefile = fopen(path.c_str(), "wb");
+    if (!pagefile) {
+        error = strprintf("failed to create file: %s", path);
+        return false;
+    }
+
+    /* write the page body to this file handle */
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, pagefile);
+
+    /* some servers don't like requests that are made without a user-agent */
+    const string agent = FormatFullVersion();
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, agent.c_str());
+
+    /* disable peer and host verification because of issues on Mac and Win */
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
+    /* follow max 3 redirects */
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 3L);
+
+    ProgressData pd;
+    pd.download = true;
+    pd.fn = fn;
+
+    /* progress meter */
+    if (fn) {
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, ProgressCallback);
+        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &pd);
+    }
+
+    /* get it! */
+    CURLcode res = curl_easy_perform(curl);
+
+    /* check for errors */
+    if (res != CURLE_OK)
+        error = strprintf("curl_easy_perform failed: %s", curl_easy_strerror(res));
+
+    /* close the file */
+    if (pagefile)
+        fclose(pagefile);
+
+    return CURLE_OK == res;
 }
