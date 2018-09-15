@@ -849,6 +849,13 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (nFD - MIN_CORE_FILEDESCRIPTORS < nMaxConnections)
         nMaxConnections = nFD - MIN_CORE_FILEDESCRIPTORS;
 
+    // available only in non-release build, undocumented param
+    if (!CLIENT_VERSION_IS_RELEASE) {
+        MAX_OUTBOUND_CONNECTIONS = GetArg("-maxoutboundconnections", 16);
+        if (MAX_OUTBOUND_CONNECTIONS < 0 || MAX_OUTBOUND_CONNECTIONS > nMaxConnections)
+            return InitError(strprintf("Invalid input for -maxoutboundconnections, -maxconnections=%d", nMaxConnections));
+    }
+
     // ********************************************************* Step 3: parameter-to-internal-flags
 
     fDebug = !mapMultiArgs["-debug"].empty();

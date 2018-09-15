@@ -63,8 +63,6 @@ using namespace std;
 
 namespace
 {
-const int MAX_OUTBOUND_CONNECTIONS = 16;
-
 struct ListenSocket {
     SOCKET socket;
     bool whitelisted;
@@ -89,6 +87,7 @@ uint64_t nLocalHostNonce = 0;
 static std::vector<ListenSocket> vhListenSocket;
 CAddrMan addrman;
 int nMaxConnections = 125;
+int MAX_OUTBOUND_CONNECTIONS = 16;
 bool fAddressesInitialized = false;
 
 vector<CNode*> vNodes;
