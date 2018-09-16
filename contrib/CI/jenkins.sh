@@ -45,6 +45,13 @@ copy_build_out()
     then
         echo "Copying files to release directory..."
         mv build/out/* $dir
+
+        # check build.log for warnings
+        warning=`grep 'warning generated' var/build.log`
+        if [[ ! -z "$warning" ]]
+        then
+            echo "$1: $warning" >> "${RELEASEDIR}/$commit/warnings.txt"
+        fi
     else
         echo "build/out does not contain required files, looks like build failed."
         echo `ls -l build/out`
