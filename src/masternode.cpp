@@ -467,7 +467,8 @@ bool CMasternodeBroadcast::CheckDefaultPort(std::string strService, std::string&
                                             service.GetPort(), strService, nDefaultPort, Params().NetworkIDString());
             LogPrint("masternode", "%s - %s\n", strContext, strErrorRet);
             return false;
-        }
+        } else
+            return true;
     }
     else if (service.GetPort() == Params(CBaseChainParams::MAIN).GetDefaultPort()) {
         LogPrint("masternode","Invalid port %u for masternode %s, it is allowed only on mainnet\n", service.GetPort(), service.ToStringIPPort());
