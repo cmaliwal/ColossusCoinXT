@@ -10,11 +10,12 @@
 #endif
 
 #include "init.h"
-
+#include "context.h"
 #include "accumulators.h"
 #include "activemasternode.h"
 #include "addrman.h"
 #include "amount.h"
+#include "bootstrapmodel.h"
 #include "checkpoints.h"
 #include "compat/sanity.h"
 #include "httpserver.h"
@@ -734,6 +735,27 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     if (!SetupNetworking())
         return InitError("Error: Initializing networking failed");
+
+    // Check if we should bootstrap blockchain
+    BootstrapModelPtr model = GetContext().GetBootstrapModel();
+    if (model->RunStageIIPrepared()) {
+        LogPrintf("%s : bootstrap found - running...\n", __func__);
+
+        string err;
+        if (!model->RunStageII(err)) {
+            error("%s : %s", __func__, err);
+            return InitError(err);
+        }
+
+        if (!model->IsLatestRunSuccess(err)) {
+            error("%s : %s", __func__, err);
+            return InitError(err);
+        }
+    } else {
+        string err;
+        if (!model->CleanUp(err))
+            error("%s : %s", __func__, err); // print to log and continue
+    }
 
 #ifndef WIN32
     if (GetBoolArg("-sysperms", false)) {

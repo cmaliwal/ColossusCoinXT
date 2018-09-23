@@ -44,6 +44,7 @@ std::atomic<int> BootstrapModel::instanceNumber_(0);
 // - progress in status bar
 // - verify network
 // - merge config
+// - connect/disconnect event listener when dialog is not visible
 
 /** convert size to the human readable string */
 static string HumanReadableSize(int64_t size, bool si)
@@ -244,7 +245,7 @@ bool BootstrapModel::RunStageII(std::string& err)
     return error("%s : %s", __func__, err);
 }
 
-bool BootstrapModel::RunStageIIPrepared(std::string& err) const
+bool BootstrapModel::RunStageIIPrepared() const
 {
     return exists(datadirPath_ / BOOTSTRAP_DIR_NAME / BOOTSTRAP_VERIFIED);
 }
@@ -276,11 +277,8 @@ bool BootstrapModel::CleanUp(std::string& err) const
         if (IsBootstrapRunning()) {
             err = "Bootstrap is running";
             return false;
-        } else {
-            remove_all(datadirPath_ / BOOTSTRAP_DIR_NAME);
-            remove(datadirPath_ / BOOTSTRAP_FILE_NAME);
-            return true;
-        }
+        } else
+            return CleanUpImpl(err);
     } catch (const boost::exception& e) {
         err = boost::diagnostic_information(e);
     } catch (const std::exception& e) {
@@ -290,6 +288,13 @@ bool BootstrapModel::CleanUp(std::string& err) const
     }
 
     return error("%s : %s", __func__, err);
+}
+
+bool BootstrapModel::CleanUpImpl(std::string& err) const
+{
+    remove_all(datadirPath_ / BOOTSTRAP_DIR_NAME);
+    remove(datadirPath_ / BOOTSTRAP_FILE_NAME);
+    return true;
 }
 
 bool BootstrapModel::IsLatestRunSuccess(std::string& err) const
@@ -481,23 +486,66 @@ bool BootstrapModel::RunFromCloudImpl(std::string& err)
 // backup blockchain and replace it with bootstrap
 bool BootstrapModel::RunStageIIImpl(std::string& err)
 {
-    return true;
+    // we don't perform additional checks here because if bootstrap
+    // is interrupted in the middle - it will be able to complete on  the next run
+
+    const path bootstrapDirPath = datadirPath_ / BOOTSTRAP_DIR_NAME;
+    if (!exists(bootstrapDirPath)) {
+        err = strprintf("Path does not exist %s", bootstrapDirPath.string());
+        return error("%s : %s", __func__, err);
+    }
+
+    // replace blockchain files from bootstrap
+    const vector<path> dirList = GetBootstrapDirList(bootstrapDirPath);
+    for (const path& dir : dirList) {
+        const path originPath = datadirPath_ / dir.leaf();
+        const path bakPath = originPath.string() + ".bak";
+
+         // remove old backup
+        if (exists(dir) && exists(originPath))
+            remove_all(bakPath);
+
+        // create new backup
+        if (exists(originPath) && !exists(bakPath))
+            rename(originPath, bakPath);
+
+        // move dir from bootstrap to origin
+        if (exists(dir))
+            rename(dir, originPath);
+    }
+
+    remove(datadirPath_ / "peers.dat");
+    remove(datadirPath_ / "banlist.dat");
+
+    return CleanUpImpl(err);
 }
 
 bool BootstrapModel::VerifySignature(const boost::filesystem::path& zipPath, std::string& err) const
 {
-    // implement later
+    ifstream ifs(zipPath.string());
+    if (!ifs.is_open()) {
+        err = strprintf("Failed to open path %s", zipPath.string());
+        return error("%s : %s", __func__, err);
+    }
+
+    // auto-close
+    Finally ifsClose([&ifs](){ ifs.close(); });
+
+    // check it is .zip
+    char pk[3] = {0};
+    ifs.read(pk, 2);
+    if (string(pk) != "PK") {
+        err = strprintf("File %s is not a valid .zip archive", zipPath.string());
+        return error("%s : %s", __func__, err);
+    }
+
+    // implement signature later
     return true;
 }
 
 bool BootstrapModel::VerifyBootstrapFolder(const boost::filesystem::path& bootstrapDir, std::string& err) const
 {
-    vector<path> dirList = {
-        bootstrapDir / "blocks",
-        bootstrapDir / "chainstate",
-        bootstrapDir / "zerocoin"
-    };
-
+    const vector<path> dirList = GetBootstrapDirList(bootstrapDir);
     for (const path& dir : dirList) {
         if (!exists(dir)) {
             err = strprintf("Verification failed, %s does not exist", dir.string());
@@ -555,4 +603,13 @@ bool BootstrapModel::MergeConfigFile(const boost::filesystem::path& original, co
 
     // TODO: merge
     return true;
+}
+
+std::vector<boost::filesystem::path> BootstrapModel::GetBootstrapDirList(const boost::filesystem::path& bootstrapDir) const
+{
+    return {
+        bootstrapDir / "blocks",
+        bootstrapDir / "chainstate",
+        bootstrapDir / "zerocoin"
+    };
 }

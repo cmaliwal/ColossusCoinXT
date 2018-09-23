@@ -113,7 +113,7 @@ public:
      * @param err error description on fail
      * @return true - yes, false - no,
      */
-    bool RunStageIIPrepared(std::string& err) const;
+    bool RunStageIIPrepared() const;
 
     /**
      * @brief Remove temporary files from previous try of bootstrap
@@ -164,12 +164,14 @@ private:
     bool RunFromFileImpl(const boost::filesystem::path& zipPath, std::string& err);
     bool RunFromCloudImpl(std::string& err);
     bool RunStageIIImpl(std::string& err);
+    bool CleanUpImpl(std::string& err) const;
     bool VerifySignature(const boost::filesystem::path& zipPath, std::string& err) const;
     bool VerifyBootstrapFolder(const boost::filesystem::path& bootstrapDir, std::string& err) const;
     bool VerifyNetworkType(const boost::filesystem::path& bootstrapDir, std::string& err) const;
     bool BootstrapVerifiedCreate(const boost::filesystem::path& zipPath, const boost::filesystem::path& verifiedPath, std::string& err) const;
     bool BootstrapVerifiedCheck(const boost::filesystem::path& verifiedPath, std::string& err) const;
     bool MergeConfigFile(const boost::filesystem::path& original, const boost::filesystem::path& bootstrap, std::string& err) const;
+    std::vector<boost::filesystem::path> GetBootstrapDirList(const boost::filesystem::path& bootstrapDir) const;
 
 private:
     BootstrapMode bootstrapMode_;               /** work mode selected by the user */
