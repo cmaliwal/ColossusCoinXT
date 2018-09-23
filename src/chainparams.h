@@ -143,6 +143,7 @@ public:
     unsigned int GetModifierInterval() const { return nModifierInterval; }
     unsigned int GetModifierIntervalRatio() const { return nModifierIntervalRatio; }
     CAmount GetRequiredMasternodeCollateral() const { return nRequiredMasternodeCollateral; }
+    std::string GetBootstrapUrl() const { return strBootstrapUrl; }
 
     virtual CBitcoinAddress GetDevFundAddress() const = 0;
     virtual CBitcoinAddress GetTxFeeAddress() const = 0;
@@ -217,6 +218,7 @@ protected:
     unsigned int nModifierInterval;
     unsigned int nModifierIntervalRatio;
     CAmount nRequiredMasternodeCollateral;
+    std::string strBootstrapUrl;
 };
 
 /** 
@@ -245,6 +247,9 @@ public:
  */
 const CChainParams& Params();
 
+/** Return whether network params are selected or not. */
+bool ParamsSelected();
+
 /** Return parameters for the given network. */
 CChainParams& Params(CBaseChainParams::Network network);
 
@@ -259,5 +264,11 @@ void SelectParams(CBaseChainParams::Network network);
  * Returns false if an invalid combination is given.
  */
 bool SelectParamsFromCommandLine();
+
+/**
+ * Return approximate blockchain size on disk, in Gb.
+ * Minimum free space (in bytes) needed for data directory.
+ */
+uint64_t GetBlockChainSize();
 
 #endif // BITCOIN_CHAINPARAMS_H

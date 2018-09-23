@@ -21,6 +21,8 @@
 #include "splashscreen.h"
 #include "utilitydialog.h"
 #include "winshutdownmonitor.h"
+#include "bootstrapdialog.h"
+#include "bootstrapmodel.h"
 
 #ifdef ENABLE_WALLET
 #include "paymentserver.h"
@@ -512,8 +514,8 @@ WId BitcoinApplication::getMainWinId() const
 {
     if (!window)
         return 0;
-
-    return window->winId();
+    else
+        return window->winId();
 }
 
 #ifndef BITCOIN_QT_TEST
@@ -604,7 +606,8 @@ int main(int argc, char* argv[])
     }
 
     // User language is set up: pick a data directory
-    if (!Intro::pickDataDirectory())
+    bool bootstrap = false;
+    if (!Intro::pickDataDirectory(bootstrap))
         return 0;
 
     /// 6. Determine availability of data directory and parse colx.conf
@@ -619,7 +622,7 @@ int main(int argc, char* argv[])
     } catch (std::exception& e) {
         QMessageBox::critical(0, QObject::tr("ColossusXT Core"),
             QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
-        return 0;
+        return 1;
     }
 
     /// 7. Determine network (and switch to network specific options)
@@ -633,10 +636,20 @@ int main(int argc, char* argv[])
         QMessageBox::critical(0, QObject::tr("ColossusXT Core"), QObject::tr("Error: Invalid combination of -regtest and -testnet."));
         return 1;
     }
-#ifdef ENABLE_WALLET
-    // Parse URIs on command line -- this can affect Params()
-    PaymentServer::ipcParseCommandLine(argc, argv);
-#endif
+
+    // Check for bootstrap option after network is selected
+    if (bootstrap) {
+        try {
+            BootstrapDialog::bootstrapBlockchain(GetContext().GetBootstrapModel());
+        } catch (std::exception& e) {
+            QMessageBox::critical(0, QObject::tr("ColossusXT Core"),
+                QObject::tr("Bootstrap failed, error: \"%1\".\nPlease restart wallet.").arg(e.what()));
+            return 1;
+        } catch (...) {
+            QMessageBox::critical(0, QObject::tr("ColossusXT Core"), QObject::tr("Bootstrap failed, unexpected error. Please restart wallet."));
+            return 1;
+        }
+    }
 
     QScopedPointer<const NetworkStyle> networkStyle(NetworkStyle::instantiate(QString::fromStdString(Params().NetworkIDString())));
     assert(!networkStyle.isNull());
@@ -644,6 +657,11 @@ int main(int argc, char* argv[])
     QApplication::setApplicationName(networkStyle->getAppName());
     // Re-initialize translations after changing application name (language in network-specific settings can be different)
     initTranslations(qtTranslatorBase, qtTranslator, translatorBase, translator);
+
+#ifdef ENABLE_WALLET
+    // Parse URIs on command line -- this can affect Params()
+    PaymentServer::ipcParseCommandLine(argc, argv);
+#endif
 
 #ifdef ENABLE_WALLET
     /// 7a. parse masternode.conf

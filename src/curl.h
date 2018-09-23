@@ -9,6 +9,8 @@
 #include <functional>
 
 typedef std::string CUrl;
+#define CURL_CANCEL_DOWNLOAD 1
+#define CURL_CONTINUE_DOWNLOAD 0
 
 /**
  * Progress callback.

@@ -4,6 +4,7 @@
 
 #include "curl.h"
 #include "util.h"
+#include "finally.h"
 #include "clientversion.h"
 
 #include <stdlib.h>
@@ -158,12 +159,10 @@ bool CURLGetRedirect(const CUrl& url, CUrl& redirect, string& error)
     }
 }
 
-
 bool CURLDownloadToMem(const CUrl& url, ProgressReport fn, string& buff, string& error)
 {
     CurlScopeInit curl;
     CURLcode res;
-    struct MemoryBuffer chunk;
 
     buff.clear();
     error.clear();
@@ -178,8 +177,10 @@ bool CURLDownloadToMem(const CUrl& url, ProgressReport fn, string& buff, string&
         return false;
     }
 
+    struct MemoryBuffer chunk;
     chunk.memory = (char*)malloc(1);  /* will be grown as needed by the realloc above */
     chunk.size = 0;    /* no data at this point */
+    Finally chunkFree([&chunk](){ if (chunk.memory) free(chunk.memory); });
 
     /* specify URL to get */
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -217,19 +218,24 @@ bool CURLDownloadToMem(const CUrl& url, ProgressReport fn, string& buff, string&
     res = curl_easy_perform(curl);
 
     /* check for errors */
-    if (res != CURLE_OK) {
-        error = strprintf("curl_easy_perform failed: %s", curl_easy_strerror(res));
-    } else {
-        /*
-        * Now, our chunk.memory points to a memory block that is chunk.size
-        * bytes big and contains the remote file.
-        */
-        DebugPrintf("%s: %lu bytes retrieved\n", __func__, (long)chunk.size);
-        buff.assign(chunk.memory, chunk.size);
+    if (res != CURLE_OK)
+        error = strprintf("Download %s failed with error: %s", url, curl_easy_strerror(res));
+    else {
+        long response_code = 0;
+        res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+        if (res != CURLE_OK)
+            error = strprintf("Download %s failed with error: %s", url, curl_easy_strerror(res));
+        else if ((response_code / 100) != 2)
+            error = strprintf("Download %s failed with HTTP code: %ld.", url, response_code);
+        else {
+            /*
+            * Now, our chunk.memory points to a memory block that is chunk.size
+            * bytes big and contains the remote file.
+            */
+            DebugPrintf("%s: %lu bytes retrieved\n", __func__, (long)chunk.size);
+            buff.assign(chunk.memory, chunk.size);
+        }
     }
-
-    if (chunk.memory)
-        free(chunk.memory);
 
     return !buff.empty();
 }
@@ -267,6 +273,9 @@ bool CURLDownloadToFile(const CUrl& url, const string& path, ProgressReport fn, 
         return false;
     }
 
+    // close pagefile at function exit
+    Finally pagefileClose([&pagefile](){ fclose(pagefile); });
+
     /* write the page body to this file handle */
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, pagefile);
 
@@ -298,11 +307,16 @@ bool CURLDownloadToFile(const CUrl& url, const string& path, ProgressReport fn, 
 
     /* check for errors */
     if (res != CURLE_OK)
-        error = strprintf("curl_easy_perform failed: %s", curl_easy_strerror(res));
-
-    /* close the file */
-    if (pagefile)
-        fclose(pagefile);
+        error = strprintf("Download %s failed with error: %s", url, curl_easy_strerror(res));
+    else {
+        long response_code = 0;
+        res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+        if (res != CURLE_OK)
+            error = strprintf("Download %s failed with error: %s", url, curl_easy_strerror(res));
+        else if ((response_code / 100) != 2)
+            error = strprintf("Download %s failed with HTTP code: %ld.", url, response_code);
+        else; // success
+    }
 
     return CURLE_OK == res;
 }

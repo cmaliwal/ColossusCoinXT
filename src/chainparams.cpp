@@ -218,6 +218,8 @@ public:
         nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
         nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
+
+        strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/main";
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -380,6 +382,8 @@ public:
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
 
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
+        //strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/test";
+        strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -515,13 +519,18 @@ public:
 static CUnitTestParams unitTestParams;
 
 
-static CChainParams* pCurrentParams = 0;
+static CChainParams* pCurrentParams = nullptr;
 
 CModifiableParams* ModifiableParams()
 {
     assert(pCurrentParams);
     assert(pCurrentParams == &unitTestParams);
     return (CModifiableParams*)&unitTestParams;
+}
+
+bool ParamsSelected()
+{
+    return pCurrentParams != nullptr;
 }
 
 const CChainParams& Params()
@@ -561,4 +570,10 @@ bool SelectParamsFromCommandLine()
 
     SelectParams(network);
     return true;
+}
+
+uint64_t GetBlockChainSize()
+{
+    const uint64_t GB_BYTES = 1000000000LL;
+    return 1LL * GB_BYTES;
 }

@@ -111,6 +111,7 @@ BITCOIN_CORE_H = \
   base58.h \
   bip38.h \
   bloom.h \
+  bootstrapmodel.h \
   chain.h \
   chainparams.h \
   chainparamsbase.h \
@@ -409,6 +410,7 @@ libbitcoin_util_a_SOURCES = \
   clientversion.cpp \
   context.cpp \
   curl.cpp \
+  bootstrapmodel.cpp \
   random.cpp \
   rpcprotocol.cpp \
   sync.cpp \

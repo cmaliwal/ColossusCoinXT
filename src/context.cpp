@@ -5,6 +5,7 @@
 #include "context.h"
 #include "sync.h"
 #include "timedata.h"
+#include "bootstrapmodel.h"
 
 #include <memory>
 #include <stdexcept>
@@ -77,4 +78,12 @@ int64_t CContext::GetStartupTime() const
 void CContext::SetStartupTime(int64_t nTime)
 {
     nStartupTime_ = nTime;
+}
+
+BootstrapModelPtr CContext::GetBootstrapModel()
+{
+    if (!bootstrapModel_)
+        bootstrapModel_.reset(new BootstrapModel);
+
+    return bootstrapModel_;
 }

@@ -70,6 +70,7 @@ QT_MOC_CPP = \
   qt/moc_bip38tooldialog.cpp \
   qt/moc_bitcoinaddressvalidator.cpp \
   qt/moc_bitcoinamountfield.cpp \
+  qt/moc_bootstrapdialog.cpp \
   qt/moc_bitcoingui.cpp \
   qt/moc_bitcoinunits.cpp \
   qt/moc_blockexplorer.cpp \
@@ -142,6 +143,7 @@ BITCOIN_QT_H = \
   qt/askpassphrasedialog.h \
   qt/bantablemodel.h \
   qt/bip38tooldialog.h \
+  qt/bootstrapdialog.h \
   qt/bitcoinaddressvalidator.h \
   qt/bitcoinamountfield.h \
   qt/bitcoingui.h \
@@ -267,6 +269,7 @@ BITCOIN_QT_CPP = \
   qt/bitcoingui.cpp \
   qt/bitcoinunits.cpp \
   qt/blockexplorer.cpp \
+  qt/bootstrapdialog.cpp \
   qt/clientmodel.cpp \
   qt/csvmodelwriter.cpp \
   qt/guiutil.cpp \
