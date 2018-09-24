@@ -45,6 +45,8 @@ std::atomic<int> BootstrapModel::instanceNumber_(0);
 // - verify network
 // - merge config
 // - connect/disconnect event listener when dialog is not visible
+// - download speed seems too low
+//
 
 /** convert size to the human readable string */
 static string HumanReadableSize(int64_t size, bool si)

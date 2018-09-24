@@ -220,7 +220,7 @@ public:
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
 
         strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/main";
-        strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";
+        //strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -384,7 +384,7 @@ public:
 
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
         strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/test";
-        strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";
+        //strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";
     }
 
     CBitcoinAddress GetDevFundAddress() const
