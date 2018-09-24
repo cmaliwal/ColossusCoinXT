@@ -163,6 +163,7 @@ bool BootstrapModel::SetBootstrapFilePath(const path& p, string& err)
     } else {
         bootstrapFilePath_ = p;
         NotifyModelChanged();
+        return true;
     }
 }
 
