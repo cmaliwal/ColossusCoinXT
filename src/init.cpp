@@ -739,7 +739,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // Check if we should bootstrap blockchain
     BootstrapModelPtr model = GetContext().GetBootstrapModel();
     if (model->RunStageIIPrepared()) {
-        LogPrintf("%s : bootstrap found - running...\n", __func__);
+        LogPrintf("Bootstrap found, restoring blockchain from bootstrap...\n");
 
         string err;
         if (!model->RunStageII(err)) {
@@ -751,6 +751,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             error("%s : %s", __func__, err);
             return InitError(err);
         }
+
+        LogPrintf("Bootstrap completed.\n");
     } else {
         string err;
         if (!model->CleanUp(err))

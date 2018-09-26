@@ -40,7 +40,6 @@ std::atomic<int> BootstrapModel::instanceNumber_(0);
 //
 // Implementation notes:
 // - probably better to protect workerThread_/instanceNumber_ by mutex to prevent possible race condition;
-// - add logs: here + stageII, give thread name;
 // - progress in status bar
 // - verify network
 // - merge config
@@ -337,6 +336,10 @@ void BootstrapModel::RunFromFileThread()
 {
     NotifyModelChanged(); // model running state changed
 
+    string thName = strprintf("colx-%s", __func__);
+    RenameThread(thName.c_str());
+    LogPrintf("%s thread start\n", thName);
+
     try {
         cancel_ = false;
         latestRunError_.clear();
@@ -352,11 +355,16 @@ void BootstrapModel::RunFromFileThread()
 
     NotifyBootstrapCompleted(latestRunError_.empty(), latestRunError_);
     NotifyModelChanged(); // model running state changed
+    LogPrintf("%s thread exit\n", thName);
 }
 
 void BootstrapModel::RunFromCloudThread()
 {
     NotifyModelChanged(); // model running state changed
+
+    string thName = strprintf("colx-%s", __func__);
+    RenameThread(thName.c_str());
+    LogPrintf("%s thread start\n", thName);
 
     try {
         cancel_ = false;
@@ -373,11 +381,16 @@ void BootstrapModel::RunFromCloudThread()
 
     NotifyBootstrapCompleted(latestRunError_.empty(), latestRunError_);
     NotifyModelChanged(); // model running state changed
+    LogPrintf("%s thread exit\n", thName);
 }
 
 void BootstrapModel::RunStageIIThread()
 {
     NotifyModelChanged(); // model running state changed
+
+    string thName = strprintf("colx-%s", __func__);
+    RenameThread(thName.c_str());
+    LogPrintf("%s thread start\n", thName);
 
     try {
         cancel_ = false;
@@ -394,6 +407,7 @@ void BootstrapModel::RunStageIIThread()
 
     NotifyBootstrapCompleted(latestRunError_.empty(), latestRunError_);
     NotifyModelChanged(); // model running state changed
+    LogPrintf("%s thread exit\n", thName);
 }
 
 // unzip archive and prepare verified file
