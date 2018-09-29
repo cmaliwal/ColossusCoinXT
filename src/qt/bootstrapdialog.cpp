@@ -63,14 +63,14 @@ BootstrapDialog::BootstrapDialog(BootstrapModelPtr model, QWidget *parent):
 
     model_->NotifyModelChanged.connect(boost::bind(BootstrapModelChanged, this));
     model_->NotifyBootstrapProgress.connect(boost::bind(BootstrapProgress, this, _1, _2));
-    model_->NotifyBootstrapCompleted.connect(boost::bind(BootstrapCompleted, this, _1, _2));
+    model_->NotifyBootstrapCompletedI.connect(boost::bind(BootstrapCompleted, this, _1, _2));
 }
 
 BootstrapDialog::~BootstrapDialog()
 {
     model_->NotifyModelChanged.disconnect(boost::bind(BootstrapModelChanged, this));
     model_->NotifyBootstrapProgress.disconnect(boost::bind(BootstrapProgress, this, _1, _2));
-    model_->NotifyBootstrapCompleted.disconnect(boost::bind(BootstrapCompleted, this, _1, _2));
+    model_->NotifyBootstrapCompletedI.disconnect(boost::bind(BootstrapCompleted, this, _1, _2));
 }
 
 void BootstrapDialog::setupUI()

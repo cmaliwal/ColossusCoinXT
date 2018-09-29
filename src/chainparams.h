@@ -271,4 +271,15 @@ bool SelectParamsFromCommandLine();
  */
 uint64_t GetBlockChainSize();
 
+/**
+ * @brief Check if genesis block in the given datadir has correct hash.
+ *        Compare first block from blk0000.dat in the given datadir against genesisHash.
+ *
+ * @param datadir full path to the data directory
+ * @param genesisHash hash of the genesis block
+ * @param err description of the problem
+ * @return true - ok, false - failed
+ */
+bool VerifyGenesisBlock(const std::string& datadir, const uint256& genesisHash, std::string& err);
+
 #endif // BITCOIN_CHAINPARAMS_H

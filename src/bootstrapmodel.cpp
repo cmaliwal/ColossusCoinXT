@@ -13,6 +13,7 @@
 #include "util.h"
 #include "curl.h"
 
+#include <chrono>
 #include <fstream>
 #include <iterator>
 #include <type_traits>
@@ -41,10 +42,7 @@ std::atomic<int> BootstrapModel::instanceNumber_(0);
 // Implementation notes:
 // - probably better to protect workerThread_/instanceNumber_ by mutex to prevent possible race condition;
 // - progress in status bar
-// - verify network
 // - merge config
-// - connect/disconnect event listener when dialog is not visible
-// - download speed seems too low
 //
 
 /** convert size to the human readable string */
@@ -353,7 +351,7 @@ void BootstrapModel::RunFromFileThread()
     if (!latestRunError_.empty())
         error("%s : %s", __func__, latestRunError_);
 
-    NotifyBootstrapCompleted(latestRunError_.empty(), latestRunError_);
+    NotifyBootstrapCompletedI(latestRunError_.empty(), latestRunError_);
     NotifyModelChanged(); // model running state changed
     LogPrintf("%s thread exit\n", thName);
 }
@@ -379,7 +377,7 @@ void BootstrapModel::RunFromCloudThread()
     if (!latestRunError_.empty())
         error("%s : %s", __func__, latestRunError_);
 
-    NotifyBootstrapCompleted(latestRunError_.empty(), latestRunError_);
+    NotifyBootstrapCompletedI(latestRunError_.empty(), latestRunError_);
     NotifyModelChanged(); // model running state changed
     LogPrintf("%s thread exit\n", thName);
 }
@@ -405,7 +403,7 @@ void BootstrapModel::RunStageIIThread()
     if (!latestRunError_.empty())
         error("%s : %s", __func__, latestRunError_);
 
-    NotifyBootstrapCompleted(latestRunError_.empty(), latestRunError_);
+    NotifyBootstrapCompletedII(latestRunError_.empty(), latestRunError_);
     NotifyModelChanged(); // model running state changed
     LogPrintf("%s thread exit\n", thName);
 }
@@ -475,15 +473,29 @@ bool BootstrapModel::RunFromCloudImpl(std::string& err)
     }
 
     NotifyBootstrapProgress(strprintf("Downloading %s", url), 0);
+
+    int speed = 0, bytes = 0;
+    using time_point = std::chrono::system_clock::time_point;
+    time_point tp1 = std::chrono::system_clock::now();
     bool success = CURLDownloadToFile(url, tmpPath,
-        [this](double total, double now)->int{
+        [this, &speed, &bytes, &tp1](double total, double now)->int{
         if (cancel_)
             return CURL_CANCEL_DOWNLOAD;
         else {
+            time_point tp2 = std::chrono::system_clock::now();
+            size_t sec = std::chrono::duration_cast<std::chrono::seconds>(tp2 - tp1).count();
+            if (sec > 5) {
+                speed = (now - bytes) / sec;
+                bytes = now;
+                tp1 = std::chrono::system_clock::now();
+            }
+
             int percent = 0;
-            string str = strprintf("Downloading %s...", HumanReadableSize(static_cast<int>(now), false));
             if (now > 0 && total > 0 && total >= now)
                 percent = static_cast<int>(100.0 * now / total);
+
+            string str = strprintf("Downloading %s (%s/s)",
+                HumanReadableSize(static_cast<int>(now), false), HumanReadableSize(speed, false));
 
             NotifyBootstrapProgress(str, percent);
             return CURL_CONTINUE_DOWNLOAD;
@@ -575,7 +587,12 @@ bool BootstrapModel::VerifyBootstrapFolder(const boost::filesystem::path& bootst
 
 bool BootstrapModel::VerifyNetworkType(const boost::filesystem::path& bootstrapDir, std::string& err) const
 {
-    return true;
+    if (!VerifyGenesisBlock(bootstrapDir.string(), Params().HashGenesisBlock(), err)) {
+        err = strprintf("Bootstrap verification failed with reason: %s", err);
+        return error("%s : %s", __func__, err);
+    }
+    else
+        return true;
 }
 
 bool BootstrapModel::BootstrapVerifiedCreate(const boost::filesystem::path& zipPath, const boost::filesystem::path& verifiedPath, std::string& err) const

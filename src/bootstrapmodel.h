@@ -153,8 +153,11 @@ public:
     /** Notify running progress for downloading/extracting bootstrap */
     boost::signals2::signal<void(const std::string& title, int nProgress)> NotifyBootstrapProgress;
 
-    /** Notify that latest async operation RunStageI/RunStageII has just completed */
-    boost::signals2::signal<void(bool succes, const std::string& error)> NotifyBootstrapCompleted;
+    /** Notify that latest async operation RunStageI has just completed */
+    boost::signals2::signal<void(bool succes, const std::string& error)> NotifyBootstrapCompletedI;
+
+    /** Notify that latest async operation RunStageII has just completed */
+    boost::signals2::signal<void(bool succes, const std::string& error)> NotifyBootstrapCompletedII;
 
 private:
     bool FreeSpaceOk(std::string& err) const;
