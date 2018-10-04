@@ -145,6 +145,14 @@ inline bool IsSwitchChar(char c)
 }
 
 /**
+ * Test if given argument is defined
+ *
+ * @param strArg Argument to get (e.g. "-foo")
+ * @return true - defined, false - not defined
+ */
+bool DefinedArg(const std::string& strArg);
+
+/**
  * Return string argument or default value
  *
  * @param strArg Argument to get (e.g. "-foo")

@@ -51,6 +51,7 @@
 #include <fstream>
 #include <stdint.h>
 #include <stdio.h>
+#include <exception>
 
 #ifndef WIN32
 #include <signal.h>
@@ -312,6 +313,12 @@ bool static InitWarning(const std::string& str)
     return true;
 }
 
+bool static InitInformation(const std::string& str)
+{
+    uiInterface.ThreadSafeMessageBox(str, "", CClientUIInterface::MSG_INFORMATION);
+    return true;
+}
+
 bool static Bind(const CService& addr, unsigned int flags)
 {
     if (!(flags & BF_EXPLICIT) && IsLimited(addr))
@@ -382,6 +389,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-txindex", strprintf(_("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)"), 0));
     strUsage += HelpMessageOpt("-forcestart", _("Attempt to force blockchain corruption recovery") + " " + _("on startup"));
     strUsage += HelpMessageOpt("-checkforupdate=<seconds>", _("Check periodically if new version of the software is available, default: 24h = 86400sec"));
+    strUsage += HelpMessageOpt("-bootstrap=<file>", _("Load blockchain snapshot from bootstrap file, if file is not specified - load from the cloud, cloud is default option"));
 
     strUsage += HelpMessageGroup(_("Connection options:"));
     strUsage += HelpMessageOpt("-addnode=<ip>", _("Add a node to connect to and attempt to keep the connection open"));
@@ -736,10 +744,57 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (!SetupNetworking())
         return InitError("Error: Initializing networking failed");
 
-    // Check if we should bootstrap blockchain
     BootstrapModelPtr model = GetContext().GetBootstrapModel();
+    // Check if we should run stage I of the blockchain bootstrap
+    if (DefinedArg("-bootstrap")) {
+        InitInformation("Bootstrap option detected, running stage I of bootstrap...");
+        try {
+            string err;
+            const string bootstrapPath = GetArg("-bootstrap", string());
+            if (!bootstrapPath.empty()) {
+                if (!model->SetBootstrapMode(BootstrapMode::file, err)) {
+                    error("%s : %s", __func__, err);
+                    return InitError(err);
+                }
+
+                if (!model->SetBootstrapFilePath(bootstrapPath, err)){
+                    error("%s : %s", __func__, err);
+                    return InitError(err);
+                }
+            }
+
+            // run task
+            if (!model->RunStageIPossible(err) || !model->RunStageI(err)) {
+                error("%s : %s", __func__, err);
+                return InitError(err);
+            }
+
+            // show progress of downloading file from the cloud
+            if (model->GetBootstrapMode() == BootstrapMode::cloud) {
+                MilliSleep(1000); // wait until worker thread is started
+                while (model->IsBootstrapRunning()) {
+                    int percent = model->GetBootstrapProgress();
+                    fprintf(stderr, "Progress %d%%...\r", percent);
+                    MilliSleep(2000); // update each 2 seconds
+                }
+            }
+
+            // wait task to complete
+            if (!model->IsLatestRunSuccess(err)) {
+                error("%s : %s", __func__, err);
+                return InitError(err);
+            }
+
+            InitInformation("Stage I completed.");
+        } catch (const std::exception& e) {
+            error("%s : %s", __func__, e.what());
+            return InitError(e.what());
+        }
+    }
+
+    // Check if we should run stage II of the blockchain bootstrap
     if (model->RunStageIIPrepared()) {
-        LogPrintf("Bootstrap found, restoring blockchain from bootstrap...\n");
+        InitInformation("Bootstrap option detected, running stage II of bootstrap...");
 
         string err;
         if (!model->RunStageII(err)) {
@@ -752,7 +807,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(err);
         }
 
-        LogPrintf("Bootstrap completed.\n");
+        InitInformation("Stage II completed.");
     } else {
         string err;
         if (!model->CleanUp(err))

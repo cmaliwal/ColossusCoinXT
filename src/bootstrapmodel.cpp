@@ -41,7 +41,6 @@ std::atomic<int> BootstrapModel::instanceNumber_(0);
 //
 // Implementation notes:
 // - probably better to protect workerThread_/instanceNumber_ by mutex to prevent possible race condition;
-// - progress in status bar
 // - merge config
 //
 
@@ -128,6 +127,11 @@ bool BootstrapModel::IsBootstrapRunning() const
 {
     return workerThread_ && workerThread_->joinable() &&
             !workerThread_->try_join_for(boost::chrono::milliseconds(1));
+}
+
+int BootstrapModel::GetBootstrapProgress() const
+{
+    return progress_;
 }
 
 BootstrapMode BootstrapModel::GetBootstrapMode() const
@@ -339,6 +343,7 @@ void BootstrapModel::RunFromFileThread()
     LogPrintf("%s thread start\n", thName);
 
     try {
+        progress_ = 0;
         cancel_ = false;
         latestRunError_.clear();
         RunFromFileImpl(GetBootstrapFilePath(), latestRunError_);
@@ -365,6 +370,7 @@ void BootstrapModel::RunFromCloudThread()
     LogPrintf("%s thread start\n", thName);
 
     try {
+        progress_ = 0;
         cancel_ = false;
         latestRunError_.clear();
         RunFromCloudImpl(latestRunError_);
@@ -391,6 +397,7 @@ void BootstrapModel::RunStageIIThread()
     LogPrintf("%s thread start\n", thName);
 
     try {
+        progress_ = 0;
         cancel_ = false;
         latestRunError_.clear();
         RunStageIIImpl(latestRunError_);
@@ -415,6 +422,9 @@ bool BootstrapModel::RunFromFileImpl(const boost::filesystem::path& zipPath, std
         err = strprintf("Path does not exist %s", zipPath.string());
         return error("%s : %s", __func__, err);
     }
+
+    if (!VerifyZip(zipPath, err))
+        return error("%s : %s", __func__, err);
 
     if (!VerifySignature(zipPath, err))
         return error("%s : %s", __func__, err);
@@ -457,7 +467,7 @@ bool BootstrapModel::RunFromCloudImpl(std::string& err)
     const string url = Params().GetBootstrapUrl();
     if (url.empty()) {
         err = "Bootstrap URL is empty";
-        return false;
+        return error("%s : %s", __func__, err);
     }
 
     path zipPath = datadirPath_ / BOOTSTRAP_FILE_NAME;
@@ -490,25 +500,29 @@ bool BootstrapModel::RunFromCloudImpl(std::string& err)
                 tp1 = std::chrono::system_clock::now();
             }
 
-            int percent = 0;
             if (now > 0 && total > 0 && total >= now)
-                percent = static_cast<int>(100.0 * now / total);
+                progress_ = static_cast<int>(100.0 * now / total);
 
             string str = strprintf("Downloading %s (%s/s)",
                 HumanReadableSize(static_cast<int>(now), false), HumanReadableSize(speed, false));
 
-            NotifyBootstrapProgress(str, percent);
+            NotifyBootstrapProgress(str, progress_);
             return CURL_CONTINUE_DOWNLOAD;
         }
     } , err);
 
     if (success) {
         rename(tmpPath, zipPath);
-        return RunFromFileImpl(zipPath, err);
+        if (!VerifyZip(zipPath, err)) {
+            err = strprintf("%s\nTry to download bootstrap file manually: %s.", err, url);
+            return error("%s : %s", __func__, err);
+        }
+        else
+            return RunFromFileImpl(zipPath, err);
     }
     else {
         remove(tmpPath);
-        return false;
+        return error("%s : %s", __func__, err);
     }
 }
 
@@ -549,7 +563,7 @@ bool BootstrapModel::RunStageIIImpl(std::string& err)
     return CleanUpImpl(err);
 }
 
-bool BootstrapModel::VerifySignature(const boost::filesystem::path& zipPath, std::string& err) const
+bool BootstrapModel::VerifyZip(const boost::filesystem::path& zipPath, std::string& err) const
 {
     ifstream ifs(zipPath.string());
     if (!ifs.is_open()) {
@@ -568,6 +582,12 @@ bool BootstrapModel::VerifySignature(const boost::filesystem::path& zipPath, std
         return error("%s : %s", __func__, err);
     }
 
+    // implement signature later
+    return true;
+}
+
+bool BootstrapModel::VerifySignature(const boost::filesystem::path& zipPath, std::string& err) const
+{
     // implement signature later
     return true;
 }

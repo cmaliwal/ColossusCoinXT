@@ -68,6 +68,8 @@ public:
 
     bool IsBootstrapRunning() const;
 
+    int GetBootstrapProgress() const;
+
     BootstrapMode GetBootstrapMode() const;
 
     bool SetBootstrapMode(BootstrapMode mode, std::string& err);
@@ -168,6 +170,7 @@ private:
     bool RunFromCloudImpl(std::string& err);
     bool RunStageIIImpl(std::string& err);
     bool CleanUpImpl(std::string& err) const;
+    bool VerifyZip(const boost::filesystem::path& zipPath, std::string& err) const;
     bool VerifySignature(const boost::filesystem::path& zipPath, std::string& err) const;
     bool VerifyBootstrapFolder(const boost::filesystem::path& bootstrapDir, std::string& err) const;
     bool VerifyNetworkType(const boost::filesystem::path& bootstrapDir, std::string& err) const;
@@ -181,6 +184,7 @@ private:
     boost::filesystem::path datadirPath_;       /** network specific data dir */
     boost::filesystem::path bootstrapFilePath_; /** path selected by the user */
 
+    std::atomic<int> progress_;
     std::atomic<bool> cancel_;                  /** user can interrupt bootstrap task */
     std::string latestRunError_;
     std::unique_ptr<boost::thread> workerThread_;
