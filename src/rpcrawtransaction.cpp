@@ -214,7 +214,7 @@ UniValue listunspent(const UniValue& params, bool fHelp)
             "      \"address\"   (string) colx address\n"
             "      ,...\n"
             "    ]\n"
-            "4. watchonlyconfig  (numberic, optional, default=1) 1 = list regular unspent transactions, 2 = list only watchonly transactions,  3 = list all unspent transactions (including watchonly)\n"
+            "4. watchonlyconfig  (numberic, optional, default=3) 1 = list regular unspent transactions, 2 = list only watchonly transactions,  3 = list all unspent transactions (including watchonly)\n"
             "\nResult\n"
             "[                   (array of json object)\n"
             "  {\n"
@@ -256,11 +256,11 @@ UniValue listunspent(const UniValue& params, bool fHelp)
         }
     }
 
-    int nWatchonlyConfig = 1;
+    int nWatchonlyConfig = 3;
     if(params.size() > 3) {
         nWatchonlyConfig = params[3].get_int();
         if (nWatchonlyConfig > 3 || nWatchonlyConfig < 1)
-            nWatchonlyConfig = 1;
+            nWatchonlyConfig = 3;
     }
 
     UniValue results(UniValue::VARR);
