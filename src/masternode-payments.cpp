@@ -665,7 +665,7 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int n
         }
     }
 
-    return error("%s - Missing required payment of %s to %s\nBlock payees: %s\n", __func__, FormatMoney(nRequiredMasternodePayment), strPayeesPossible, GetRequiredPaymentsString());
+    return error("%s - Missing required payment of %s to %s. Block payees: %s\n", __func__, FormatMoney(nRequiredMasternodePayment), strPayeesPossible, GetRequiredPaymentsString());
 }
 
 std::string CMasternodeBlockPayees::GetRequiredPaymentsString()
