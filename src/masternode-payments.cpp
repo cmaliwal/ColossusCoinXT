@@ -229,7 +229,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBl
             if (IsSporkActive(SPORK_9_MASTERNODE_BUDGET_ENFORCEMENT))
                 return false;
             else {
-                LogPrint("mnpayments", "Budget enforcement is disabled, accepting block\n");
+                LogPrintf("Budget enforcement is disabled, accepting block %d\n", nBlockHeight);
                 budgetValid = true;
             }
         }
@@ -240,7 +240,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBl
             if (IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT))
                 return false;
             else {
-                LogPrint("mnpayments", "Masternode payment enforcement is disabled, accepting block\n");
+                LogPrintf("Masternode payment enforcement is disabled, accepting block %d\n", nBlockHeight);
                 mnValid = true;
             }
         }
@@ -262,7 +262,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBl
             if (IsSporkActive(SPORK_17_FEE_PAYMENT_ENFORCEMENT))
                 return false;
             else {
-                LogPrint("mnpayments", "Fee enforcement is disabled, accepting block\n");
+                LogPrintf("Fee enforcement is disabled, accepting block %d\n", nBlockHeight);
                 feeValid = true;
             }
         }
@@ -284,7 +284,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBl
             if (IsSporkActive(SPORK_18_DEVFUND_PAYMENT_ENFORCEMENT))
                 return false;
             else {
-                LogPrint("mnpayments", "Dev fund enforcement is disabled, accepting block\n");
+                LogPrintf("Dev fund enforcement is disabled, accepting block %d\n", nBlockHeight);
                 fundValid = true;
             }
         }
@@ -646,7 +646,7 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int n
                 if(out.nValue >= nRequiredMasternodePayment)
                     found = true;
                 else
-                    LogPrint("masternode", "Masternode payment is out of drift range. Paid=%s Min=%s\n", FormatMoney(out.nValue), FormatMoney(nRequiredMasternodePayment));
+                    LogPrintf("Masternode payment is out of drift range. Paid=%s Min=%s\n", FormatMoney(out.nValue), FormatMoney(nRequiredMasternodePayment));
             }
         }
 
@@ -665,8 +665,7 @@ bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew, int n
         }
     }
 
-    LogPrint("masternode", "CMasternodePayments::IsTransactionValid - Missing required payment of %s to %s\n", FormatMoney(nRequiredMasternodePayment), strPayeesPossible.c_str());
-    return false;
+    return error("%s - Missing required payment of %s to %s. Block payees: %s\n", __func__, FormatMoney(nRequiredMasternodePayment), strPayeesPossible, GetRequiredPaymentsString());
 }
 
 std::string CMasternodeBlockPayees::GetRequiredPaymentsString()
