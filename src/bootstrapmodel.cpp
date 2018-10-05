@@ -41,7 +41,6 @@ std::atomic<int> BootstrapModel::instanceNumber_(0);
 //
 // Implementation notes:
 // - probably better to protect workerThread_/instanceNumber_ by mutex to prevent possible race condition;
-// - merge config
 //
 
 /** convert size to the human readable string */
@@ -452,7 +451,7 @@ bool BootstrapModel::RunFromFileImpl(const boost::filesystem::path& zipPath, std
         return error("%s : %s", __func__, err);
 
     const path configPath = GetConfigFile();
-    if (!MergeConfigFile(configPath, bootstrapDirPath / configPath.leaf(), err))
+    if (!MergeConfigFile(configPath, bootstrapDirPath / "ColossusXT.conf", err))
         return error("%s : %s", __func__, err);
 
     if (!BootstrapVerifiedCreate(zipPath, bootstrapDirPath / BOOTSTRAP_VERIFIED, err))
@@ -655,7 +654,40 @@ bool BootstrapModel::MergeConfigFile(const boost::filesystem::path& original, co
         return true; // just raw copy, return true anyway
     }
 
-    // TODO: merge
+    const path originalBackup = original.string() + ".bak";
+
+    // remove old backup of the original config
+    boost::filesystem::remove(originalBackup);
+
+    // make new backup of the original config
+    boost::filesystem::rename(original, originalBackup);
+
+    ifstream oldConf(originalBackup.string());
+    if (!oldConf.is_open()) {
+        error("%s : Failed to open %s", __func__, originalBackup.string());
+        return true; // report error but return true, it is minor step
+    }
+    Finally oldConfClose([&oldConf](){ oldConf.close(); });
+
+    ofstream newConf(original.string());
+    if (!newConf.is_open()) {
+        error("%s : Failed to open %s", __func__, original.string());
+        return true; // report error but return true, it is minor step
+    }
+    Finally newConfClose([&newConf](){ newConf.close(); });
+
+    // read all lines from the original config except 'addnode'
+    string line;
+    while (std::getline(oldConf, line))
+        if (line.find("addnode") == string::npos)
+            newConf << line << endl;
+
+    // append all lines from the bootstrap config
+    ifstream bootstrapConf(bootstrap.string());
+    Finally bootstrapConfClose([&bootstrapConf](){ bootstrapConf.close(); });
+    while (std::getline(bootstrapConf, line))
+        newConf << line << endl;
+
     return true;
 }
 
