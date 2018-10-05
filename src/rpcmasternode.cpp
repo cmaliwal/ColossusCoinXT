@@ -889,7 +889,7 @@ UniValue getmasternodewinners (const UniValue& params, bool fHelp)
 
         if (strPayment.find(',') != std::string::npos) {
             UniValue winner(UniValue::VARR);
-            boost::char_separator<char> sep(",");
+            boost::char_separator<char> sep(", ");
             boost::tokenizer< boost::char_separator<char> > tokens(strPayment, sep);
             BOOST_FOREACH (const string& t, tokens) {
                 UniValue addr(UniValue::VOBJ);
