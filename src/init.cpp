@@ -770,13 +770,15 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             }
 
             // show progress of downloading file from the cloud
+            const string url = Params().GetBootstrapUrl();
             if (model->GetBootstrapMode() == BootstrapMode::cloud) {
                 MilliSleep(1000); // wait until worker thread is started
                 while (model->IsBootstrapRunning()) {
                     int percent = model->GetBootstrapProgress();
-                    fprintf(stderr, "Progress %d%%...\r", percent);
+                    fprintf(stderr, "Downloading %s %d%%...\r", url.c_str(), percent);
                     MilliSleep(2000); // update each 2 seconds
                 }
+                fprintf(stderr, "\n");
             }
 
             // wait task to complete

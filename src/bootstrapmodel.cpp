@@ -117,7 +117,6 @@ BootstrapModel::BootstrapModel():
 BootstrapModel::~BootstrapModel()
 {
     instanceNumber_ -= 1;
-    assert(!IsBootstrapRunning());
     Cancel();
     Wait();
 }
@@ -326,8 +325,8 @@ bool BootstrapModel::IsCancelled() const
 bool BootstrapModel::FreeSpaceOk(std::string& err) const
 {
     space_info si = space(datadirPath_);
-    if (si.available < GetBlockChainSize()) {
-        err = strprintf("Not enough free space avaialable in the directory: %s, required at least: %lld", datadirPath_.string(), GetBlockChainSize());
+    if (si.available < GetBlockChainSize() * 2) {
+        err = strprintf("Not enough free space avaialable in the directory: %s, required at least: %lld", datadirPath_.string(), GetBlockChainSize() * 2);
         return false;
     } else
         return true;
@@ -450,10 +449,6 @@ bool BootstrapModel::RunFromFileImpl(const boost::filesystem::path& zipPath, std
     if (!VerifyNetworkType(bootstrapDirPath, err))
         return error("%s : %s", __func__, err);
 
-    const path configPath = GetConfigFile();
-    if (!MergeConfigFile(configPath, bootstrapDirPath / "ColossusXT.conf", err))
-        return error("%s : %s", __func__, err);
-
     if (!BootstrapVerifiedCreate(zipPath, bootstrapDirPath / BOOTSTRAP_VERIFIED, err))
         return error("%s : %s", __func__, err);
 
@@ -555,6 +550,10 @@ bool BootstrapModel::RunStageIIImpl(std::string& err)
         if (exists(dir))
             rename(dir, originPath);
     }
+
+    const path configPath = GetConfigFile();
+    if (!MergeConfigFile(configPath, bootstrapDirPath / "ColossusXT.conf", err))
+        return error("%s : %s", __func__, err);
 
     remove(datadirPath_ / "peers.dat");
     remove(datadirPath_ / "banlist.dat");
