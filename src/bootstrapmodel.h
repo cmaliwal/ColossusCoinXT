@@ -78,7 +78,19 @@ public:
 
     bool SetBootstrapFilePath(const boost::filesystem::path& p, std::string& err);
 
+    /**
+     * @brief Check bootstrap file exists at given path `SetBootstrapFilePath`
+     *
+     * @return true - ok, false - not ok
+     */
     bool BootstrapFilePathOk() const;
+
+    /**
+     * @brief Check if config file was merged during bootstrap.
+     *
+     * @return true - merged, false - not merged
+     */
+    bool IsConfigMerged() const;
 
     /**
      * @brief Run stage I algorithm.
@@ -162,6 +174,7 @@ public:
     boost::signals2::signal<void(bool succes, const std::string& error)> NotifyBootstrapCompletedII;
 
 private:
+    void ResetState();
     bool FreeSpaceOk(std::string& err) const;
     void RunFromFileThread();
     void RunFromCloudThread();
@@ -176,7 +189,7 @@ private:
     bool VerifyNetworkType(const boost::filesystem::path& bootstrapDir, std::string& err) const;
     bool BootstrapVerifiedCreate(const boost::filesystem::path& zipPath, const boost::filesystem::path& verifiedPath, std::string& err) const;
     bool BootstrapVerifiedCheck(const boost::filesystem::path& verifiedPath, std::string& err) const;
-    bool MergeConfigFile(const boost::filesystem::path& original, const boost::filesystem::path& bootstrap, std::string& err) const;
+    bool MergeConfigFile(const boost::filesystem::path& original, const boost::filesystem::path& bootstrap) const;
     std::vector<boost::filesystem::path> GetBootstrapDirList(const boost::filesystem::path& bootstrapDir) const;
 
 private:
@@ -186,6 +199,7 @@ private:
 
     std::atomic<int> progress_;
     std::atomic<bool> cancel_;                  /** user can interrupt bootstrap task */
+    std::atomic<bool> configMerged_;            /** true if config file was merged during bootstrap */
     std::string latestRunError_;
     std::unique_ptr<boost::thread> workerThread_;
 

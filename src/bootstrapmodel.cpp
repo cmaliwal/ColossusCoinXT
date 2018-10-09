@@ -99,7 +99,9 @@ inline std::string Hash(ifstream& ifs)
 
 BootstrapModel::BootstrapModel():
     bootstrapMode_(BootstrapMode::cloud),
-    cancel_(false)
+    progress_(0),
+    cancel_(false),
+    configMerged_(false)
 {
     if (instanceNumber_ > 0)
         throw logic_error(strprintf("%s: only single instance of the BootstrapModel can be created", __func__));
@@ -119,6 +121,14 @@ BootstrapModel::~BootstrapModel()
     instanceNumber_ -= 1;
     Cancel();
     Wait();
+}
+
+void BootstrapModel::ResetState()
+{
+    progress_ = 0;
+    cancel_ = false;
+    configMerged_ = false;
+    latestRunError_.clear();
 }
 
 bool BootstrapModel::IsBootstrapRunning() const
@@ -169,6 +179,11 @@ bool BootstrapModel::SetBootstrapFilePath(const path& p, string& err)
 bool BootstrapModel::BootstrapFilePathOk() const
 {
     return exists(GetBootstrapFilePath());
+}
+
+bool BootstrapModel::IsConfigMerged() const
+{
+    return configMerged_;
 }
 
 bool BootstrapModel::RunStageI(std::string& err)
@@ -341,9 +356,7 @@ void BootstrapModel::RunFromFileThread()
     LogPrintf("%s thread start\n", thName);
 
     try {
-        progress_ = 0;
-        cancel_ = false;
-        latestRunError_.clear();
+        ResetState();
         RunFromFileImpl(GetBootstrapFilePath(), latestRunError_);
     } catch (const std::exception& e) {
         latestRunError_ = e.what();
@@ -368,9 +381,7 @@ void BootstrapModel::RunFromCloudThread()
     LogPrintf("%s thread start\n", thName);
 
     try {
-        progress_ = 0;
-        cancel_ = false;
-        latestRunError_.clear();
+        ResetState();
         RunFromCloudImpl(latestRunError_);
     } catch (const std::exception& e) {
         latestRunError_ = e.what();
@@ -395,9 +406,7 @@ void BootstrapModel::RunStageIIThread()
     LogPrintf("%s thread start\n", thName);
 
     try {
-        progress_ = 0;
-        cancel_ = false;
-        latestRunError_.clear();
+        ResetState();
         RunStageIIImpl(latestRunError_);
     } catch (const std::exception& e) {
         latestRunError_ = e.what();
@@ -552,8 +561,7 @@ bool BootstrapModel::RunStageIIImpl(std::string& err)
     }
 
     const path configPath = GetConfigFile();
-    if (!MergeConfigFile(configPath, bootstrapDirPath / "ColossusXT.conf", err))
-        return error("%s : %s", __func__, err);
+    configMerged_ = MergeConfigFile(configPath, bootstrapDirPath / "ColossusXT.conf");
 
     remove(datadirPath_ / "peers.dat");
     remove(datadirPath_ / "banlist.dat");
@@ -643,14 +651,15 @@ bool BootstrapModel::BootstrapVerifiedCheck(const boost::filesystem::path& verif
         return true;
 }
 
-bool BootstrapModel::MergeConfigFile(const boost::filesystem::path& original, const boost::filesystem::path& bootstrap, std::string& err) const
+// return true if merge success and false otherwise
+bool BootstrapModel::MergeConfigFile(const boost::filesystem::path& original, const boost::filesystem::path& bootstrap) const
 {
     if (!exists(bootstrap))
-        return true; // nothing to merge
+        return false; // nothing to merge
 
     if (!exists(original)) {
         boost::filesystem::copy(bootstrap, original);
-        return true; // just raw copy, return true anyway
+        return true; // just raw copy, return true
     }
 
     const path originalBackup = original.string() + ".bak";
@@ -664,14 +673,14 @@ bool BootstrapModel::MergeConfigFile(const boost::filesystem::path& original, co
     ifstream oldConf(originalBackup.string());
     if (!oldConf.is_open()) {
         error("%s : Failed to open %s", __func__, originalBackup.string());
-        return true; // report error but return true, it is minor step
+        return false;
     }
     Finally oldConfClose([&oldConf](){ oldConf.close(); });
 
     ofstream newConf(original.string());
     if (!newConf.is_open()) {
         error("%s : Failed to open %s", __func__, original.string());
-        return true; // report error but return true, it is minor step
+        return false;
     }
     Finally newConfClose([&newConf](){ newConf.close(); });
 
@@ -687,7 +696,7 @@ bool BootstrapModel::MergeConfigFile(const boost::filesystem::path& original, co
     while (std::getline(bootstrapConf, line))
         newConf << line << endl;
 
-    return true;
+    return true; // merge success
 }
 
 std::vector<boost::filesystem::path> BootstrapModel::GetBootstrapDirList(const boost::filesystem::path& bootstrapDir) const

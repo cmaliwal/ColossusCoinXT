@@ -809,6 +809,16 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(err);
         }
 
+        if (model->IsConfigMerged()) {
+            try {
+                InitInformation("Reloading configuration file...");
+                ReadConfigFile(mapArgs, mapMultiArgs);
+            } catch (const std::exception& e) {
+                string err = strprintf("Error: Cannot parse configuration file: %s (%s). Only use key=value syntax. File: %s", e.what(), __func__, GetConfigFile().string());
+                return InitError(err);
+            }
+        }
+
         InitInformation("Stage II completed.");
     } else {
         string err;
