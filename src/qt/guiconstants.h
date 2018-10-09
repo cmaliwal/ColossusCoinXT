@@ -24,7 +24,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Transaction list -- unconfirmed transaction */
 #define COLOR_UNCONFIRMED QColor(91, 76, 134)
 /* Transaction list -- negative amount */
-#define COLOR_NEGATIVE QColor(206, 0, 188)
+#define COLOR_NEGATIVE QColor(204, 108, 120)
 /* Transaction list -- bare address (without label) */
 #define COLOR_BAREADDRESS QColor(140, 140, 140)
 /* Transaction list -- TX status decoration - open until date */
@@ -32,9 +32,9 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Transaction list -- TX status decoration - offline */
 #define COLOR_TX_STATUS_OFFLINE QColor(192, 192, 192)
 /* Transaction list -- TX status decoration - default color */
-#define COLOR_BLACK QColor(51, 51, 51)
+#define COLOR_BLACK QColor(127, 127, 127)
 /* Transaction list -- TX status decoration - conflicted */
-#define COLOR_CONFLICTED QColor(255, 0, 0)
+#define COLOR_CONFLICTED QColor(255, 63, 63)
 
 /* Tooltips longer than this (in characters) are converted into rich text,
    so that they can be word-wrapped.
@@ -51,7 +51,7 @@ static const int MAX_URI_LENGTH = 255;
 #define SPINNER_FRAMES 35
 
 #define QAPP_ORG_NAME "ColossusXT"
-#define QAPP_ORG_DOMAIN "http://colossusxt.io"
+#define QAPP_ORG_DOMAIN "https://colossusxt.io"
 #define QAPP_APP_NAME_DEFAULT "ColossusXT-Qt"
 #define QAPP_APP_NAME_TESTNET "ColossusXT-Qt-testnet"
 
