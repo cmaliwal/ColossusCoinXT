@@ -79,64 +79,65 @@ protected:
     bool eventFilter(QObject* object, QEvent* event);
 
 private:
-    ClientModel* clientModel;
-    WalletFrame* walletFrame;
+    ClientModel* clientModel = nullptr;
+    WalletFrame* walletFrame = nullptr;
 
-    UnitDisplayStatusBarControl* unitDisplayControl;
-    QLabel* labelStakingIcon;
-    QPushButton* labelAutoMintIcon;
-    QPushButton* labelEncryptionIcon;
-    QPushButton* labelConnectionsIcon;
-    QLabel* labelBlocksIcon;
-    QLabel* progressBarLabel;
-    QProgressBar* progressBar;
-    QProgressDialog* progressDialog;
+    UnitDisplayStatusBarControl* unitDisplayControl = nullptr;
+    QLabel* labelStakingIcon = nullptr;
+    QPushButton* labelAutoMintIcon = nullptr;
+    QPushButton* labelEncryptionIcon = nullptr;
+    QPushButton* labelConnectionsIcon = nullptr;
+    QLabel* labelBlocksIcon = nullptr;
+    QLabel* progressBarLabel = nullptr;
+    QProgressBar* progressBar = nullptr;
+    QProgressDialog* progressDialog = nullptr;
 
-    QMenuBar* appMenuBar;
-    QAction* overviewAction;
-    QAction* historyAction;
-    QAction* masternodeAction;
-    QAction* quitAction;
-    QAction* sendCoinsAction;
-    QAction* usedSendingAddressesAction;
-    QAction* usedReceivingAddressesAction;
-    QAction* signMessageAction;
-    QAction* verifyMessageAction;
-    QAction* bip38ToolAction;
-    QAction* multisigCreateAction;
-    QAction* multisigSpendAction;
-    QAction* multisigSignAction;
-    QAction* aboutAction;
-    QAction* receiveCoinsAction;
-    QAction* privacyAction;
-    QAction* optionsAction;
-    QAction* toggleHideAction;
-    QAction* encryptWalletAction;
-    QAction* backupWalletAction;
-    QAction* changePassphraseAction;
-    QAction* unlockWalletAction;
-    QAction* lockWalletAction;
-    QAction* aboutQtAction;
-    QAction* openInfoAction;
-    QAction* openRPCConsoleAction;
-    QAction* openNetworkAction;
-    QAction* openPeersAction;
-    QAction* openRepairAction;
-    QAction* openBootstrapAction;
-    QAction* openConfEditorAction;
-    QAction* openMNConfEditorAction;
-    QAction* showBackupsAction;
-    QAction* openAction;
-    QAction* openBlockExplorerAction;
-    QAction* showHelpMessageAction;
-    QAction* multiSendAction;
+    QMenuBar* appMenuBar = nullptr;
+    QAction* overviewAction = nullptr;
+    QAction* historyAction = nullptr;
+    QAction* masternodeAction = nullptr;
+    QAction* governanceAction = nullptr;
+    QAction* quitAction = nullptr;
+    QAction* sendCoinsAction = nullptr;
+    QAction* usedSendingAddressesAction = nullptr;
+    QAction* usedReceivingAddressesAction = nullptr;
+    QAction* signMessageAction = nullptr;
+    QAction* verifyMessageAction = nullptr;
+    QAction* bip38ToolAction = nullptr;
+    QAction* multisigCreateAction = nullptr;
+    QAction* multisigSpendAction = nullptr;
+    QAction* multisigSignAction = nullptr;
+    QAction* aboutAction = nullptr;
+    QAction* receiveCoinsAction = nullptr;
+    QAction* privacyAction = nullptr;
+    QAction* optionsAction = nullptr;
+    QAction* toggleHideAction = nullptr;
+    QAction* encryptWalletAction = nullptr;
+    QAction* backupWalletAction = nullptr;
+    QAction* changePassphraseAction = nullptr;
+    QAction* unlockWalletAction = nullptr;
+    QAction* lockWalletAction = nullptr;
+    QAction* aboutQtAction = nullptr;
+    QAction* openInfoAction = nullptr;
+    QAction* openRPCConsoleAction = nullptr;
+    QAction* openNetworkAction = nullptr;
+    QAction* openPeersAction = nullptr;
+    QAction* openRepairAction = nullptr;
+    QAction* openBootstrapAction = nullptr;
+    QAction* openConfEditorAction = nullptr;
+    QAction* openMNConfEditorAction = nullptr;
+    QAction* showBackupsAction = nullptr;
+    QAction* openAction = nullptr;
+    QAction* openBlockExplorerAction = nullptr;
+    QAction* showHelpMessageAction = nullptr;
+    QAction* multiSendAction = nullptr;
 
-    QSystemTrayIcon* trayIcon;
-    QMenu* trayIconMenu;
-    Notificator* notificator;
-    RPCConsole* rpcConsole;
-    BlockExplorer* explorerWindow;
-    BootstrapDialog* bootstrapWindow;
+    QSystemTrayIcon* trayIcon = nullptr;
+    QMenu* trayIconMenu = nullptr;
+    Notificator* notificator = nullptr;
+    RPCConsole* rpcConsole = nullptr;
+    BlockExplorer* explorerWindow = nullptr;
+    BootstrapDialog* bootstrapWindow = nullptr;
 
     /** Keep track of previous number of blocks, to detect progress */
     int prevBlocks;
@@ -210,6 +211,8 @@ private slots:
     void gotoBlockExplorerPage();
     /** Switch to masternode page */
     void gotoMasternodePage();
+    /** Switch to governance page */
+    void gotoGovernancePage();
     /** Switch to privacy page */
     void gotoReceiveCoinsPage();
     /** Switch to receive coins page */

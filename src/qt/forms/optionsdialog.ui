@@ -20,7 +20,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tabMain">
       <attribute name="title">
@@ -260,6 +260,16 @@
             </property>
             <property name="text">
              <string>Show Masternodes Tab</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="showGovernanceTab">
+            <property name="toolTip">
+             <string>Show additional tab listing all budgets in the network.</string>
+            </property>
+            <property name="text">
+             <string>Show Governance Tab</string>
             </property>
            </widget>
           </item>

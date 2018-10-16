@@ -51,8 +51,27 @@ public:
         ShowMasternodesTab,  // bool
         Listen,              // bool
         StakeSplitThreshold, // int
+        ShowGovernanceTab,   // bool
         OptionIDRowCount,
     };
+
+    /**
+     * @brief Return name for given option's id.
+     *        Warning! Not all options are added here, look at the implementation.
+     *
+     * @param id option id
+     * @return option name
+     */
+    static QString OptionIDToString(OptionID id);
+
+    /**
+     * @brief Return value for given option's id.
+     *        Warning! Not all options are added here, look at the implementation of OptionIDToString.
+     *
+     * @param id option id
+     * @return option value
+     */
+    static QVariant GetOption(OptionID id);
 
     void Init();
     void Reset();

@@ -58,6 +58,8 @@ public slots:
     void gotoHistoryPage();
     /** Switch to masternode page */
     void gotoMasternodePage();
+    /** Switch to governance page */
+    void gotoGovernancePage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to privacy page */
