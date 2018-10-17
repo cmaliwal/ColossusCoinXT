@@ -18,6 +18,7 @@ class QLineEdit;
 class QTimer;
 class QMenu;
 class QTableView;
+class QModelIndex;
 
 class GovernanceTableModel;
 typedef std::shared_ptr<GovernanceTableModel> GovernanceTableModelPtr;
@@ -37,6 +38,22 @@ private:
     void setupUI();
     void updateUI();
     void setupLayout();
+    void updateModel();
+    QPushButton* createUrlButton();
+    QPushButton* createInfoButton();
+
+private slots:
+    void onVoteYes();
+    void onVoteNo();
+    void onVoteAbstain();
+    void onUpdateTable();
+    void onUrl();
+    void onShowInfo();
+    void onShowTableContextMenu(const QPoint& point);
+    void onBlockNotify();
+    void onTableRowChanged(const QModelIndex&, const QModelIndex&);
+    void onShowPrevious(bool);
+    void onSearch(const QString&);
 
 private:
     GovernanceTableModelPtr model_;
