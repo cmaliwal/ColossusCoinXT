@@ -7,6 +7,7 @@
 
 #include "governancetable.h"
 #include "governancetablemodel.h"
+#include "textbrowserdialog.h"
 #include "ui_interface.h"
 #include "tinyformat.h"
 #include "guiutil.h"
@@ -21,6 +22,8 @@
 #include <QVBoxLayout>
 #include <QHeaderView>
 #include <QModelIndex>
+#include <QTextBrowser>
+#include <QSortFilterProxyModel>
 #include <QDebug>
 
 static GovernanceTable *gView = nullptr;
@@ -82,6 +85,8 @@ void GovernanceTable::setupUI()
     ui.tableProposal->setSelectionMode(QAbstractItemView::SingleSelection);
     ui.tableProposal->setContextMenuPolicy(Qt::CustomContextMenu);
 
+    ui.proxyModel = new QSortFilterProxyModel(this);
+
     ui.voteYes = new QPushButton(this);
     ui.voteYes->setText(tr("Vote Yes"));
 
@@ -136,7 +141,8 @@ void GovernanceTable::updateUI()
         ui.voteNo->setEnabled(false);
         ui.voteAbstain->setEnabled(false);
     } else {
-        ui.tableProposal->setModel(model_.get());
+        ui.proxyModel->setSourceModel(model_.get());
+        ui.tableProposal->setModel(ui.proxyModel);
         ui.tableProposal->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
         std::vector<int> columnWidth = model_->columnWidth();
         for (int i = 0; i < columnWidth.size(); ++i)
@@ -191,12 +197,15 @@ void GovernanceTable::updateModel()
 {
     if (model_) {
         model_->updateModel();
+
         for (int i = 0; i < ui.tableProposal->model()->rowCount(); ++i) {
             QModelIndex index1 = ui.tableProposal->model()->index(i, GovernanceTableModel::link);
             ui.tableProposal->setIndexWidget(index1, createUrlButton());
             QModelIndex index2 = ui.tableProposal->model()->index(i, GovernanceTableModel::hash);
             ui.tableProposal->setIndexWidget(index2, createInfoButton());
         }
+
+        ui.tableProposal->sortByColumn(GovernanceTableModel::block_start, Qt::DescendingOrder);
     }
 }
 
@@ -236,13 +245,22 @@ void GovernanceTable::onShowTableContextMenu(const QPoint& point)
 }
 
 void GovernanceTable::onVoteYes()
-{}
+{
+    if (!model_)
+        return;
+}
 
 void GovernanceTable::onVoteNo()
-{}
+{
+    if (!model_)
+        return;
+}
 
 void GovernanceTable::onVoteAbstain()
-{}
+{
+    if (!model_)
+        return;
+}
 
 void GovernanceTable::onUpdateTable()
 {
@@ -269,11 +287,33 @@ void GovernanceTable::onUrl()
     if (!url.isEmpty())
         GUIUtil::openURL(url);
     else
-        QMessageBox::information(this, tr("Information!"), tr("URL is not found."), QMessageBox::Ok, QMessageBox::Ok);
+        QMessageBox::information(this, tr("Information!"), tr("Not found."), QMessageBox::Ok, QMessageBox::Ok);
 }
 
 void GovernanceTable::onShowInfo()
-{}
+{
+    if (!model_)
+        return;
+
+    QString htmlString;
+    QModelIndexList indexes = ui.tableProposal->selectionModel()->selectedRows();
+    if (!indexes.isEmpty()) {
+        htmlString = model_->formatProposal(indexes.front().row());
+    } else {
+        QPoint pt = ui.tableProposal->mapFromGlobal(QCursor::pos());
+        pt.setY(pt.y() - ui.tableProposal->horizontalHeader()->frameRect().height());
+        QModelIndex index = ui.tableProposal->indexAt(pt);
+        if (index.isValid())
+            htmlString = model_->formatProposal(index.row());
+    }
+
+    if (!htmlString.isEmpty()) {
+        TextBrowserDialog dlg(tr("Preview"), this);
+        dlg.setContent(htmlString);
+        dlg.exec();
+    } else
+        QMessageBox::information(this, tr("Information!"), tr("Not found."), QMessageBox::Ok, QMessageBox::Ok);
+}
 
 void GovernanceTable::onBlockNotify()
 {
@@ -282,16 +322,18 @@ void GovernanceTable::onBlockNotify()
 
 void GovernanceTable::onShowPrevious(bool show)
 {
-    if (model_) {
-        model_->setShowPrevious(show);
-        updateModel();
-    }
+    if (!model_)
+        return;
+
+    model_->setShowPrevious(show);
+    updateModel();
 }
 
 void GovernanceTable::onSearch(const QString& str)
 {
-    if (model_) {
-        model_->setFilter(str);
-        updateModel();
-    }
+    if (!model_)
+        return;
+
+    model_->setFilter(str);
+    updateModel();
 }

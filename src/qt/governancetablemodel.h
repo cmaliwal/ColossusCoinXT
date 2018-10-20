@@ -55,6 +55,8 @@ public:
 
     QString dataAt(int i, int j) const;
 
+    QString formatProposal(int row) const;
+
 private:
     QVariant dataDisplay(const QModelIndex& index) const;
     QVariant dataDecoration(const QModelIndex& index) const;

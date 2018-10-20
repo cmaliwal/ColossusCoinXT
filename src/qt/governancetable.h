@@ -19,6 +19,7 @@ class QTimer;
 class QMenu;
 class QTableView;
 class QModelIndex;
+class QSortFilterProxyModel;
 
 class GovernanceTableModel;
 typedef std::shared_ptr<GovernanceTableModel> GovernanceTableModelPtr;
@@ -69,6 +70,7 @@ private:
         QPushButton *voteNo;
         QPushButton *voteAbstain;
         QPushButton *btnUpdateTable;
+        QSortFilterProxyModel *proxyModel;
         QMenu* menu;
     } ui;
 };

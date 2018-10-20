@@ -191,3 +191,45 @@ QString GovernanceTableModel::dataAt(int i, int j) const
     assert(false);
     return QString();
 }
+
+QString GovernanceTableModel::formatProposal(int row) const
+{
+    QString hash = dataAt(row, GovernanceTableModel::hash);
+    if (hash.isEmpty())
+        return QString(tr("Information is not found."));
+
+    CBudgetProposal *pp = budget.FindProposal(uint256(hash.toStdString()));
+    if (!pp)
+        return QString(tr("Proposal %1 is not found: ").arg(hash));
+
+    const char htmlTemplate[] = "<tr><td>%s</td><td>%s</td></tr>";
+
+    string err;
+    CTxDestination address1;
+    ExtractDestination(pp->GetPayee(), address1);
+    CBitcoinAddress address2(address1);
+
+    stringstream html("<table style=\"width:100%\">");
+    html << strprintf(htmlTemplate, "Hash", hash.toStdString());
+    html << strprintf(htmlTemplate, "Name", pp->GetName());
+    html << strprintf(htmlTemplate, "URL", pp->GetURL());
+    html << strprintf(htmlTemplate, "FeeHash", pp->nFeeTXHash.ToString());
+    html << strprintf(htmlTemplate, "BlockStart", to_string(pp->GetBlockStart()));
+    html << strprintf(htmlTemplate, "BlockEnd", to_string(pp->GetBlockEnd()));
+    html << strprintf(htmlTemplate, "TotalPaymentCount", to_string(pp->GetTotalPaymentCount()));
+    html << strprintf(htmlTemplate, "RemainingPaymentCount", to_string(pp->GetRemainingPaymentCount()));
+    html << strprintf(htmlTemplate, "PaymentAddress", address2.ToString());
+    html << strprintf(htmlTemplate, "Ratio", to_string(pp->GetRatio()));
+    html << strprintf(htmlTemplate, "Yeas", to_string(pp->GetYeas()));
+    html << strprintf(htmlTemplate, "Nays", to_string(pp->GetNays()));
+    html << strprintf(htmlTemplate, "Abstains", to_string(pp->GetAbstains()));
+    html << strprintf(htmlTemplate, "TotalPayment", FormatMoney(pp->GetAmount() * pp->GetTotalPaymentCount()));
+    html << strprintf(htmlTemplate, "MonthlyPayment", FormatMoney(pp->GetAmount()));
+    html << strprintf(htmlTemplate, "IsEstablished", pp->IsEstablished() ? "Yes" : "No");
+    html << strprintf(htmlTemplate, "IsValid", pp->IsValid(err) ? "Yes" : "No");
+    html << strprintf(htmlTemplate, "IsValidReason", err);
+    html << strprintf(htmlTemplate, "fValid", pp->fValid ? "Yes" : "No");
+    html << "</table>";
+
+    return QString::fromStdString(html.str());
+}
