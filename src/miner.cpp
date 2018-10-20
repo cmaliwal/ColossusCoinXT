@@ -571,6 +571,7 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
                     fMintableCoins = pwallet->MintableCoins(chainActive.Height() + 1);
                 }
 
+                LogPrintf("COLXMiner wait 5 seconds (%u, %d, %d, %d)\n", vNodes.size(), pwallet->IsLocked(), fMintableCoins, masternodeSync.IsBlockchainSynced());
                 MilliSleep(5000);
             }
 
@@ -578,6 +579,7 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
             if (mapHashedBlocks.count(chainActive.Tip()->nHeight)) {
                 // wait half of the nHashDrift with max wait of 3 minutes
                 if (GetTime() - mapHashedBlocks[chainActive.Tip()->nHeight] < max(pwallet->nHashInterval, (unsigned int)1)) {
+                    LogPrintf("COLXMiner wait half of the nHashDrift\n");
                     MilliSleep(5000);
                     continue;
                 }
@@ -702,15 +704,17 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
 
 void static ThreadBitcoinMiner(void* parg)
 {
+    LogPrintf("ThreadBitcoinMiner starting\n");
+
     boost::this_thread::interruption_point();
     CWallet* pwallet = (CWallet*)parg;
     try {
         BitcoinMiner(pwallet, false);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
-        LogPrintf("ThreadBitcoinMiner() exception");
+        LogPrintf("ThreadBitcoinMiner() exception: %s\n", e.what());
     } catch (...) {
-        LogPrintf("ThreadBitcoinMiner() exception");
+        LogPrintf("ThreadBitcoinMiner() exception\n");
     }
 
     LogPrintf("ThreadBitcoinMiner exiting\n");

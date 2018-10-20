@@ -1602,17 +1602,17 @@ void ThreadMessageHandler()
 void static ThreadStakeMinter()
 {
     boost::this_thread::interruption_point();
-    LogPrintf("ThreadStakeMinter started\n");
+    LogPrintf("ThreadStakeMinter starting\n");
     CWallet* pwallet = pwalletMain;
     try {
         BitcoinMiner(pwallet, true);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
-        LogPrintf("ThreadStakeMinter() exception \n");
+        LogPrintf("ThreadStakeMinter() exception: %s\n", e.what());
     } catch (...) {
-        LogPrintf("ThreadStakeMinter() error \n");
+        LogPrintf("ThreadStakeMinter() error\n");
     }
-    LogPrintf("ThreadStakeMinter exiting,\n");
+    LogPrintf("ThreadStakeMinter exiting\n");
 }
 
 bool BindListenPort(const CService& addrBind, string& strError, bool fWhitelisted)
