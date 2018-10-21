@@ -45,6 +45,12 @@ public:
         column_count = 10
     };
 
+    enum class Vote {
+        yes,
+        no,
+        abstain
+    };
+
     void updateModel();
 
     void setShowPrevious(bool show);
@@ -57,11 +63,14 @@ public:
 
     QString formatProposal(int row) const;
 
+    bool vote(const QString& hash, Vote vote, QString& msg);
+
 private:
     QVariant dataDisplay(const QModelIndex& index) const;
     QVariant dataDecoration(const QModelIndex& index) const;
     QVariant dataAlignment(const QModelIndex& index) const;
     QStringList proposal2string(const CBudgetProposal& pp) const;
+    int voteToInt(Vote v) const;
 
     bool passFilter(
             const CBudgetProposal& pp,

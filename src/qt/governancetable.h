@@ -42,6 +42,8 @@ private:
     void updateModel();
     QPushButton* createUrlButton();
     QPushButton* createInfoButton();
+    int getSelectedRow() const;
+    void onVoteImpl(const QString& vote);
 
 private slots:
     void onVoteYes();

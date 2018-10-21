@@ -244,22 +244,84 @@ void GovernanceTable::onShowTableContextMenu(const QPoint& point)
         ui.menu->exec(QCursor::pos());
 }
 
+int GovernanceTable::getSelectedRow() const
+{
+    if (!ui.tableProposal->selectionModel())
+        return -1;
+
+    QModelIndexList proxyIndex = ui.tableProposal->selectionModel()->selectedRows();
+    if (proxyIndex.isEmpty())
+        return -1;
+    else {
+        QModelIndex index = ui.proxyModel->mapToSource(proxyIndex.front());
+        if (!index.isValid())
+            return -1;
+        else
+            return index.row();
+    }
+}
+
 void GovernanceTable::onVoteYes()
 {
     if (!model_)
         return;
+
+    onVoteImpl("YES");
+    updateModel();
 }
 
 void GovernanceTable::onVoteNo()
 {
     if (!model_)
         return;
+
+    onVoteImpl("NO");
+    updateModel();
 }
 
 void GovernanceTable::onVoteAbstain()
 {
     if (!model_)
         return;
+
+    onVoteImpl("ABSTAIN");
+    updateModel();
+}
+
+void GovernanceTable::onVoteImpl(const QString& vote)
+{
+    if (!model_)
+        return;
+
+    int selRow = getSelectedRow();
+    QString name = model_->dataAt(selRow, GovernanceTableModel::name);
+    if (name.isEmpty()) {
+        QMessageBox::information(this, tr("Information!"), tr("Not found."), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    QMessageBox::StandardButton retval =
+            QMessageBox::question(this, tr("Confirm %1 vote").arg(vote),
+            tr("Are you sure you want vote %1 on %2 proposal with all your masternodes?").arg(vote).arg(name),
+            QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
+
+    if (retval != QMessageBox::Yes)
+        return;
+
+    // TODO: wallet lock state???
+
+    QString msg;
+    QString hash = model_->dataAt(selRow, GovernanceTableModel::hash);
+    GovernanceTableModel::Vote type = GovernanceTableModel::Vote::abstain;
+    if (vote == "YES")
+        type = GovernanceTableModel::Vote::yes;
+    else if (vote == "NO")
+        type = GovernanceTableModel::Vote::no;
+    else
+        type = GovernanceTableModel::Vote::abstain;
+
+    model_->vote(hash, type, msg);
+    QMessageBox::information(this, tr("Information!"), msg, QMessageBox::Ok, QMessageBox::Ok);
 }
 
 void GovernanceTable::onUpdateTable()
@@ -273,13 +335,14 @@ void GovernanceTable::onUrl()
         return;
 
     QString url;
-    QModelIndexList indexes = ui.tableProposal->selectionModel()->selectedRows();
-    if (!indexes.isEmpty()) {
-        url = model_->dataAt(indexes.front().row(), GovernanceTableModel::link);
+    const int row = getSelectedRow();
+    if (row >= 0) {
+        url = model_->dataAt(row, GovernanceTableModel::link);
     } else {
         QPoint pt = ui.tableProposal->mapFromGlobal(QCursor::pos());
         pt.setY(pt.y() - ui.tableProposal->horizontalHeader()->frameRect().height());
-        QModelIndex index = ui.tableProposal->indexAt(pt);
+        QModelIndex proxyIndex = ui.tableProposal->indexAt(pt);
+        QModelIndex index = ui.proxyModel->mapToSource(proxyIndex);
         if (index.isValid())
             url = model_->dataAt(index.row(), GovernanceTableModel::link);
     }
@@ -296,13 +359,14 @@ void GovernanceTable::onShowInfo()
         return;
 
     QString htmlString;
-    QModelIndexList indexes = ui.tableProposal->selectionModel()->selectedRows();
-    if (!indexes.isEmpty()) {
-        htmlString = model_->formatProposal(indexes.front().row());
+    const int row = getSelectedRow();
+    if (row >= 0) {
+        htmlString = model_->formatProposal(row);
     } else {
         QPoint pt = ui.tableProposal->mapFromGlobal(QCursor::pos());
         pt.setY(pt.y() - ui.tableProposal->horizontalHeader()->frameRect().height());
-        QModelIndex index = ui.tableProposal->indexAt(pt);
+        QModelIndex proxyIndex = ui.tableProposal->indexAt(pt);
+        QModelIndex index = ui.proxyModel->mapToSource(proxyIndex);
         if (index.isValid())
             htmlString = model_->formatProposal(index.row());
     }

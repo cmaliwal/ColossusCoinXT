@@ -7,6 +7,8 @@
 
 #include "governancetablemodel.h"
 #include "masternode-budget.h"
+#include "masternodeconfig.h"
+#include "obfuscation.h"
 #include "utilmoneystr.h"
 #include "tinyformat.h"
 
@@ -232,4 +234,75 @@ QString GovernanceTableModel::formatProposal(int row) const
     html << "</table>";
 
     return QString::fromStdString(html.str());
+}
+
+bool GovernanceTableModel::vote(const QString& hash, Vote v, QString& msg)
+{
+    if (hash.isEmpty()) {
+        msg = QString(tr("Proposal hash is empty."));
+        return false;
+    }
+
+    stringstream result;
+    int success = 0, failed = 0;
+    for (const CMasternodeConfig::CMasternodeEntry& mne : masternodeConfig.getEntries()) {
+        std::string errorMessage;
+        std::vector<unsigned char> vchMasterNodeSignature;
+        std::string strMasterNodeSignMessage;
+
+        CPubKey pubKeyCollateralAddress;
+        CKey keyCollateralAddress;
+        CPubKey pubKeyMasternode;
+        CKey keyMasternode;
+
+        if (!obfuScationSigner.SetKey(mne.getPrivKey(), errorMessage, keyMasternode, pubKeyMasternode)) {
+            failed += 1;
+            result << strprintf("%s - masternode signing error, could not set key correctly: %s", mne.getAlias(), errorMessage) << endl;
+            continue;
+        }
+
+        CMasternode* pmn = mnodeman.Find(pubKeyMasternode);
+        if (!pmn) {
+            failed += 1;
+            result << strprintf("%s - can't find masternode by pubkey: %s", mne.getAlias(), pubKeyMasternode.GetHex()) << endl;
+            continue;
+        }
+
+        CBudgetVote vote(pmn->vin, uint256(hash.toStdString()), voteToInt(v));
+        if (!vote.Sign(keyMasternode, pubKeyMasternode)) {
+            failed += 1;
+            result << strprintf("%s - failure to sign vote", mne.getAlias()) << endl;
+            continue;
+        }
+
+        std::string strError;
+        if (budget.UpdateProposal(vote, nullptr, strError)) {
+            budget.mapSeenMasternodeBudgetVotes.insert(make_pair(vote.GetHash(), vote));
+            vote.Relay();
+            success += 1;
+            result << strprintf("%s - success", mne.getAlias()) << endl;
+        } else {
+            failed += 1;
+            result << strprintf("%s - failed: %s", mne.getAlias(), strError) << endl;
+        }
+    }
+
+    result << strprintf("Voted successfully %d time(s) and failed %d time(s).", success, failed);
+    msg = QString::fromStdString(result.str());
+    return true;
+}
+
+int GovernanceTableModel::voteToInt(Vote v) const
+{
+    switch (v) {
+    case Vote::yes:
+        return VOTE_YES;
+    case Vote::no:
+        return VOTE_NO;
+    case Vote::abstain:
+        return VOTE_ABSTAIN;
+    default:
+        assert(false);
+        return VOTE_ABSTAIN;
+    }
 }
