@@ -187,6 +187,12 @@ void GovernanceTable::setupLayout()
     this->setLayout(layoutMain);
 }
 
+void GovernanceTable::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    updateModel();
+}
+
 void GovernanceTable::setModel(GovernanceTableModelPtr model)
 {
     model_ = model;

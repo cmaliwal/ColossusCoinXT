@@ -81,6 +81,10 @@ QVariant GovernanceTableModel::data(const QModelIndex& index, int role) const
         return dataDecoration(index);
     else if (role == Qt::TextAlignmentRole)
         return dataAlignment(index);
+    else if (role == Qt::FontRole)
+        return dataFont(index);
+    else if (role == Qt::ForegroundRole)
+        return dataForeground(index);
     else
         return QVariant();
 }
@@ -113,6 +117,43 @@ QVariant GovernanceTableModel::dataAlignment(const QModelIndex& index) const
         return Qt::AlignCenter;
 }
 
+QVariant GovernanceTableModel::dataFont(const QModelIndex& index) const
+{
+    const int i = index.row();
+    const int j = index.column();
+    if (j == TableColumns::vote_yes || j == TableColumns::vote_no || j == TableColumns::vote_absolute) {
+        if (dataAt(i, j) != "0") {
+            QFont fontBold;
+            fontBold.setBold(true);
+            return fontBold;
+        }
+    }
+
+    return QVariant();
+}
+
+QVariant GovernanceTableModel::dataForeground(const QModelIndex& index) const
+{
+    const QRgb green(0x008007);
+    const int i = index.row();
+    const int j = index.column();
+    if (j == TableColumns::vote_yes) {
+        if (dataAt(i, j) != "0")
+            return QColor(green);
+    } else if (j == TableColumns::vote_no) {
+        if (dataAt(i, j) != "0")
+            return QColor(Qt::red);
+    } else if (j == TableColumns::vote_absolute) {
+        int n = dataAt(i, j).toInt();
+        if (n > 0)
+            return QColor(green);
+        else if (n < 0)
+            return QColor(Qt::red);
+    }
+
+    return QVariant();
+}
+
 std::vector<int> GovernanceTableModel::columnWidth() const
 {
     return {100, 90, 90, 50, 50, 50, 120, 120, 50, 50};
@@ -122,6 +163,7 @@ void GovernanceTableModel::updateModel()
 {
     emit layoutAboutToBeChanged();
 
+    const int nHeight = chainActive.Height();
     vector<CBudgetProposal*> proposalList = budget.GetAllProposals();
 
     data_.clear();
@@ -129,7 +171,7 @@ void GovernanceTableModel::updateModel()
 
     for (CBudgetProposal *pp : proposalList) {
         QStringList pps = proposal2string(*pp);
-        if (passFilter(*pp, pps, showPrevious_, filter_))
+        if (passFilter(*pp, pps, nHeight, showPrevious_, filter_))
             data_.push_back(pps);
     }
 
@@ -168,10 +210,12 @@ void GovernanceTableModel::setFilter(const QString& str)
 bool GovernanceTableModel::passFilter(
         const CBudgetProposal& pp,
         const QStringList& pps,
+        int nHeight,
         bool showPrevious,
         const QString& filter) const
 {
-    if (!pp.fValid && !showPrevious)
+    // reject previous if needed
+    if (!showPrevious && nHeight > 0 && nHeight > pp.GetBlockEnd())
         return false;
 
     if (filter.trimmed().isEmpty())
@@ -264,7 +308,7 @@ bool GovernanceTableModel::vote(const QString& hash, Vote v, QString& msg)
         CMasternode* pmn = mnodeman.Find(pubKeyMasternode);
         if (!pmn) {
             failed += 1;
-            result << strprintf("%s - can't find masternode by pubkey: %s", mne.getAlias(), pubKeyMasternode.GetHex()) << endl;
+            result << strprintf("%s - can't find masternode by pubkey: %s", mne.getAlias(), HexStr(pubKeyMasternode.GetHex())) << endl;
             continue;
         }
 

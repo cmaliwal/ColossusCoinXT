@@ -69,12 +69,15 @@ private:
     QVariant dataDisplay(const QModelIndex& index) const;
     QVariant dataDecoration(const QModelIndex& index) const;
     QVariant dataAlignment(const QModelIndex& index) const;
+    QVariant dataFont(const QModelIndex& index) const;
+    QVariant dataForeground(const QModelIndex& index) const;
     QStringList proposal2string(const CBudgetProposal& pp) const;
     int voteToInt(Vote v) const;
 
     bool passFilter(
             const CBudgetProposal& pp,
             const QStringList& pps,
+            int nHeight,
             bool showPrevious,
             const QString& filter) const;
 
