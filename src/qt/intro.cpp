@@ -6,9 +6,8 @@
 
 #include "intro.h"
 #include "ui_intro.h"
-
+#include "chainparams.h"
 #include "guiutil.h"
-
 #include "util.h"
 
 #include <boost/filesystem.hpp>
@@ -17,9 +16,7 @@
 #include <QMessageBox>
 #include <QSettings>
 
-/* Minimum free space (in bytes) needed for data directory */
 static const uint64_t GB_BYTES = 1000000000LL;
-static const uint64_t BLOCK_CHAIN_SIZE = 1LL * GB_BYTES;
 
 /* Check free space asynchronously to prevent hanging the UI thread.
 
@@ -109,7 +106,7 @@ Intro::Intro(QWidget* parent) : QDialog(parent),
                                 signalled(false)
 {
     ui->setupUi(this);
-    ui->sizeWarningLabel->setText(ui->sizeWarningLabel->text().arg(BLOCK_CHAIN_SIZE / GB_BYTES));
+    ui->sizeWarningLabel->setText(ui->sizeWarningLabel->text().arg(GetBlockChainSize() / GB_BYTES));
     startThread();
 }
 
@@ -150,7 +147,7 @@ QString Intro::getSettingsDirectory()
     return QSettings().fileName();
 }
 
-bool Intro::pickDataDirectory()
+bool Intro::pickDataDirectory(bool& bootstrap)
 {
     namespace fs = boost::filesystem;
     QSettings settings;
@@ -176,7 +173,10 @@ bool Intro::pickDataDirectory()
                 /* Cancel clicked */
                 return false;
             }
+
             dataDir = intro.getDataDirectory();
+            bootstrap = intro.getBootstrapOption();
+
             try {
                 TryCreateDirectory(GUIUtil::qstringToBoostPath(dataDir));
                 break;
@@ -218,8 +218,8 @@ void Intro::setStatus(int status, const QString& message, quint64 bytesAvailable
         ui->freeSpace->setText("");
     } else {
         QString freeString = tr("%1 GB of free space available").arg(bytesAvailable / GB_BYTES);
-        if (bytesAvailable < BLOCK_CHAIN_SIZE) {
-            freeString += " " + tr("(of %1 GB needed)").arg(BLOCK_CHAIN_SIZE / GB_BYTES);
+        if (bytesAvailable < GetBlockChainSize()) {
+            freeString += " " + tr("(of %1 GB needed)").arg(GetBlockChainSize() / GB_BYTES);
             ui->freeSpace->setStyleSheet("QLabel { color: #800000 }");
         } else {
             ui->freeSpace->setStyleSheet("");
@@ -289,4 +289,9 @@ QString Intro::getPathToCheck()
     signalled = false; /* new request can be queued now */
     mutex.unlock();
     return retval;
+}
+
+bool Intro::getBootstrapOption() const
+{
+    return ui->bootstrapBlockchain->isChecked();
 }

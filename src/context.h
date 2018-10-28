@@ -6,8 +6,12 @@
 #define BITCOIN_CONTEXT_H
 
 #include <string>
+#include <memory>
 
 class CContext;
+class BootstrapModel;
+
+typedef std::shared_ptr<BootstrapModel> BootstrapModelPtr;
 
 /**
  * Create and initialize unique global application context object.
@@ -89,6 +93,12 @@ public:
      */
     void SetStartupTime(int64_t nTime);
 
+    /**
+     * Return unique instance of the bootstrap model.
+     * Model is created if not exists.
+     */
+    BootstrapModelPtr GetBootstrapModel();
+
 private:
     CContext(const CContext&);
     CContext& operator=(const CContext&);
@@ -98,6 +108,7 @@ private:
     std::string sUpdateUrlTag_;
     std::string sUpdateUrlFile_;
     int64_t nStartupTime_ = 0;
+    BootstrapModelPtr bootstrapModel_;
 };
 
 #endif // BITCOIN_CONTEXT_H

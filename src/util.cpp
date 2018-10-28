@@ -350,6 +350,12 @@ void ParseParameters(int argc, const char* const argv[])
     }
 }
 
+bool DefinedArg(const std::string& strArg)
+{
+    assert(!strArg.empty());
+    return mapArgs.find(strArg) != mapArgs.end();
+}
+
 std::string GetArg(const std::string& strArg, const std::string& strDefault)
 {
     if (mapArgs.count(strArg))

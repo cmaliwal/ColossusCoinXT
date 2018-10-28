@@ -12,6 +12,8 @@
 #include "util.h"
 #include "utilstrencodings.h"
 #include "base58.h"
+#include "streams.h"
+#include "clientversion.h"
 
 #include <assert.h>
 
@@ -218,6 +220,9 @@ public:
         nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
         nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
+
+        strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/main";
+        //strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -380,6 +385,8 @@ public:
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
 
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
+        strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/test";
+        //strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";
     }
 
     CBitcoinAddress GetDevFundAddress() const
@@ -515,13 +522,18 @@ public:
 static CUnitTestParams unitTestParams;
 
 
-static CChainParams* pCurrentParams = 0;
+static CChainParams* pCurrentParams = nullptr;
 
 CModifiableParams* ModifiableParams()
 {
     assert(pCurrentParams);
     assert(pCurrentParams == &unitTestParams);
     return (CModifiableParams*)&unitTestParams;
+}
+
+bool ParamsSelected()
+{
+    return pCurrentParams != nullptr;
 }
 
 const CChainParams& Params()
@@ -561,4 +573,56 @@ bool SelectParamsFromCommandLine()
 
     SelectParams(network);
     return true;
+}
+
+uint64_t GetBlockChainSize()
+{
+    const uint64_t GB_BYTES = 1000000000LL;
+    return 1LL * GB_BYTES;
+}
+
+bool VerifyGenesisBlock(const std::string& datadir, const uint256& genesisHash, std::string& err)
+{
+    const string path = strprintf("%s/blocks/blk00000.dat", datadir);
+    FILE *fptr = fopen(path.c_str(), "rb");
+    if (!fptr) {
+        err = strprintf("Failed to open file: %s", path);
+        return false;
+    }
+
+    CAutoFile filein(fptr, SER_DISK, CLIENT_VERSION);
+    if (filein.IsNull()) {
+        err = strprintf("Open block file failed: %s", path);
+        return false;
+    }
+
+    char buf[MESSAGE_START_SIZE] = {0};
+    filein.read(buf, MESSAGE_START_SIZE);
+    if (memcmp(buf, Params().MessageStart(), MESSAGE_START_SIZE)) {
+        err = strprintf("Invalid magic numer %s in the file: %s", HexStr(buf, buf + MESSAGE_START_SIZE), path);
+        return false;
+    }
+
+    unsigned int nSize = 0;
+    filein >> nSize;
+    if (nSize < 80 || nSize > 2000000) {
+        err = strprintf("Invalid block size %u in the file: %s", nSize, path);
+        return false;
+    }
+
+    CBlock block;
+    try {
+        // Read block
+        filein >> block;
+    } catch (std::exception& e) {
+        err = strprintf("Deserialize or I/O error: %s", e.what());
+        return false;
+    }
+
+    // Check block hash
+    if (block.GetHash() != genesisHash) {
+        err = strprintf("Block hash %s does not match genesis block hash %s", block.GetHash().ToString(), genesisHash.ToString());
+        return false;
+    } else
+        return true;
 }
