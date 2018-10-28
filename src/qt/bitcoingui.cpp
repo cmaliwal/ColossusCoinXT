@@ -371,8 +371,8 @@ void BitcoinGUI::createActions(const NetworkStyle* networkStyle)
 
 #ifdef ENABLE_WALLET
 
-    QSettings settings;
-    if (settings.value("fShowMasternodesTab").toBool()) {
+    QVariant showMNTab = OptionsModel::GetOption(OptionsModel::ShowMasternodesTab);
+    if (showMNTab.isValid() && showMNTab.toBool()) {
         masternodeAction = new QAction(QIcon(":/icons/masternodes"), tr("&Masternodes"), this);
         masternodeAction->setStatusTip(tr("Browse masternodes"));
         masternodeAction->setToolTip(masternodeAction->statusTip());
@@ -385,6 +385,18 @@ void BitcoinGUI::createActions(const NetworkStyle* networkStyle)
         tabGroup->addAction(masternodeAction);
         connect(masternodeAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
         connect(masternodeAction, SIGNAL(triggered()), this, SLOT(gotoMasternodePage()));
+    }
+
+    QVariant showGovernanceTab = OptionsModel::GetOption(OptionsModel::ShowGovernanceTab);
+    if (showGovernanceTab.isValid() && showGovernanceTab.toBool()) {
+        governanceAction = new QAction(QIcon(":/icons/governance"), tr("&Governance"), this);
+        governanceAction->setStatusTip(tr("Browse budgets"));
+        governanceAction->setToolTip(governanceAction->statusTip());
+        governanceAction->setCheckable(true);
+
+        tabGroup->addAction(governanceAction);
+        connect(governanceAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+        connect(governanceAction, SIGNAL(triggered()), this, SLOT(gotoGovernancePage()));
     }
 
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
@@ -589,10 +601,13 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(privacyAction);
         toolbar->addAction(historyAction);
         toolbar->addAction(privacyAction);
-        QSettings settings;
-        if (settings.value("fShowMasternodesTab").toBool()) {
+
+        if (masternodeAction)
             toolbar->addAction(masternodeAction);
-        }
+
+        if (governanceAction)
+            toolbar->addAction(governanceAction);
+
         toolbar->setMovable(false); // remove unused icon in upper left corner
         toolbar->setOrientation(Qt::Vertical);
         toolbar->setIconSize(QSize(60,54));
@@ -695,10 +710,13 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     receiveCoinsAction->setEnabled(enabled);
     privacyAction->setEnabled(enabled);
     historyAction->setEnabled(enabled);
-    QSettings settings;
-    if (masternodeAction && settings.value("fShowMasternodesTab").toBool()) {
+
+    if (masternodeAction)
         masternodeAction->setEnabled(enabled);
-    }
+
+    if (governanceAction)
+        governanceAction->setEnabled(enabled);
+
     encryptWalletAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
     changePassphraseAction->setEnabled(enabled);
@@ -834,10 +852,19 @@ void BitcoinGUI::gotoHistoryPage()
 
 void BitcoinGUI::gotoMasternodePage()
 {
-    QSettings settings;
-    if (settings.value("fShowMasternodesTab").toBool()) {
+    if (masternodeAction) {
         masternodeAction->setChecked(true);
-        if (walletFrame) walletFrame->gotoMasternodePage();
+        if (walletFrame)
+            walletFrame->gotoMasternodePage();
+    }
+}
+
+void BitcoinGUI::gotoGovernancePage()
+{
+    if (governanceAction) {
+        governanceAction->setChecked(true);
+        if (walletFrame)
+            walletFrame->gotoGovernancePage();
     }
 }
 
