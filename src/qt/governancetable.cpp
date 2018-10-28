@@ -12,6 +12,7 @@
 #include "tinyformat.h"
 #include "guiutil.h"
 
+#include <QFrame>
 #include <QMenu>
 #include <QLabel>
 #include <QCheckBox>
@@ -60,7 +61,10 @@ void GovernanceTable::setupUI()
     if (ui.labelTitle) // must be nullptr
         throw std::runtime_error(strprintf("%s: ui has already been initialized", __func__));
 
+    this->setObjectName(QStringLiteral("MasternodeList")); // for CSS
+
     ui.labelTitle = new QLabel(this);
+    ui.labelTitle->setObjectName(QStringLiteral("labelOverviewHeaderLeft")); // for CSS
     ui.labelTitle->setText(tr("GOVERNANCE"));
     ui.labelTitle->setMinimumSize(QSize(464, 60));
     QFont font;
@@ -70,7 +74,7 @@ void GovernanceTable::setupUI()
     ui.labelTitle->setFont(font);
 
     ui.labelNote = new QLabel(this);
-    ui.labelNote->setText(tr("Note: Governance objects in your local wallet can be potentially incorrect. Always wait for wallet sync and additional data before voting on any proposal."));
+    ui.labelNote->setText(tr("Note: Governance objects in your local wallet can be potentially incorrect.<br/>Always wait for wallet sync and additional data before voting on any proposal."));
 
     ui.labelSearch = new QLabel(this);
     ui.labelSearch->setText(tr("Search:"));
@@ -177,13 +181,13 @@ void GovernanceTable::setupLayout()
     layoutTop->addLayout(layoutSearch);
     layoutTop->addWidget(ui.tableProposal);
     layoutTop->addLayout(layoutButtons);
-    layoutTop->setContentsMargins(10, 10, 10, 10);
 
     // Combine all
     QVBoxLayout *layoutMain = new QVBoxLayout;
+    layoutMain->setContentsMargins(30, 10, 15, 15);
+    layoutMain->setStretch(1, 1);
     layoutMain->addWidget(ui.labelTitle);
     layoutMain->addLayout(layoutTop);
-    layoutMain->setContentsMargins(10, 10, 10, 10);
     this->setLayout(layoutMain);
 }
 
