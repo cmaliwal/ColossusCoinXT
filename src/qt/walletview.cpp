@@ -100,7 +100,7 @@ WalletView::WalletView(QWidget* parent) : QStackedWidget(parent),
 
     // Sum of selected transactions
     QLabel* transactionSumLabel = new QLabel();                // Label
-    transactionSumLabel->setObjectName("transactionSumLabel"); // Label ID as CSS-reference
+    transactionSumLabel->setObjectName("label_4"); // Label ID as CSS-reference
     transactionSumLabel->setText(tr("Selected amount:"));
     hbox_buttons->addWidget(transactionSumLabel);
 
