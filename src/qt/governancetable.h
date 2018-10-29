@@ -44,7 +44,7 @@ private:
     QPushButton* createInfoButton();
     int getSelectedRow() const;
     void onVoteImpl(const QString& vote);
-    void showEvent(QShowEvent *event);
+    void showEvent(QShowEvent *event) override;
 
 private slots:
     void onVoteYes();
