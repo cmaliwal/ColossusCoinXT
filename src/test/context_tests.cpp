@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "context.h"
+#include "autoupdatemodel.h"
 
 #include <exception>
 #include <boost/test/unit_test.hpp>
@@ -19,12 +20,12 @@ BOOST_AUTO_TEST_CASE(context_init_test)
     CreateContext();
     BOOST_CHECK_THROW(CreateContext(), runtime_error);
 
-    BOOST_CHECK(GetContext().IsUpdateAvailable() == false);
+    BOOST_CHECK(GetContext().GetAutoUpdateModel()->IsUpdateAvailable() == false);
 
-    GetContext().SetUpdateAvailable(true, "url", "filename");
-    BOOST_CHECK(GetContext().IsUpdateAvailable() == true);
-    BOOST_CHECK(GetContext().GetUpdateUrlFile() == "filename");
-    BOOST_CHECK(GetContext().GetUpdateUrlTag() == "url");
+    GetContext().GetAutoUpdateModel()->SetUpdateAvailable(true, "url", "filename");
+    BOOST_CHECK(GetContext().GetAutoUpdateModel()->IsUpdateAvailable() == true);
+    BOOST_CHECK(GetContext().GetAutoUpdateModel()->GetUpdateUrlFile() == "filename");
+    BOOST_CHECK(GetContext().GetAutoUpdateModel()->GetUpdateUrlTag() == "url");
 
     ReleaseContext();
     BOOST_CHECK_THROW(GetContext(), runtime_error);

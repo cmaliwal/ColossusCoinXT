@@ -10,8 +10,10 @@
 
 class CContext;
 class BootstrapModel;
+class AutoUpdateModel;
 
 typedef std::shared_ptr<BootstrapModel> BootstrapModelPtr;
+typedef std::shared_ptr<AutoUpdateModel> AutoUpdateModelPtr;
 
 /**
  * Create and initialize unique global application context object.
@@ -55,33 +57,7 @@ private:
 class CContext
 {
 public:
-    CContext();
-
     ~CContext();
-
-    /**
-     * Set availability of the update on the server.
-     * @param available true - available, false - not available
-     * @param urlTag base url of the release folder on the server
-     * @param urlFile url of the release file on the server
-     */
-    void SetUpdateAvailable(bool available, const std::string& urlTag, const std::string& urlFile);
-
-    /**
-     * Return availability of the update on the server.
-     * @return true - available, false - not available
-     */
-    bool IsUpdateAvailable() const;
-
-    /**
-     * Return base url of the release folder on the server.
-     */
-    std::string GetUpdateUrlTag() const;
-
-    /**
-     * Return url of the release file on the server.
-     */
-    std::string GetUpdateUrlFile() const;
 
     /**
      * Return startup time.
@@ -99,16 +75,22 @@ public:
      */
     BootstrapModelPtr GetBootstrapModel();
 
-private:
-    CContext(const CContext&);
-    CContext& operator=(const CContext&);
+    /**
+     * Return unique instance of the autoupdate model.
+     * Model is created if not exists.
+     */
+    AutoUpdateModelPtr GetAutoUpdateModel();
 
 private:
-    bool bUpdateAvailable_ = false;
-    std::string sUpdateUrlTag_;
-    std::string sUpdateUrlFile_;
+    CContext();
+    CContext(const CContext&);
+    CContext& operator=(const CContext&);
+    friend void CreateContext();
+
+private:
     int64_t nStartupTime_ = 0;
     BootstrapModelPtr bootstrapModel_;
+    AutoUpdateModelPtr autoupdateModel_;
 };
 
 #endif // BITCOIN_CONTEXT_H

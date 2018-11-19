@@ -20,11 +20,13 @@
 #include "transactionrecord.h"
 #include "transactiontablemodel.h"
 #include "walletmodel.h"
+#include "autoupdatemodel.h"
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
 #include <QSettings>
 #include <QTimer>
+#include <QMessageBox>
 
 #define DECORATION_SIZE 48
 #define ICON_OFFSET 16
@@ -343,6 +345,7 @@ void OverviewPage::setClientModel(ClientModel* model)
         updateAlerts(model->getStatusBarWarnings());
 
         connect(model, SIGNAL(newVersionAvailable()), this, SLOT(updateNewVersionAvailability()));
+        connect(model, SIGNAL(refreshDownloadProgress(QString, int)), this, SLOT(updateNewVersionDownloadProgress(QString, int)));
         updateNewVersionAvailability();
     }
 }
@@ -410,21 +413,46 @@ void OverviewPage::updateAlerts(const QString& warnings)
 
 void OverviewPage::updateNewVersionAvailability()
 {
-    QString msg = "New version is available, please update your wallet! <a href=\"Go\">Go to download page</a> or <a href=\"Download\">Download now</a>";
-    if (GetContext().IsUpdateAvailable()) {
-        this->newVersionNotification = msg;
-        updateAlerts(this->clientModel->getStatusBarWarnings());
-    }
+    QString msg1 = tr("New version is available, please update your wallet! <a href=\"Go\">Go to download page</a> or <a href=\"Download\">Download now</a>");
+    QString msg2 = tr("New version is ready for installation. <a href=\"Open\">Close wallet and start update!</a>");
+    QString msg3 = tr("New version is downloading...");
+
+    AutoUpdateModelPtr m = GetContext().GetAutoUpdateModel();
+    if (m->IsUpdateAvailable() && !m->FindLocalFile().empty())
+        this->newVersionNotification = msg2;
+    else if (m->IsDownloadRunning())
+        this->newVersionNotification = msg3;
+    else if (m->IsUpdateAvailable())
+        this->newVersionNotification = msg1;
+    else
+        this->newVersionNotification.clear();
+
+    updateAlerts(this->clientModel->getStatusBarWarnings());
+}
+
+void OverviewPage::updateNewVersionDownloadProgress(const QString& msg, int nProgress)
+{
+    if (0 == nProgress || nProgress > 100) // download has started/completed
+        updateNewVersionAvailability();
 }
 
 void OverviewPage::alertLinkActivated(const QString& link)
 {
-    assert(GetContext().IsUpdateAvailable());
+    assert(GetContext().GetAutoUpdateModel()->IsUpdateAvailable());
 
     if (link == "Go")
-        GUIUtil::openURL(QString::fromStdString(GetContext().GetUpdateUrlTag()));
-    else if (link == "Download")
-        GUIUtil::openURL(QString::fromStdString(GetContext().GetUpdateUrlFile()));
+        GUIUtil::openURL(QString::fromStdString(GetContext().GetAutoUpdateModel()->GetUpdateUrlTag()));
+    else if (link == "Download") {
+        string err;
+        if (!GetContext().GetAutoUpdateModel()->DownloadUpdateUrlFile(err))
+            QMessageBox::warning(this, this->windowTitle(), tr(err.c_str()), QMessageBox::Ok, QMessageBox::Ok);
+    } else if (link == "Open") {
+        string localPath = GetContext().GetAutoUpdateModel()->FindLocalFile();
+        if (!localPath.empty())
+            GUIUtil::openURL(QString::fromStdString(localPath));
+        else
+            QMessageBox::warning(this, this->windowTitle(), tr("Local file was not found."), QMessageBox::Ok, QMessageBox::Ok);
+    }
     else
         assert(false); // unexpected link
 }
