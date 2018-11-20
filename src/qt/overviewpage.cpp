@@ -448,9 +448,10 @@ void OverviewPage::alertLinkActivated(const QString& link)
             QMessageBox::warning(this, this->windowTitle(), tr(err.c_str()), QMessageBox::Ok, QMessageBox::Ok);
     } else if (link == "Open") {
         string localPath = GetContext().GetAutoUpdateModel()->FindLocalFile();
-        if (!localPath.empty())
-            GUIUtil::openURL(QString::fromStdString(localPath));
-        else
+        if (!localPath.empty()) {
+            ShutdownRequested();
+            GUIUtil::openFileInDefaultApp(QString::fromStdString(localPath));
+        } else
             QMessageBox::warning(this, this->windowTitle(), tr("Local file was not found."), QMessageBox::Ok, QMessageBox::Ok);
     }
     else

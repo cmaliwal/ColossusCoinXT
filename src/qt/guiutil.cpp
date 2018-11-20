@@ -362,7 +362,7 @@ bool isObscured(QWidget* w)
     return !(checkPoint(QPoint(0, 0), w) && checkPoint(QPoint(w->width() - 1, 0), w) && checkPoint(QPoint(0, w->height() - 1), w) && checkPoint(QPoint(w->width() - 1, w->height() - 1), w) && checkPoint(QPoint(w->width() / 2, w->height() / 2), w));
 }
 
-void openLocalFile(const boost::filesystem::path& p)
+void openFileInTextMode(const boost::filesystem::path& p)
 {
     if (boost::filesystem::exists(p))
 #if defined(Q_OS_MAC)
@@ -374,51 +374,40 @@ void openLocalFile(const boost::filesystem::path& p)
         error("File does not exist: %s", p.string().c_str());
 }
 
+void openFileInDefaultApp(const QString& p)
+{
+    if (boost::filesystem::exists(qstringToBoostPath(p)))
+        QDesktopServices::openUrl(QUrl::fromLocalFile(p));
+    else
+        error("File does not exist: %s", p.toStdString());
+}
+
+void openURL(const QString& url)
+{
+    if (!url.isEmpty())
+        QDesktopServices::openUrl(url);
+    else
+        error("%s - url is empty", __func__);
+}
+
 void openDebugLogfile()
 {
     /* Open debug.log with the associated application */
-    openLocalFile(GetDataDir() / "debug.log");
+    openFileInTextMode(GetDataDir() / "debug.log");
 }
 
 void openConfigfile()
 {
     /* Open ColossusXT.conf with the associated application */
-    openLocalFile(GetConfigFile());
+    openFileInTextMode(GetConfigFile());
 }
 
 void openMNConfigfile()
 {
     /* Open masternode.conf with the associated application */
-    openLocalFile(GetMasternodeConfigFile());
+    openFileInTextMode(GetMasternodeConfigFile());
 }
 
-//void openDebugLogfile()
-//{
-//    boost::filesystem::path pathDebug = GetDataDir() / "debug.log";
-//
-//    /* Open debug.log with the associated application */
-//    if (boost::filesystem::exists(pathDebug))
-//        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathDebug)));
-//}
-//
-//void openConfigfile()
-//{
-//    boost::filesystem::path pathConfig = GetConfigFile();
-//
-//    /* Open colx.conf with the associated application */
-//    if (boost::filesystem::exists(pathConfig))
-//        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathConfig)));
-//}
-//
-//void openMNConfigfile()
-//{
-//    boost::filesystem::path pathConfig = GetMasternodeConfigFile();
-//
-//    /* Open masternode.conf with the associated application */
-//    if (boost::filesystem::exists(pathConfig))
-//        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathConfig)));
-//}
-//
 void showBackups()
 {
     boost::filesystem::path pathBackups = GetDataDir() / "backups";
@@ -426,11 +415,6 @@ void showBackups()
     /* Open folder with default browser */
     if (boost::filesystem::exists(pathBackups))
         QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathBackups)));
-}
-
-void openURL(const QString& url)
-{
-    QDesktopServices::openUrl(url);
 }
 
 void SubstituteFonts(const QString& language)
