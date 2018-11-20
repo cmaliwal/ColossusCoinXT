@@ -449,7 +449,7 @@ void OverviewPage::alertLinkActivated(const QString& link)
     } else if (link == "Open") {
         string localPath = GetContext().GetAutoUpdateModel()->FindLocalFile();
         if (!localPath.empty()) {
-            ShutdownRequested();
+            StartShutdown();
             GUIUtil::openFileInDefaultApp(QString::fromStdString(localPath));
         } else
             QMessageBox::warning(this, this->windowTitle(), tr("Local file was not found."), QMessageBox::Ok, QMessageBox::Ok);
