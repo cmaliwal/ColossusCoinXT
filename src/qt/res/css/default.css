@@ -73,12 +73,8 @@ color:#fff;
 font-weight:bold;
 }
 
-QMessageBox {
-background-color:#F8F6F6;
-}
-
 QProgressBar {
-color:#d2d2d2;
+color:#000000;
 border:2px solid grey;
 border-radius:5px;
 background-color:transparent;
@@ -1756,4 +1752,16 @@ color:#fff;
 }
 QWidget#MasternodeList .QCheckBox {
 color:#fff;
+}
+
+.QCheckBox#checkBoxMintChange {
+color:#fff;
+}
+.QCheckBox#checkBoxMinimizeChange {
+color:#fff;
+}
+
+QMessageBox {
+background-image: url(':/images/walletFrame_bg') 0 0 0 0 stretch stretch;
+color: #fff;
 }

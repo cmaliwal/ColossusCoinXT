@@ -384,7 +384,7 @@
                           </property>
                           <property name="maximumSize">
                            <size>
-                            <width>131</width>
+                            <width>138</width>
                             <height>16777215</height>
                            </size>
                           </property>
@@ -651,7 +651,7 @@
                           </property>
                           <property name="minimumSize">
                            <size>
-                            <width>131</width>
+                            <width>138</width>
                             <height>0</height>
                            </size>
                           </property>
@@ -731,7 +731,7 @@
                           </property>
                           <property name="minimumSize">
                            <size>
-                            <width>131</width>
+                            <width>138</width>
                             <height>0</height>
                            </size>
                           </property>
@@ -784,7 +784,7 @@ zCOLX are mature when they have more than 20 confirmations AND more than 2 mints
                           </property>
                           <property name="sizeHint" stdset="0">
                            <size>
-                            <width>40</width>
+                            <width>44</width>
                             <height>20</height>
                            </size>
                           </property>
