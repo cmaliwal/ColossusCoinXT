@@ -27,6 +27,7 @@
 #include <QSettings>
 #include <QTimer>
 #include <QMessageBox>
+#include <QPushButton>
 
 #define DECORATION_SIZE 48
 #define ICON_OFFSET 16
@@ -413,9 +414,9 @@ void OverviewPage::updateAlerts(const QString& warnings)
 
 void OverviewPage::updateNewVersionAvailability()
 {
-    QString msg1 = tr("New version is available, please update your wallet! <a href=\"Go\">Go to download page</a> or <a href=\"Download\">Download now</a>");
-    QString msg2 = tr("New version is ready for installation. <a href=\"Open\">Close wallet and start update!</a>");
-    QString msg3 = tr("New version is downloading...");
+    const QString msg1 = tr("New version is available, please update your wallet! <a href=\"Go\">Go to download page</a> or <a href=\"Download\">Download now!</a>");
+    const QString msg2 = tr("New version is ready for installation! <a href=\"Open\">Close wallet and start update!</a>");
+    const QString msg3 = tr("New version is downloading...");
 
     AutoUpdateModelPtr m = GetContext().GetAutoUpdateModel();
     if (m->IsUpdateAvailable() && !m->FindLocalFile().empty())
@@ -428,6 +429,26 @@ void OverviewPage::updateNewVersionAvailability()
         this->newVersionNotification.clear();
 
     updateAlerts(this->clientModel->getStatusBarWarnings());
+
+    if (msg1 == this->newVersionNotification) {
+        QMessageBox mbox(this);
+        mbox.setWindowTitle(QString::fromStdString(CLIENT_NAME));
+        mbox.setText(tr("New version is available, please update your wallet!"));
+        mbox.addButton(tr("Later"), QMessageBox::NoRole);
+        QAbstractButton* pButtonDownload = mbox.addButton(tr("Download now!"), QMessageBox::YesRole);
+        mbox.exec();
+        if (mbox.clickedButton() == pButtonDownload)
+            alertLinkActivated("Download");
+    } else if (msg2 == this->newVersionNotification) {
+        QMessageBox mbox(this);
+        mbox.setWindowTitle(QString::fromStdString(CLIENT_NAME));
+        mbox.setText(tr("New version is ready for installation!"));
+        mbox.addButton(tr("Later"), QMessageBox::NoRole);
+        QAbstractButton* pButtonStart = mbox.addButton(tr("Close wallet and start update!"), QMessageBox::YesRole);
+        mbox.exec();
+        if (mbox.clickedButton() == pButtonStart)
+            alertLinkActivated("Open");
+    }
 }
 
 void OverviewPage::updateNewVersionDownloadProgress(const QString& msg, int nProgress)
@@ -445,14 +466,14 @@ void OverviewPage::alertLinkActivated(const QString& link)
     else if (link == "Download") {
         string err;
         if (!GetContext().GetAutoUpdateModel()->DownloadUpdateUrlFile(err))
-            QMessageBox::warning(this, this->windowTitle(), tr(err.c_str()), QMessageBox::Ok, QMessageBox::Ok);
+            QMessageBox::warning(this, QString::fromStdString(CLIENT_NAME), tr(err.c_str()), QMessageBox::Ok, QMessageBox::Ok);
     } else if (link == "Open") {
         string localPath = GetContext().GetAutoUpdateModel()->FindLocalFile();
         if (!localPath.empty()) {
             StartShutdown();
             GUIUtil::openFileInDefaultApp(QString::fromStdString(localPath));
         } else
-            QMessageBox::warning(this, this->windowTitle(), tr("Local file was not found."), QMessageBox::Ok, QMessageBox::Ok);
+            QMessageBox::warning(this, QString::fromStdString(CLIENT_NAME), tr("Local file was not found."), QMessageBox::Ok, QMessageBox::Ok);
     }
     else
         assert(false); // unexpected link
