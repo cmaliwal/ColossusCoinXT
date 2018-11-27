@@ -145,6 +145,15 @@ inline bool IsSwitchChar(char c)
 }
 
 /**
+ * Convert size to the human readable string
+ *
+ * @param size number of bytes
+ * @param si true: 1k = 1000, false: 1k = 1024
+ * @return human readable string
+ */
+std::string HumanReadableSize(int64_t size, bool si);
+
+/**
  * Test if given argument is defined
  *
  * @param strArg Argument to get (e.g. "-foo")

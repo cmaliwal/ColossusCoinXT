@@ -9,6 +9,7 @@
 #include "bootstrapmodel.h"
 #include "chainparams.h"
 #include "guiutil.h"
+#include "guiconstants.h"
 #include "tinyformat.h"
 
 #include <QApplication>
@@ -124,7 +125,7 @@ void BootstrapDialog::setupUI()
     // See https://qt-project.org/doc/qt-4.8/gallery.html
     QString curStyle = QApplication::style()->metaObject()->className();
     if (curStyle == "QWindowsStyle" || curStyle == "QWindowsXPStyle")
-        ui.progress->setStyleSheet("QProgressBar { background-color: #F8F8F8; border: 1px solid grey; border-radius: 7px; padding: 1px; text-align: center; } QProgressBar::chunk { background: QLinearGradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #00CCFF, stop: 1 #33CCFF); border-radius: 7px; margin: 0px; }");
+        ui.progress->setStyleSheet(PROGRESS_BAR_STYLE);
 
     connect(ui.radioCloud, SIGNAL (released()), this, SLOT (onButtonRadioCloud()));
     connect(ui.radioFile, SIGNAL (released()), this, SLOT (onButtonRadioFile()));

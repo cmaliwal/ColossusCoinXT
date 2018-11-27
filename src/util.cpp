@@ -957,3 +957,25 @@ void RenameDataDirAndConfFile()
     RenameDataDir();
     RenameConfigFile();
 }
+
+/** convert size to the human readable string */
+std::string HumanReadableSize(int64_t size, bool si)
+{
+    const int unit = si ? 1000 : 1024;
+    const char* units1[] = {"B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
+    const char* units2[] = {"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
+    const char** units = si ? units1 : units2;
+
+    static_assert((sizeof(units1) / sizeof(units1[0])) == (sizeof(units2) / sizeof(units2[0])), "Number of elements in units1 and units2 must be equal.");
+
+    int i = 0;
+    while (size > unit) {
+       size /= unit;
+       i += 1;
+    }
+
+    if (size <= 0 || i >= sizeof(units1) / sizeof(units1[0]))
+        return "0";
+    else
+        return strprintf("%.*f %s", i, size, units[i]);
+}

@@ -17,6 +17,8 @@
 #include "spork.h"
 #include "timedata.h"
 #include "util.h"
+#include "autoupdatemodel.h"
+
 #ifdef ENABLE_WALLET
 #include "wallet.h"
 #include "walletdb.h"
@@ -154,8 +156,8 @@ UniValue getinfo(const UniValue& params, bool fHelp)
 
     vector<string> warnings;
     warnings.push_back(GetWarnings("statusbar"));
-    if (GetContext().IsUpdateAvailable())
-        warnings.push_back(strprintf("New version is available, please update your wallet! Go to: %s", GetContext().GetUpdateUrlTag()));
+    if (GetContext().GetAutoUpdateModel()->IsUpdateAvailable())
+        warnings.push_back(strprintf("New version is available, please update your wallet! Go to: %s", GetContext().GetAutoUpdateModel()->GetUpdateUrlTag()));
 
     obj.push_back(Pair("errors", boost::algorithm::join(warnings, " ")));
 
