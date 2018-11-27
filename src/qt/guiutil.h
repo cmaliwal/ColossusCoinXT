@@ -109,8 +109,14 @@ Qt::ConnectionType blockingGUIThreadConnection();
 // Determine whether a widget is hidden behind other windows
 bool isObscured(QWidget* w);
 
-// Open file in text editor
-void openLocalFile(const boost::filesystem::path& p);
+// Open file in the text mode
+void openFileInTextMode(const boost::filesystem::path& p);
+
+// Open file in the default app
+void openFileInDefaultApp(const QString& path);
+
+// Open URL in the default browser
+void openURL(const QString& url);
 
 // Open debug.log
 void openDebugLogfile();
@@ -123,9 +129,6 @@ void openMNConfigfile();
 
 // Browse backup folder
 void showBackups();
-
-// Open URL in the default browser
-void openURL(const QString& url);
 
 // Replace invalid default fonts with known good ones
 void SubstituteFonts(const QString& language);

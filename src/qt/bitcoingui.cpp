@@ -236,17 +236,23 @@ BitcoinGUI::BitcoinGUI(const NetworkStyle* networkStyle, QWidget* parent) : QMai
     progressBar = new GUIUtil::ProgressBar();
     progressBar->setAlignment(Qt::AlignCenter);
     progressBar->setVisible(true);
+    progressBarDownloadUpdate = new GUIUtil::ProgressBar();
+    progressBarDownloadUpdate->setAlignment(Qt::AlignCenter);
+    progressBarDownloadUpdate->setVisible(false);
+    progressBarDownloadUpdate->setMaximum(100);
 
     // Override style sheet for progress bar for styles that have a segmented progress bar,
     // as they make the text unreadable (workaround for issue #1071)
     // See https://qt-project.org/doc/qt-4.8/gallery.html
     QString curStyle = QApplication::style()->metaObject()->className();
     if (curStyle == "QWindowsStyle" || curStyle == "QWindowsXPStyle") {
-        progressBar->setStyleSheet("QProgressBar { background-color: #F8F8F8; border: 1px solid grey; border-radius: 7px; padding: 1px; text-align: center; } QProgressBar::chunk { background: QLinearGradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #00CCFF, stop: 1 #33CCFF); border-radius: 7px; margin: 0px; }");
+        progressBar->setStyleSheet(PROGRESS_BAR_STYLE);
+        progressBarDownloadUpdate->setStyleSheet(PROGRESS_BAR_STYLE);
     }
 
     statusBar()->addWidget(progressBarLabel);
     statusBar()->addWidget(progressBar);
+    statusBar()->addWidget(progressBarDownloadUpdate);
     statusBar()->addPermanentWidget(frameBlocks);
 
     // Jump directly to tabs in RPC-console
@@ -651,6 +657,9 @@ void BitcoinGUI::setClientModel(ClientModel* clientModel)
 
         // Show progress dialog
         connect(clientModel, SIGNAL(showProgress(QString, int)), this, SLOT(showProgress(QString, int)));
+
+        // Show update downloading progress
+        connect(clientModel, SIGNAL(refreshDownloadProgress(QString, int)), this, SLOT(refreshDownloadProgress(QString, int)));
 
         rpcConsole->setClientModel(clientModel);
 #ifdef ENABLE_WALLET
@@ -1355,6 +1364,23 @@ void BitcoinGUI::showProgress(const QString& title, int nProgress)
         }
     } else if (progressDialog)
         progressDialog->setValue(nProgress);
+}
+
+void BitcoinGUI::refreshDownloadProgress(const QString& title, int nProgress)
+{
+    if (!progressBarDownloadUpdate) {
+        assert(false);
+        return;
+    }
+
+    if (nProgress >= 0 && nProgress <= 100) {
+        progressBarDownloadUpdate->setFormat(tr("Downloading update...%1%").arg(nProgress));
+        progressBarDownloadUpdate->setValue(nProgress);
+        progressBarDownloadUpdate->setVisible(true);
+    } else {
+        assert(nProgress > 100);
+        progressBarDownloadUpdate->setVisible(false);
+    }
 }
 
 static bool ThreadSafeMessageBox(BitcoinGUI* gui, const std::string& message, const std::string& caption, unsigned int style)

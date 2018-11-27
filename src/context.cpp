@@ -3,9 +3,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "context.h"
-#include "sync.h"
 #include "timedata.h"
 #include "bootstrapmodel.h"
+#include "autoupdatemodel.h"
 
 #include <memory>
 #include <stdexcept>
@@ -13,7 +13,6 @@
 using namespace std;
 
 static unique_ptr<CContext> context_;
-static CCriticalSection csUpdate_;
 
 void CreateContext()
 {
@@ -43,33 +42,6 @@ CContext::CContext()
 
 CContext::~CContext() {}
 
-void CContext::SetUpdateAvailable(bool available, const string& urlTag, const string& urlFile)
-{
-    LOCK(csUpdate_);
-
-    bUpdateAvailable_ = available;
-    sUpdateUrlTag_ = urlTag;
-    sUpdateUrlFile_ = urlFile;
-}
-
-bool CContext::IsUpdateAvailable() const
-{
-    LOCK(csUpdate_);
-    return bUpdateAvailable_;
-}
-
-std::string CContext::GetUpdateUrlTag() const
-{
-    LOCK(csUpdate_);
-    return sUpdateUrlTag_;
-}
-
-std::string CContext::GetUpdateUrlFile() const
-{
-    LOCK(csUpdate_);
-    return sUpdateUrlFile_;
-}
-
 int64_t CContext::GetStartupTime() const
 {
     return nStartupTime_;
@@ -86,4 +58,12 @@ BootstrapModelPtr CContext::GetBootstrapModel()
         bootstrapModel_.reset(new BootstrapModel);
 
     return bootstrapModel_;
+}
+
+AutoUpdateModelPtr CContext::GetAutoUpdateModel()
+{
+    if (!autoupdateModel_)
+        autoupdateModel_.reset(new AutoUpdateModel);
+
+    return autoupdateModel_;
 }

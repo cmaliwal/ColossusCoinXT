@@ -32,10 +32,10 @@
 #include "util.h"
 #include "utilmoneystr.h"
 #include "validationinterface.h"
-
+#include "autoupdatemodel.h"
+#include "accumulatormap.h"
 #include "primitives/zerocoin.h"
 #include "libzerocoin/Denominations.h"
-#include "accumulatormap.h"
 
 #include <sstream>
 
@@ -3553,8 +3553,8 @@ void static UpdateTip(CBlockIndex* pindexNew)
             fWarned = true;
 
             // Force user update wallet if new version is available
-            if (GetContext().IsUpdateAvailable()) {
-                string msg = strprintf("%s New version is available, please update your wallet! Go to: %s", strMiscWarning, GetContext().GetUpdateUrlTag());
+            if (GetContext().GetAutoUpdateModel()->IsUpdateAvailable()) {
+                string msg = strprintf("%s New version is available, please update your wallet! Go to: %s", strMiscWarning, GetContext().GetAutoUpdateModel()->GetUpdateUrlTag());
                 AbortNode(msg, msg);
             }
         }
