@@ -4,6 +4,7 @@
         <file alias="address-book">res/icons/address-book.png</file>
         <file alias="quit">res/icons/quit.png</file>
         <file alias="send">res/icons/send.png</file>
+        <file alias="send_white">res/icons/send_white.png</file>
         <file alias="info">res/icons/info.png</file>
         <file alias="link">res/icons/link.png</file>
         <file alias="send_dark">res/icons/send_dark.png</file>
@@ -24,6 +25,7 @@
         <file alias="eye_minus">res/icons/eye_minus.png</file>
         <file alias="eye_plus">res/icons/eye_plus.png</file>
         <file alias="options">res/icons/configure.png</file>
+        <file alias="receive_white">res/icons/receive_white.png</file>
         <file alias="receiving_addresses">res/icons/receive.png</file>
         <file alias="receiving_addresses_dark">res/icons/receive_dark.png</file>
         <file alias="privacy">res/icons/privacy.png</file>

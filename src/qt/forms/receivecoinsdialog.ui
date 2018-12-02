@@ -257,7 +257,7 @@
                  </property>
                  <property name="icon">
                   <iconset resource="../colx.qrc">
-                   <normaloff>:/icons/receiving_addresses</normaloff>:/icons/receiving_addresses</iconset>
+                   <normaloff>:/icons/receive_white</normaloff>:/icons/receive_white</iconset>
                  </property>
                 </widget>
                </item>
