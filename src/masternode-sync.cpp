@@ -29,6 +29,11 @@ bool CMasternodeSync::IsSynced()
     return RequestedMasternodeAssets == MASTERNODE_SYNC_FINISHED;
 }
 
+bool CMasternodeSync::IsWinnersListSynced()
+{
+    return RequestedMasternodeAssets > MASTERNODE_SYNC_MNW;
+}
+
 bool CMasternodeSync::IsBlockchainSynced()
 {
     static bool fBlockchainSynced = false;

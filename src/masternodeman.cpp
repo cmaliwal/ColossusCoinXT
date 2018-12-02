@@ -483,15 +483,20 @@ CMasternode* CMasternodeMan::Find(const CPubKey& pubKeyMasternode)
 //
 CMasternode* CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount)
 {
+    if (!masternodeSync.IsWinnersListSynced()) {
+        // without winner list we can't reliably find the next winner anyway
+        LogPrint("masternode","CMasternodeMan::GetNextMasternodeInQueueForPayment() Winner list is not synced\n");
+        return nullptr;
+    }
+
     LOCK(cs);
 
-    CMasternode* pBestMasternode = NULL;
+    CMasternode* pBestMasternode = nullptr;
     std::vector<pair<int64_t, CTxIn> > vecMasternodeLastPaid;
 
     /*
         Make a vector with all of the last paid times
     */
-
     int nMnCount = CountEnabled();
     BOOST_FOREACH (CMasternode& mn, vMasternodes) {
         mn.Check();
