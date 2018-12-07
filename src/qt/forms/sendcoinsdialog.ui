@@ -190,7 +190,7 @@
            </property>
            <item>
             <widget class="QFrame" name="frameCoinControl_BG">
-             <layout class="QVBoxLayout" name="verticalLayoutCoinControl" stretch="0,0,0,0,0,0">
+             <layout class="QVBoxLayout" name="verticalLayoutCoinControl" stretch="0,0,0,0,0">
               <property name="spacing">
                <number>1</number>
               </property>
@@ -200,68 +200,6 @@
               <property name="topMargin">
                <number>10</number>
               </property>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayoutCoinControl1">
-                <property name="bottomMargin">
-                 <number>15</number>
-                </property>
-                <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_3">
-                  <property name="spacing">
-                   <number>6</number>
-                  </property>
-                  <item>
-                   <widget class="QLabel" name="labelCoinControlFeatures">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>0</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                    <property name="font">
-                     <font>
-                      <pointsize>12</pointsize>
-                      <weight>75</weight>
-                      <bold>true</bold>
-                     </font>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true">font-weight:bold;</string>
-                    </property>
-                    <property name="text">
-                     <string>Coin Control Features</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="Line" name="line">
-                    <property name="minimumSize">
-                     <size>
-                      <width>0</width>
-                      <height>1</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>16777215</width>
-                      <height>1</height>
-                     </size>
-                    </property>
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-               </layout>
-              </item>
               <item>
                <layout class="QHBoxLayout" name="horizontalLayoutCoinControl2" stretch="0,0,0,0">
                 <property name="spacing">
@@ -898,7 +836,7 @@
              <x>0</x>
              <y>0</y>
              <width>944</width>
-             <height>68</height>
+             <height>69</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,1">
@@ -1193,7 +1131,6 @@
                       <item>
                        <widget class="QRadioButton" name="radioCustomPerKilobyte">
                         <property name="toolTip">
-                         <!-- DRAGAN: uCOLXs ? // Q: -->
                          <string>If the custom fee is set to 1000 uCOLXs and the transaction is only 250 bytes, then &quot;per kilobyte&quot; only pays 250 uCOLXs in fee,&lt;br /&gt;while &quot;at least&quot; pays 1000 uCOLXs. For transactions bigger than a kilobyte both pay by kilobyte.</string>
                         </property>
                         <property name="text">
@@ -1612,7 +1549,7 @@
               <string>S&amp;end</string>
              </property>
              <property name="icon">
-              <iconset resource="../colx.qrc">
+              <iconset>
                <normaloff>:/icons/send_white</normaloff>:/icons/send_white</iconset>
              </property>
              <property name="autoDefault">
@@ -1638,7 +1575,7 @@
               <string>Clear &amp;All</string>
              </property>
              <property name="icon">
-              <iconset resource="../colx.qrc">
+              <iconset>
                <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
              </property>
              <property name="autoDefault">
@@ -1655,7 +1592,7 @@
               <string>Add &amp;Recipient</string>
              </property>
              <property name="icon">
-              <iconset resource="../colx.qrc">
+              <iconset>
                <normaloff>:/icons/add</normaloff>:/icons/add</iconset>
              </property>
              <property name="autoDefault">
@@ -1758,12 +1695,10 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../colx.qrc"/>
- </resources>
+ <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="groupCustomFee"/>
   <buttongroup name="groupFee"/>
+  <buttongroup name="groupCustomFee"/>
  </buttongroups>
 </ui>
