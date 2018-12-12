@@ -571,7 +571,7 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
                     fMintableCoins = pwallet->MintableCoins(chainActive.Height() + 1);
                 }
 
-                LogPrintf("COLXMiner wait 5 seconds (%u, %d, %d, %d)\n", vNodes.size(), pwallet->IsLocked(), fMintableCoins, masternodeSync.IsBlockchainSynced());
+                LogPrint("miner", "COLXMiner wait 5 seconds (%u, %d, %d, %d)\n", vNodes.size(), pwallet->IsLocked(), fMintableCoins, masternodeSync.IsBlockchainSynced());
                 MilliSleep(5000);
             }
 
@@ -579,7 +579,7 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
             if (mapHashedBlocks.count(chainActive.Tip()->nHeight)) {
                 // wait half of the nHashDrift with max wait of 3 minutes
                 if (GetTime() - mapHashedBlocks[chainActive.Tip()->nHeight] < max(pwallet->nHashInterval, (unsigned int)1)) {
-                    LogPrintf("COLXMiner wait half of the nHashDrift\n");
+                    LogPrint("miner", "COLXMiner wait half of the nHashDrift\n");
                     MilliSleep(5000);
                     continue;
                 }
