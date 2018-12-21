@@ -124,6 +124,7 @@ private slots:
     void buttonBoxClicked(QAbstractButton*);
     void buttonSelectAllClicked();
     void buttonToggleLockClicked();
+    void buttonSelectPieceClicked();
     void updateLabelLocked();
 };
 

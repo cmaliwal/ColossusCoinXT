@@ -127,6 +127,11 @@ CoinControlDialog::CoinControlDialog(QWidget* parent, bool fMultisigEnabled) : Q
     // Toggle lock state
     connect(ui->pushButtonToggleLock, SIGNAL(clicked()), this, SLOT(buttonToggleLockClicked()));
 
+    // Select pieces according to the address entered
+    connect(ui->pushButtonSelectPiece, SIGNAL(clicked()), this, SLOT(buttonSelectPieceClicked()));
+
+    ui->numberOfPiecies->setValidator(new QIntValidator(1, 10000, this));
+
     // change coin control first column label due Qt4 bug.
     // see https://github.com/bitcoin/bitcoin/issues/5716
     ui->treeWidget->headerItem()->setText(COLUMN_CHECKBOX, QString());
@@ -243,12 +248,53 @@ void CoinControlDialog::buttonToggleLockClicked()
         CoinControlDialog::updateLabels(model, this);
         updateDialogLabels();
     } else {
-        QMessageBox msgBox;
+        QMessageBox msgBox(this);
         msgBox.setObjectName("lockMessageBox");
-        msgBox.setStyleSheet(GUIUtil::loadStyleSheet());
         msgBox.setText(tr("Please switch to \"List mode\" to use this function."));
         msgBox.exec();
     }
+}
+
+void CoinControlDialog::buttonSelectPieceClicked()
+{
+    const QString addr = ui->addressOfPiece->text().trimmed();
+    if (addr.isEmpty()) {
+        QMessageBox::warning(this, tr("Warning"), tr("Address cannot be empty."), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    const QString number = ui->numberOfPiecies->text().trimmed();
+    if (number.isEmpty() || number.toInt() <= 0) {
+        QMessageBox::warning(this, tr("Warning"), tr("Number of outputs is not valid integer."), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    if (!ui->radioListMode->isChecked()) {
+        QMessageBox::warning(this, tr("Warning"), tr("Please switch to \"List mode\" to use this function."), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    int numberToSelect = number.toInt();
+    ui->treeWidget->setEnabled(false);
+    for (int i = 0; i < ui->treeWidget->topLevelItemCount() && numberToSelect > 0; i++) {
+        QTreeWidgetItem *item = ui->treeWidget->topLevelItem(i);
+
+        if (item->checkState(COLUMN_CHECKBOX) == Qt::Checked)
+            continue;
+
+        if (item->text(COLUMN_ADDRESS) == addr) {
+            item->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
+            numberToSelect -= 1;
+        }
+
+        updateLabelLocked();
+    }
+
+    ui->treeWidget->setEnabled(true);
+    CoinControlDialog::updateLabels(model, this);
+    updateDialogLabels();
+
+    QMessageBox::information(this, tr("Information"), tr("%1 output(s) selected.").arg(number.toInt() - numberToSelect), QMessageBox::Ok, QMessageBox::Ok);
 }
 
 // context menu
