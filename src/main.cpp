@@ -668,10 +668,8 @@ bool IsStandardTx(const CTransaction& tx, string& reason)
     // Timestamps on the other hand don't get any special treatment, because we
     // can't know what timestamp the next block will have, and there aren't
     // timestamp applications where it matters.
-    if (!IsFinalTx(tx, chainActive.Height() + 1)) {
-        reason = "non-final";
+    if (!IsFinalTx(tx, reason, chainActive.Height() + 1))
         return false;
-    }
 
     // Extremely large transactions with lots of inputs can cost the network
     // almost as much to process as they cost the sender in fees, because
@@ -734,19 +732,33 @@ bool IsStandardTx(const CTransaction& tx, string& reason)
 
 bool IsFinalTx(const CTransaction& tx, int nBlockHeight, int64_t nBlockTime)
 {
+    string reason;
+    return IsFinalTx(tx, reason, nBlockHeight, nBlockTime);
+}
+
+bool IsFinalTx(const CTransaction& tx, std::string& reason, int nBlockHeight, int64_t nBlockTime)
+{
     AssertLockHeld(cs_main);
     // Time based nLockTime implemented in 0.1.6
     if (tx.nLockTime == 0)
         return true;
+
     if (nBlockHeight == 0)
         nBlockHeight = chainActive.Height();
+
     if (nBlockTime == 0)
         nBlockTime = GetAdjustedTime();
+
     if ((int64_t)tx.nLockTime < ((int64_t)tx.nLockTime < LOCKTIME_THRESHOLD ? (int64_t)nBlockHeight : nBlockTime))
         return true;
-    BOOST_FOREACH (const CTxIn& txin, tx.vin)
-        if (!txin.IsFinal())
+
+    BOOST_FOREACH (const CTxIn& txin, tx.vin) {
+        if (!txin.IsFinal()) {
+            reason = strprintf("non-final, nLockTime=%u, nBlockHeight=%d, txin=%s", tx.nLockTime, nBlockHeight, txin.ToString());
             return false;
+        }
+    }
+
     return true;
 }
 
@@ -4553,10 +4565,12 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
     const int nHeight = pindexPrev == NULL ? 0 : pindexPrev->nHeight + 1;
 
     // Check that all transactions are finalized
-    BOOST_FOREACH (const CTransaction& tx, block.vtx)
-        if (!IsFinalTx(tx, nHeight, block.GetBlockTime())) {
-            return state.DoS(10, error("%s : contains a non-final transaction", __func__), REJECT_INVALID, "bad-txns-nonfinal");
+    BOOST_FOREACH (const CTransaction& tx, block.vtx) {
+        string reason;
+        if (!IsFinalTx(tx, reason, nHeight, block.GetBlockTime())) {
+            return state.DoS(10, error("%s : contains a non-final transaction, %s", __func__, reason), REJECT_INVALID, "bad-txns-nonfinal");
         }
+    }
 
     // Enforce block.nVersion=2 rule that the coinbase starts with serialized block height
     // if 750 of the last 1,000 blocks are version 2 or greater (51/100 if testnet):
