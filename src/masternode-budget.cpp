@@ -169,8 +169,9 @@ void CBudgetManager::SubmitFinalBudget()
     // Submit final budget during the last 2 days before payment for Mainnet, about 9 minutes for Testnet
     int nFinalizationStart = nBlockStart - GetBudgetFinalizationBlocks();
     int nOffsetToStart = nFinalizationStart - nCurrentHeight;
+    int nRandomShift = GetRandInt(GetBudgetFinalizationBlocks() / 10); // minimize chance of simultaneous submit by different nodes
     //submit final budget
-    if (nBlockStart - nCurrentHeight > GetBudgetFinalizationBlocks()) {
+    if (nBlockStart - nCurrentHeight - nRandomShift > GetBudgetFinalizationBlocks()) {
         LogPrint("masternode","CBudgetManager::SubmitFinalBudget - Too early for finalization. Current block is %ld, next Superblock is %ld.\n", nCurrentHeight, nBlockStart);
         LogPrint("masternode","CBudgetManager::SubmitFinalBudget - First possible block for finalization: %ld. Last possible block for finalization: %ld. You have to wait for %ld block(s) until Budget finalization will be possible\n", nFinalizationStart, nBlockStart, nOffsetToStart);
         return;
@@ -198,6 +199,12 @@ void CBudgetManager::SubmitFinalBudget()
         LogPrint("masternode","CBudgetManager::SubmitFinalBudget - Budget already exists - %s\n", tempBudget.GetHash().ToString());
         nSubmittedHeight = nCurrentHeight;
         return; //already exists
+    } else {
+        stringstream proposalStr;
+        for (const CTxBudgetPayment& p : vecTxBudgetPayments)
+            proposalStr << p.nProposalHash.ToString() << ",";
+
+        LogPrintf("%s - Submiting budget %s, block start %d, proposals %s\n", __func__, tempBudget.GetHash().ToString(), nBlockStart, proposalStr.str());
     }
 
     //create fee tx
@@ -207,7 +214,7 @@ void CBudgetManager::SubmitFinalBudget()
     if (!mapCollateralTxids.count(tempBudget.GetHash())) {
         CWalletTx wtx;
         if (!pwalletMain->GetBudgetSystemCollateralTX(wtx, tempBudget.GetHash(), tempBudget.GetBlockStart(), false)) {
-            LogPrint("masternode","CBudgetManager::SubmitFinalBudget - Can't make collateral transaction\n");
+            LogPrintf("%s - Can't make collateral transaction\n", __func__);
             return;
         }
 
@@ -227,7 +234,7 @@ void CBudgetManager::SubmitFinalBudget()
     uint256 nBlockHash;
 
     if (!GetTransaction(txidCollateral, txCollateral, nBlockHash, true)) {
-        LogPrint("masternode","CBudgetManager::SubmitFinalBudget - Can't find collateral tx %s", txidCollateral.ToString());
+        LogPrintf("%s - Can't find collateral tx %s", __func__, txidCollateral.ToString());
         return;
     }
 
@@ -246,7 +253,7 @@ void CBudgetManager::SubmitFinalBudget()
         -- This function is tied to NewBlock, so we will propagate this budget while the block is also propagating
     */
     if (conf < Params().Budget_Fee_Confirmations() + 1) {
-        LogPrint("masternode","CBudgetManager::SubmitFinalBudget - Collateral requires at least %d confirmations - %s - %d confirmations\n", Params().Budget_Fee_Confirmations() + 1, txidCollateral.ToString(), conf);
+        LogPrintf("%s - Collateral requires at least %d confirmations - %s - %d confirmations\n", __func__, Params().Budget_Fee_Confirmations() + 1, txidCollateral.ToString(), conf);
         return;
     }
 
@@ -255,7 +262,7 @@ void CBudgetManager::SubmitFinalBudget()
 
     std::string strError = "";
     if (!finalizedBudgetBroadcast.IsValid(strError)) {
-        LogPrint("masternode","CBudgetManager::SubmitFinalBudget - Invalid finalized budget - %s \n", strError);
+        LogPrintf("%s - Invalid finalized budget - %s \n", __func__, strError);
         return;
     }
 
@@ -264,7 +271,7 @@ void CBudgetManager::SubmitFinalBudget()
     finalizedBudgetBroadcast.Relay();
     budget.AddFinalizedBudget(finalizedBudgetBroadcast);
     nSubmittedHeight = nCurrentHeight;
-    LogPrint("masternode","CBudgetManager::SubmitFinalBudget - Done! %s\n", finalizedBudgetBroadcast.GetHash().ToString());
+    LogPrintf("%s - Done! %s\n", __func__, finalizedBudgetBroadcast.GetHash().ToString());
 }
 
 //
