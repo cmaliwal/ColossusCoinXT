@@ -4862,8 +4862,9 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
             pwalletMain->AutoCombineDust();
     }
 
-    LogPrintf("%s : ACCEPTED in %ld milliseconds with size=%d, hash=%s\n", __func__, GetTimeMillis() - nStartTime,
-              pblock->GetSerializeSize(SER_DISK, CLIENT_VERSION), pblock->GetHash().ToString());
+    LogPrintf("%s : ACCEPTED in %ld milliseconds with size=%d, height=%d, hash=%s\n",
+              __func__, GetTimeMillis() - nStartTime, pblock->GetSerializeSize(SER_DISK, CLIENT_VERSION),
+              pindex ? pindex->nHeight : 0, pblock->GetHash().ToString());
 
     return true;
 }
@@ -6493,16 +6494,21 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         } else {
             pfrom->AddInventoryKnown(inv);
 
-            CValidationState state;
-            ProcessNewBlock(state, pfrom, &block);
+            BlockMap::const_iterator pindex = mapBlockIndex.find(block.GetHash());
+            if (pindex != mapBlockIndex.end() && pindex->second->nHeight <= chainActive.Height()) {
+                LogPrint("net", "%s : Already processed block (%d) %s, skipping ProcessNewBlock()\n", __func__, pindex->second->nHeight, block.GetHash().GetHex());
+            } else {
+                CValidationState state;
+                ProcessNewBlock(state, pfrom, &block);
 
-            int nDoS;
-            if(state.IsInvalid(nDoS)) {
-                pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
-                                   state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
-                if(nDoS > 0) {
-                    TRY_LOCK(cs_main, lockMain);
-                    if(lockMain) Misbehaving(pfrom->GetId(), nDoS);
+                int nDoS;
+                if(state.IsInvalid(nDoS)) {
+                    pfrom->PushMessage("reject", strCommand, state.GetRejectCode(),
+                                       state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH), inv.hash);
+                    if(nDoS > 0) {
+                        TRY_LOCK(cs_main, lockMain);
+                        if(lockMain) Misbehaving(pfrom->GetId(), nDoS);
+                    }
                 }
             }
 
