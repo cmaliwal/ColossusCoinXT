@@ -6494,8 +6494,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         } else {
             pfrom->AddInventoryKnown(inv);
 
+            // Try to process all blocks that we don't have
             BlockMap::const_iterator pindex = mapBlockIndex.find(block.GetHash());
-            if (pindex != mapBlockIndex.end() && pindex->second->nHeight <= chainActive.Height()) {
+            if (pindex != mapBlockIndex.end() && 0 != (pindex->second->nStatus & BLOCK_HAVE_DATA) && pindex->second->nHeight <= chainActive.Height()) {
                 LogPrint("net", "%s : Already processed block (%d) %s, skipping ProcessNewBlock()\n", __func__, pindex->second->nHeight, block.GetHash().GetHex());
             } else {
                 CValidationState state;
