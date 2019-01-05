@@ -36,7 +36,8 @@ void CActiveMasternode::ManageStatus()
         pmn = mnodeman.Find(pubKeyMasternode);
         if (pmn != NULL) {
             pmn->Check();
-            if (pmn->IsEnabled() && pmn->protocolVersion == PROTOCOL_VERSION) EnableHotColdMasterNode(pmn->vin, pmn->addr);
+            if (pmn->IsEnabled() && pmn->protocolVersion >= ActiveProtocol())
+                EnableHotColdMasterNode(pmn->vin, pmn->addr);
         }
     }
 
@@ -268,7 +269,6 @@ bool CActiveMasternode::Register(std::string strService, std::string strKeyMaste
 
 bool CActiveMasternode::Register(CTxIn vin, CService service, CKey keyCollateralAddress, CPubKey pubKeyCollateralAddress, CKey keyMasternode, CPubKey pubKeyMasternode, std::string& errorMessage)
 {
-    CMasternodeBroadcast mnb;
     CMasternodePing mnp(vin);
     if (!mnp.Sign(keyMasternode, pubKeyMasternode)) {
         errorMessage = strprintf("Failed to sign ping, vin: %s", vin.ToString());
@@ -278,7 +278,9 @@ bool CActiveMasternode::Register(CTxIn vin, CService service, CKey keyCollateral
     mnodeman.mapSeenMasternodePing.insert(make_pair(mnp.GetHash(), mnp));
 
     LogPrintf("CActiveMasternode::Register() - Adding to Masternode list\n    service: %s\n    vin: %s\n", service.ToString(), vin.ToString());
-    mnb = CMasternodeBroadcast(service, vin, pubKeyCollateralAddress, pubKeyMasternode, PROTOCOL_VERSION);
+
+    CMasternode* pmn = mnodeman.Find(vin);
+    CMasternodeBroadcast mnb = CMasternodeBroadcast(service, vin, pubKeyCollateralAddress, pubKeyMasternode, pmn ? pmn->protocolVersion : PROTOCOL_VERSION);
     mnb.lastPing = mnp;
     if (!mnb.Sign(keyCollateralAddress)) {
         errorMessage = strprintf("Failed to sign broadcast, vin: %s", vin.ToString());
@@ -288,7 +290,6 @@ bool CActiveMasternode::Register(CTxIn vin, CService service, CKey keyCollateral
     mnodeman.mapSeenMasternodeBroadcast.insert(make_pair(mnb.GetHash(), mnb));
     masternodeSync.AddedMasternodeList(mnb.GetHash());
 
-    CMasternode* pmn = mnodeman.Find(vin);
     if (pmn == NULL) {
         CMasternode mn(mnb);
         mnodeman.Add(mn);

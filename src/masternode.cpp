@@ -436,7 +436,8 @@ bool CMasternodeBroadcast::Create(CTxIn txin, CService service, CKey keyCollater
         return false;
     }
 
-    mnbRet = CMasternodeBroadcast(service, txin, pubKeyCollateralAddressNew, pubKeyMasternodeNew, PROTOCOL_VERSION);
+    CMasternode* pmn = mnodeman.Find(txin);
+    mnbRet = CMasternodeBroadcast(service, txin, pubKeyCollateralAddressNew, pubKeyMasternodeNew, pmn ? pmn->protocolVersion : PROTOCOL_VERSION);
 
     if (!mnbRet.IsValidNetAddr()) {
         strErrorRet = strprintf("Invalid IP address %s, masternode=%s", mnbRet.addr.ToStringIP (), txin.prevout.hash.ToString());
@@ -639,7 +640,7 @@ bool CMasternodeBroadcast::CheckInputsAndAdd(int& nDoS)
     mnodeman.Add(mn);
 
     // if it matches our Masternode privkey, then we've been remotely activated
-    if (pubKeyMasternode == activeMasternode.pubKeyMasternode && protocolVersion == PROTOCOL_VERSION) {
+    if (pubKeyMasternode == activeMasternode.pubKeyMasternode && protocolVersion >= ActiveProtocol()) {
         activeMasternode.EnableHotColdMasterNode(vin, addr);
     }
 
