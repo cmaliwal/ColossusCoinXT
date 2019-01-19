@@ -196,20 +196,26 @@ void CoinControlDialog::buttonBoxClicked(QAbstractButton* button)
 // (un)select all
 void CoinControlDialog::buttonSelectAllClicked()
 {
+    QList<QTreeWidgetItem*> selItems = ui->treeWidget->selectedItems();
+    if (selItems.empty())
+        return;
+
     Qt::CheckState state = Qt::Checked;
-    for (int i = 0; i < ui->treeWidget->topLevelItemCount(); i++) {
-        if (ui->treeWidget->topLevelItem(i)->checkState(COLUMN_CHECKBOX) != Qt::Unchecked) {
+    for (int i = 0; i < selItems.size(); ++i) {
+        if (selItems.at(i)->checkState(COLUMN_CHECKBOX) == Qt::Checked) {
             state = Qt::Unchecked;
             break;
         }
     }
+
     ui->treeWidget->setEnabled(false);
-    for (int i = 0; i < ui->treeWidget->topLevelItemCount(); i++)
-        if (ui->treeWidget->topLevelItem(i)->checkState(COLUMN_CHECKBOX) != state)
-            ui->treeWidget->topLevelItem(i)->setCheckState(COLUMN_CHECKBOX, state);
+    for (int i = 0; i < selItems.size(); ++i)
+        selItems.at(i)->setCheckState(COLUMN_CHECKBOX, state);
     ui->treeWidget->setEnabled(true);
+
     if (state == Qt::Unchecked)
         coinControl->UnSelectAll(); // just to be sure
+
     CoinControlDialog::updateLabels(model, this);
     updateDialogLabels();
 }
