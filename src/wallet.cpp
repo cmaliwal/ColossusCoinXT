@@ -14,7 +14,7 @@
 #include "coincontrol.h"
 #include "kernel.h"
 #include "masternode-budget.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "primitives/transaction.h"
 #include "script/script.h"
 #include "script/sign.h"

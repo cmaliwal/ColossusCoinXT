@@ -61,7 +61,7 @@ CMasternode::CMasternode()
 {
     LOCK(cs);
     vin = CTxIn();
-    addr = CService();
+    addr = CDestination();
     pubKeyCollateralAddress = CPubKey();
     pubKeyMasternode = CPubKey();
     sig = std::vector<unsigned char>();
@@ -328,7 +328,7 @@ bool CMasternode::IsValidNetAddr()
 CMasternodeBroadcast::CMasternodeBroadcast()
 {
     vin = CTxIn();
-    addr = CService();
+    addr = CDestination();
     pubKeyCollateralAddress = CPubKey();
     pubKeyMasternode1 = CPubKey();
     sig = std::vector<unsigned char>();
@@ -345,7 +345,7 @@ CMasternodeBroadcast::CMasternodeBroadcast()
     nLastScanningErrorBlockHeight = 0;
 }
 
-CMasternodeBroadcast::CMasternodeBroadcast(CService newAddr, CTxIn newVin, CPubKey pubKeyCollateralAddressNew, CPubKey pubKeyMasternodeNew, int protocolVersionIn)
+CMasternodeBroadcast::CMasternodeBroadcast(CDestination newAddr, CTxIn newVin, CPubKey pubKeyCollateralAddressNew, CPubKey pubKeyMasternodeNew, int protocolVersionIn)
 {
     vin = newVin;
     addr = newAddr;
@@ -416,10 +416,10 @@ bool CMasternodeBroadcast::Create(std::string strService, std::string strKeyMast
     if (!CheckDefaultPort(strService, strErrorRet, "CMasternodeBroadcast::Create", true))
         return false;
 
-    return Create(txin, CService(strService, true), keyCollateralAddressNew, pubKeyCollateralAddressNew, keyMasternodeNew, pubKeyMasternodeNew, strErrorRet, mnbRet);
+    return Create(txin, CDestination(strService, true), keyCollateralAddressNew, pubKeyCollateralAddressNew, keyMasternodeNew, pubKeyMasternodeNew, strErrorRet, mnbRet);
 }
 
-bool CMasternodeBroadcast::Create(CTxIn txin, CService service, CKey keyCollateralAddressNew, CPubKey pubKeyCollateralAddressNew, CKey keyMasternodeNew, CPubKey pubKeyMasternodeNew, std::string& strErrorRet, CMasternodeBroadcast& mnbRet)
+bool CMasternodeBroadcast::Create(CTxIn txin, CDestination service, CKey keyCollateralAddressNew, CPubKey pubKeyCollateralAddressNew, CKey keyMasternodeNew, CPubKey pubKeyMasternodeNew, std::string& strErrorRet, CMasternodeBroadcast& mnbRet)
 {
     // wait for reindex and/or import to finish
     if (fImporting || fReindex) return false;
@@ -458,7 +458,7 @@ bool CMasternodeBroadcast::Create(CTxIn txin, CService service, CKey keyCollater
 
 bool CMasternodeBroadcast::CheckDefaultPort(std::string strService, std::string& strErrorRet, std::string strContext, bool fAllowLookup)
 {
-    CService service = CService(strService, fAllowLookup);
+    CDestination service = CDestination(strService, fAllowLookup);
     int nDefaultPort = Params().GetDefaultPort();
     
     if (Params().NetworkID() == CBaseChainParams::MAIN) {
@@ -643,7 +643,7 @@ bool CMasternodeBroadcast::CheckInputsAndAdd(int& nDoS)
         activeMasternode.EnableHotColdMasterNode(vin, addr);
     }
 
-    bool isLocal = addr.IsRFC1918() || addr.IsLocal();
+    bool isLocal = addr.IsLocal(); // addr.IsRFC1918() || 
     if (Params().NetworkID() == CBaseChainParams::REGTEST) isLocal = false;
 
     if (!isLocal) Relay();

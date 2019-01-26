@@ -5,7 +5,7 @@
 #include "core_io.h"
 #include "guiutil.h"
 #include "main.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "txdb.h"
 #include "ui_blockexplorer.h"
 #include "ui_interface.h"

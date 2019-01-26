@@ -12,6 +12,7 @@
 #include "masternodeman.h"
 #include "obfuscation-relay.h"
 #include "sync.h"
+#include "netdestination.h"
 
 class CTxIn;
 class CObfuscationPool;
@@ -189,7 +190,7 @@ public:
         READWRITE(vchSig);
     }
 
-    bool GetAddress(CService& addr)
+    bool GetAddress(CDestination& addr)
     {
         CMasternode* pmn = mnodeman.Find(vin);
         if (pmn != NULL) {
@@ -360,7 +361,7 @@ public:
      *        dssub    | Obfuscation Subscribe To
      * \param vRecv
      */
-    void ProcessMessageObfuscation(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
+    void ProcessMessageObfuscation(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv);
 
     void InitCollateralAddress()
     {
@@ -472,7 +473,7 @@ public:
     bool StatusUpdate(int newState, int newEntriesCount, int newAccepted, int& errorID, int newSessionID = 0);
 
     /// As a client, check and sign the final transaction
-    bool SignFinalTransaction(CTransaction& finalTransactionNew, CNode* node);
+    bool SignFinalTransaction(CTransaction& finalTransactionNew, CI2pdNode* node);
 
     /// Get the last valid block hash for a given modulus
     bool GetLastValidBlockHash(uint256& hash, int mod = 1, int nBlockHeight = 0);

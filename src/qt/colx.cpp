@@ -15,7 +15,7 @@
 #include "guiconstants.h"
 #include "guiutil.h"
 #include "intro.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "networkstyle.h"
 #include "optionsmodel.h"
 #include "splashscreen.h"

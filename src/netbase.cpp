@@ -531,6 +531,7 @@ bool SetProxy(enum Network net, const proxyType &addrProxy)
 
 bool GetProxy(enum Network net, proxyType& proxyInfoOut)
 {
+    // I2PDK: this should always fail for i2p
     assert(net >= 0 && net < NET_MAX);
     LOCK(cs_proxyInfos);
     if (!proxyInfo[net].IsValid())
@@ -573,6 +574,12 @@ bool IsProxy(const CNetAddr& addr)
     return false;
 }
 
+//// I2PDK: just to compile, turned off but unsure yet if we're going to need anything similar.
+//bool IsProxy(const CI2pUrl& addr)
+//{
+//    return false;
+//}
+//
 static bool ConnectThroughProxy(const proxyType &proxy, const std::string strDest, int port, SOCKET& hSocketRet, int nTimeout, bool *outProxyConnectionFailed)
 {
     SOCKET hSocket = INVALID_SOCKET;
@@ -1320,6 +1327,12 @@ bool CSubNet::Match(const CNetAddr& addr) const
             return false;
     return true;
 }
+
+//// I2PDK: just to compile and to keep it there for the moment, as we're not sure if it may be relevant.
+//bool CSubNet::Match(const CI2pUrl& addr) const
+//{
+//    return false;
+//}
 
 static inline int NetmaskBits(uint8_t x)
 {

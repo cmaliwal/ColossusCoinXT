@@ -8,7 +8,7 @@
 #include "key.h"
 #include "main.h"
 #include "masternode-budget.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "protocol.h"
 #include "sync.h"
 #include "sporkdb.h"
@@ -57,7 +57,7 @@ void LoadSporksFromDB()
     }
 }
 
-void ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void ProcessSpork(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
     if (fLiteMode) return; //disable all obfuscation/masternode related functionality
 

@@ -9,7 +9,8 @@
 #include "base58.h"
 #include "key.h"
 #include "main.h"
-#include "net.h"
+#include "neti2pd.h"
+#include "netdestination.h"
 #include "sync.h"
 #include "timedata.h"
 #include "util.h"
@@ -124,7 +125,7 @@ public:
     };
 
     CTxIn vin;
-    CService addr;
+    CDestination addr;
     CPubKey pubKeyCollateralAddress;
     CPubKey pubKeyMasternode;
     CPubKey pubKeyCollateralAddress1;
@@ -293,7 +294,7 @@ class CMasternodeBroadcast : public CMasternode
 {
 public:
     CMasternodeBroadcast();
-    CMasternodeBroadcast(CService newAddr, CTxIn newVin, CPubKey newPubkey, CPubKey newPubkey2, int protocolVersionIn);
+    CMasternodeBroadcast(CDestination newAddr, CTxIn newVin, CPubKey newPubkey, CPubKey newPubkey2, int protocolVersionIn);
     CMasternodeBroadcast(const CMasternode& mn);
 
     bool CheckAndUpdate(int& nDoS);
@@ -326,7 +327,7 @@ public:
     }
 
     /// Create Masternode broadcast, needs to be relayed manually after that
-    static bool Create(CTxIn vin, CService service, CKey keyCollateralAddressNew, CPubKey pubKeyCollateralAddressNew, CKey keyMasternodeNew, CPubKey pubKeyMasternodeNew, std::string& strErrorRet, CMasternodeBroadcast& mnbRet);
+    static bool Create(CTxIn vin, CDestination service, CKey keyCollateralAddressNew, CPubKey pubKeyCollateralAddressNew, CKey keyMasternodeNew, CPubKey pubKeyMasternodeNew, std::string& strErrorRet, CMasternodeBroadcast& mnbRet);
     static bool Create(std::string strService, std::string strKey, std::string strTxHash, std::string strOutputIndex, std::string& strErrorRet, CMasternodeBroadcast& mnbRet, bool fOffline = false);
     static bool CheckDefaultPort(std::string strService, std::string& strErrorRet, std::string strContext, bool fAllowLookup = false);
 };

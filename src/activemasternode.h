@@ -9,7 +9,8 @@
 #include "init.h"
 #include "key.h"
 #include "masternode.h"
-#include "net.h"
+#include "neti2pd.h"
+#include "netdestination.h"
 #include "obfuscation.h"
 #include "sync.h"
 #include "wallet.h"
@@ -31,7 +32,7 @@ private:
     bool SendMasternodePing(std::string& errorMessage);
 
     /// Register any Masternode
-    bool Register(CTxIn vin, CService service, CKey key, CPubKey pubKey, CKey keyMasternode, CPubKey pubKeyMasternode, std::string& errorMessage);
+    bool Register(CTxIn vin, CDestination service, CKey key, CPubKey pubKey, CKey keyMasternode, CPubKey pubKeyMasternode, std::string& errorMessage);
 
     /// Get 10000 COLX input that can be used for the Masternode
     bool GetMasterNodeVin(CTxIn& vin, CPubKey& pubkey, CKey& secretKey, std::string strTxHash, std::string strOutputIndex);
@@ -44,7 +45,7 @@ public:
 
     // Initialized while registering Masternode
     CTxIn vin;
-    CService service;
+    CDestination service;
 
     int status;
     std::string notCapableReason;
@@ -66,7 +67,7 @@ public:
     vector<COutput> SelectCoinsMasternode();
 
     /// Enable cold wallet mode (run a Masternode with no funds)
-    bool EnableHotColdMasterNode(CTxIn& vin, CService& addr);
+    bool EnableHotColdMasterNode(CTxIn& vin, CDestination& addr);
 };
 
 #endif

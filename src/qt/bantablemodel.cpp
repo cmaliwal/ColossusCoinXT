@@ -44,11 +44,11 @@ public:
     /** Order (ascending or descending) to sort nodes by */
     Qt::SortOrder sortOrder;
 
-    /** Pull a full list of banned nodes from CNode into our cache */
+    /** Pull a full list of banned nodes from CI2pdNode into our cache */
     void refreshBanlist()
     {
         banmap_t banMap;
-        CNode::GetBanned(banMap);
+        CI2pdNode::GetBanned(banMap);
 
         cachedBanlist.clear();
 #if QT_VERSION >= 0x040700

@@ -9,7 +9,7 @@
 #include "base58.h"
 #include "key.h"
 #include "main.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "spork.h"
 #include "sync.h"
 #include "util.h"
@@ -50,13 +50,13 @@ bool IsIXTXValid(const CTransaction& txCollateral);
 // if two conflicting locks are approved by the network, they will cancel out
 bool CheckForConflictingLocks(CTransaction& tx);
 
-void ProcessMessageSwiftTX(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
+void ProcessMessageSwiftTX(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv);
 
 //check if we need to vote on this transaction
 void DoConsensusVote(CTransaction& tx, int64_t nBlockHeight);
 
 //process consensus vote message
-bool ProcessConsensusVote(CNode* pnode, CConsensusVote& ctx);
+bool ProcessConsensusVote(CI2pdNode* pnode, CConsensusVote& ctx);
 
 // keep transaction locks in memory for an hour
 void CleanTransactionLocksList();

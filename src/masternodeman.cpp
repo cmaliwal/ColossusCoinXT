@@ -7,6 +7,7 @@
 #include "activemasternode.h"
 #include "addrman.h"
 #include "masternode.h"
+#include "netdestination.h"
 #include "obfuscation.h"
 #include "spork.h"
 #include "util.h"
@@ -215,7 +216,7 @@ bool CMasternodeMan::Add(CMasternode& mn)
     return false;
 }
 
-void CMasternodeMan::AskForMN(CNode* pnode, CTxIn& vin)
+void CMasternodeMan::AskForMN(CI2pdNode* pnode, CTxIn& vin)
 {
     std::map<COutPoint, int64_t>::iterator i = mWeAskedForMasternodeListEntry.find(vin.prevout);
     if (i != mWeAskedForMasternodeListEntry.end()) {
@@ -292,7 +293,7 @@ void CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
     }
 
     // check who's asked for the Masternode list
-    map<CNetAddr, int64_t>::iterator it1 = mAskedUsForMasternodeList.begin();
+    map<CI2pUrl, int64_t>::iterator it1 = mAskedUsForMasternodeList.begin();
     while (it1 != mAskedUsForMasternodeList.end()) {
         if ((*it1).second < GetTime()) {
             mAskedUsForMasternodeList.erase(it1++);
@@ -405,7 +406,7 @@ void CMasternodeMan::CountNetworks(int protocolVersion, int& ipv4, int& ipv6, in
         std::string strHost;
         int port;
         SplitHostPort(mn.addr.ToString(), port, strHost);
-        CNetAddr node = CNetAddr(strHost, false);
+        CI2pUrl node = CI2pUrl(strHost, false);
         int nNetwork = node.GetNetwork();
         switch (nNetwork) {
             case 1 :
@@ -421,13 +422,13 @@ void CMasternodeMan::CountNetworks(int protocolVersion, int& ipv4, int& ipv6, in
     }
 }
 
-void CMasternodeMan::DsegUpdate(CNode* pnode)
+void CMasternodeMan::DsegUpdate(CI2pdNode* pnode)
 {
     LOCK(cs);
 
     if (Params().NetworkID() == CBaseChainParams::MAIN) {
-        if (!(pnode->addr.IsRFC1918() || pnode->addr.IsLocal())) {
-            std::map<CNetAddr, int64_t>::iterator it = mWeAskedForMasternodeList.find(pnode->addr);
+        if (!(pnode->addr.IsLocal())) { //pnode->addr.IsRFC1918() || 
+            std::map<CI2pUrl, int64_t>::iterator it = mWeAskedForMasternodeList.find(pnode->addr);
             if (it != mWeAskedForMasternodeList.end()) {
                 if (GetTime() < (*it).second) {
                     LogPrint("masternode", "dseg - we already asked peer %i for the list; skipping...\n", pnode->GetId());
@@ -719,7 +720,7 @@ void CMasternodeMan::ProcessMasternodeConnections()
     if (Params().NetworkID() == CBaseChainParams::REGTEST) return;
 
     LOCK(cs_vNodes);
-    BOOST_FOREACH (CNode* pnode, vNodes) {
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
         if (pnode->fObfuScationMaster) {
             if (obfuScationPool.pSubmittedToMasternode != NULL && pnode->addr == obfuScationPool.pSubmittedToMasternode->addr) continue;
             LogPrint("masternode","Closing Masternode connection peer=%i \n", pnode->GetId());
@@ -729,7 +730,7 @@ void CMasternodeMan::ProcessMasternodeConnections()
     }
 }
 
-void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void CMasternodeMan::ProcessMessage(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
     if (fLiteMode) return; //disable all Obfuscation/Masternode related functionality
     if (!masternodeSync.IsBlockchainSynced()) return;
@@ -767,7 +768,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
         //  - this is checked later by .check() in many places and by ThreadCheckObfuScationPool()
         if (mnb.CheckInputsAndAdd(nDoS)) {
             // use this as a peer
-            addrman.Add(CAddress(mnb.addr), pfrom->addr, 2 * 60 * 60);
+            addrman.Add(CI2PAddress(mnb.addr), pfrom->addr, 2 * 60 * 60);
             masternodeSync.AddedMasternodeList(mnb.GetHash());
         } else {
             LogPrint("masternode","mnb - Rejected Masternode entry %s\n", mnb.vin.prevout.hash.ToString());
@@ -810,10 +811,10 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
 
         if (vin == CTxIn()) { //only should ask for this once
             //local network
-            bool isLocal = (pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal());
+            bool isLocal = (pfrom->addr.IsLocal()); // pfrom->addr.IsRFC1918() || 
 
             if (!isLocal && Params().NetworkID() == CBaseChainParams::MAIN) {
-                std::map<CNetAddr, int64_t>::iterator i = mAskedUsForMasternodeList.find(pfrom->addr);
+                std::map<CI2pUrl, int64_t>::iterator i = mAskedUsForMasternodeList.find(pfrom->addr);
                 if (i != mAskedUsForMasternodeList.end()) {
                     int64_t t = (*i).second;
                     if (GetTime() < t) {
@@ -831,7 +832,8 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
         int nInvCount = 0;
 
         BOOST_FOREACH (CMasternode& mn, vMasternodes) {
-            if (mn.addr.IsRFC1918()) continue; //local network
+            // TODO: how to have the 'IsLocal' for i2p-s? not sure if possible, not by the address
+            //if (mn.addr.IsRFC1918()) continue; //local network
 
             if (mn.IsEnabled()) {
                 LogPrint("masternode", "dseg - Sending Masternode entry - %s \n", mn.vin.prevout.hash.ToString());
@@ -867,7 +869,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
         if (IsSporkActive(SPORK_10_MASTERNODE_PAY_UPDATED_NODES)) return;
 
         CTxIn vin;
-        CService addr;
+        CDestination addr;
         CPubKey pubkey;
         CPubKey pubkey2;
         vector<unsigned char> vchSig;
@@ -966,7 +968,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
                     if (pmn->IsEnabled()) {
                         TRY_LOCK(cs_vNodes, lockNodes);
                         if (!lockNodes) return;
-                        BOOST_FOREACH (CNode* pnode, vNodes)
+                        BOOST_FOREACH (CI2pdNode* pnode, vNodes)
                             if (pnode->nVersion >= masternodePayments.GetMinMasternodePaymentsProto())
                                 pnode->PushMessage("dsee", vin, addr, vchSig, sigTime, pubkey, pubkey2, count, current, lastUpdated, protocolVersion, donationAddress, donationPercentage);
                     }
@@ -1033,7 +1035,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
             }
 
             // use this as a peer
-            addrman.Add(CAddress(addr), pfrom->addr, 2 * 60 * 60);
+            addrman.Add(CI2PAddress(addr), pfrom->addr, 2 * 60 * 60);
 
             // add Masternode
             CMasternode mn = CMasternode();
@@ -1055,7 +1057,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
             if (mn.IsEnabled()) {
                 TRY_LOCK(cs_vNodes, lockNodes);
                 if (!lockNodes) return;
-                BOOST_FOREACH (CNode* pnode, vNodes)
+                BOOST_FOREACH (CI2pdNode* pnode, vNodes)
                     if (pnode->nVersion >= masternodePayments.GetMinMasternodePaymentsProto())
                         pnode->PushMessage("dsee", vin, addr, vchSig, sigTime, pubkey, pubkey2, count, current, lastUpdated, protocolVersion, donationAddress, donationPercentage);
             }
@@ -1125,7 +1127,7 @@ void CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
                     TRY_LOCK(cs_vNodes, lockNodes);
                     if (!lockNodes) return;
                     LogPrint("masternode", "dseep - relaying %s \n", vin.prevout.hash.ToString());
-                    BOOST_FOREACH (CNode* pnode, vNodes)
+                    BOOST_FOREACH (CI2pdNode* pnode, vNodes)
                         if (pnode->nVersion >= masternodePayments.GetMinMasternodePaymentsProto())
                             pnode->PushMessage("dseep", vin, vchSig, sigTime, stop);
                 }

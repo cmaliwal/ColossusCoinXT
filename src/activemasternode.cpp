@@ -8,6 +8,7 @@
 #include "masternode.h"
 #include "masternodeconfig.h"
 #include "masternodeman.h"
+#include "netdestination.h"
 #include "protocol.h"
 #include "spork.h"
 
@@ -64,7 +65,7 @@ void CActiveMasternode::ManageStatus()
                 return;
             }
         } else {
-            service = CService(strMasterNodeAddr);
+            service = CDestination(strMasterNodeAddr);
         }
 
         if (!CMasternodeBroadcast::CheckDefaultPort(strMasterNodeAddr, errorMessage, "CActiveMasternode::ManageStatus()"))
@@ -73,7 +74,7 @@ void CActiveMasternode::ManageStatus()
         LogPrintf("CActiveMasternode::ManageStatus() - Checking inbound connection to '%s'\n", service.ToString());
 
         // DS: fix remote IP resolving as local IP when starting hot masternode
-        CNode* pnode = ConnectNode((CAddress)service, service.ToString().c_str(), false);
+        CI2pdNode* pnode = ConnectNode((CI2PAddress)service, service.ToString().c_str(), false);
         if (!pnode) {
             notCapableReason = "Could not connect to " + service.ToString();
             LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
@@ -213,7 +214,7 @@ bool CActiveMasternode::SendMasternodePing(std::string& errorMessage)
 
         LogPrint("masternode", "dseep - relaying from active mn, %s \n", vin.ToString().c_str());
         LOCK(cs_vNodes);
-        BOOST_FOREACH (CNode* pnode, vNodes)
+        BOOST_FOREACH (CI2pdNode* pnode, vNodes)
             pnode->PushMessage("dseep", vin, vchMasterNodeSignature, masterNodeSignatureTime, false);
 
         /*
@@ -257,16 +258,16 @@ bool CActiveMasternode::Register(std::string strService, std::string strKeyMaste
         return false;
     }
 
-    CService service = CService(strService);
+    CDestination service = CDestination(strService);
     if(!CMasternodeBroadcast::CheckDefaultPort(strService, errorMessage, "CActiveMasternode::Register()"))
         return false;
 
-    addrman.Add(CAddress(service), CNetAddr("127.0.0.1"), 2 * 60 * 60);
+    addrman.Add(CI2PAddress(service), CI2pUrl("127.0.0.1"), 2 * 60 * 60);
 
-    return Register(vin, CService(strService), keyCollateralAddress, pubKeyCollateralAddress, keyMasternode, pubKeyMasternode, errorMessage);
+    return Register(vin, CDestination(strService), keyCollateralAddress, pubKeyCollateralAddress, keyMasternode, pubKeyMasternode, errorMessage);
 }
 
-bool CActiveMasternode::Register(CTxIn vin, CService service, CKey keyCollateralAddress, CPubKey pubKeyCollateralAddress, CKey keyMasternode, CPubKey pubKeyMasternode, std::string& errorMessage)
+bool CActiveMasternode::Register(CTxIn vin, CDestination service, CKey keyCollateralAddress, CPubKey pubKeyCollateralAddress, CKey keyMasternode, CPubKey pubKeyMasternode, std::string& errorMessage)
 {
     CMasternodeBroadcast mnb;
     CMasternodePing mnp(vin);
@@ -331,7 +332,7 @@ bool CActiveMasternode::Register(CTxIn vin, CService service, CKey keyCollateral
     }
 
     LOCK(cs_vNodes);
-    BOOST_FOREACH (CNode* pnode, vNodes)
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes)
         pnode->PushMessage("dsee", vin, service, vchMasterNodeSignature, masterNodeSignatureTime, pubKeyCollateralAddress, pubKeyMasternode, -1, -1, masterNodeSignatureTime, PROTOCOL_VERSION, donationAddress, donationPercantage);
 
     /*
@@ -463,7 +464,7 @@ vector<COutput> CActiveMasternode::SelectCoinsMasternode()
 }
 
 // when starting a Masternode, this can enable to run as a hot wallet with no funds
-bool CActiveMasternode::EnableHotColdMasterNode(CTxIn& newVin, CService& newService)
+bool CActiveMasternode::EnableHotColdMasterNode(CTxIn& newVin, CDestination& newService)
 {
     if (!fMasterNode) return false;
 

@@ -175,10 +175,10 @@ bool BootstrapModel::RunStageI(std::string& err)
         else if (!CleanUp(err))
             return false;
         else if (bootstrapMode_ == BootstrapMode::file) {
-            workerThread_.reset(new thread([this](){ RunFromFileThread(); }));
+            workerThread_.reset(new boost::thread([this](){ RunFromFileThread(); }));
             return true;
         } else if (bootstrapMode_ == BootstrapMode::cloud) {
-            workerThread_.reset(new thread([this](){ RunFromCloudThread(); }));
+            workerThread_.reset(new boost::thread([this](){ RunFromCloudThread(); }));
             return true;
         } else {
             err = "Unsupported bootstrap mode";
@@ -226,7 +226,7 @@ bool BootstrapModel::RunStageII(std::string& err)
             return false;
         }
         else {
-            workerThread_.reset(new thread([this](){ RunStageIIThread(); }));
+            workerThread_.reset(new boost::thread([this](){ RunStageIIThread(); }));
             return true;
         }
     } catch (const boost::exception& e) {

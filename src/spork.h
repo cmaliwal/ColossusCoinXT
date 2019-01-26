@@ -9,7 +9,7 @@
 #include "base58.h"
 #include "key.h"
 #include "main.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "sync.h"
 #include "util.h"
 
@@ -67,7 +67,7 @@ extern std::map<int, CSporkMessage> mapSporksActive;
 extern CSporkManager sporkManager;
 
 void LoadSporksFromDB();
-void ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
+void ProcessSpork(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv);
 int64_t GetSporkValue(int nSporkID);
 bool IsSporkActive(int nSporkID);
 void ReprocessBlocks(int nBlocks);

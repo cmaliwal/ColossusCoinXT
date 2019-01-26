@@ -5,6 +5,7 @@
 #include "timedata.h"
 
 #include "netbase.h"
+#include "netdestination.h"
 #include "sync.h"
 #include "ui_interface.h"
 #include "util.h"
@@ -40,11 +41,12 @@ static int64_t abs64(int64_t n)
     return (n >= 0 ? n : -n);
 }
 
-void AddTimeData(const CNetAddr& ip, int64_t nOffsetSample)
+//void AddTimeData(const CNetAddr& ip, int64_t nOffsetSample)
+void AddTimeData(const CI2pUrl& ip, int64_t nOffsetSample)
 {
     LOCK(cs_nTimeOffset);
     // Ignore duplicates
-    static set<CNetAddr> setKnown;
+    static set<CI2pUrl> setKnown;
     if (!setKnown.insert(ip).second)
         return;
 

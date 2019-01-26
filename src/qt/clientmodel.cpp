@@ -17,7 +17,7 @@
 #include "main.h"
 #include "masternode-sync.h"
 #include "masternodeman.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "ui_interface.h"
 #include "util.h"
 
@@ -64,7 +64,7 @@ int ClientModel::getNumConnections(unsigned int flags) const
         return vNodes.size();
 
     int nNum = 0;
-    BOOST_FOREACH (CNode* pnode, vNodes)
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes)
         if (flags & (pnode->fInbound ? CONNECTIONS_IN : CONNECTIONS_OUT))
             nNum++;
 
@@ -94,12 +94,12 @@ int ClientModel::getNumBlocksAtStartup()
 
 quint64 ClientModel::getTotalBytesRecv() const
 {
-    return CNode::GetTotalBytesRecv();
+    return CI2pdNode::GetTotalBytesRecv();
 }
 
 quint64 ClientModel::getTotalBytesSent() const
 {
-    return CNode::GetTotalBytesSent();
+    return CI2pdNode::GetTotalBytesSent();
 }
 
 QDateTime ClientModel::getLastBlockDate() const

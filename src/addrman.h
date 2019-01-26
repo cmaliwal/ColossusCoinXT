@@ -17,20 +17,21 @@
 #include <stdint.h>
 #include <vector>
 
+// I2PDK: a special case as ip/net related structures outside the net/netbase. But seems ok to fully convert
 /** 
- * Extended statistics about a CAddress 
+ * Extended statistics about a CI2PAddress 
  */
-class CAddrInfo : public CAddress
+class CAddrInfo : public CI2PAddress
 {
 private:
     //! where knowledge about this address first came from
-    CNetAddr source;
+    CI2pUrl source;
 
     //! last successful connection by us
     int64_t nLastSuccess;
 
     //! last try whatsoever by us:
-    // int64_t CAddress::nLastTry
+    // int64_t CI2PAddress::nLastTry
 
     //! connection attempts since last successful attempt
     int nAttempts;
@@ -52,7 +53,7 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(*(CAddress*)this);
+        READWRITE(*(CI2PAddress*)this);
         READWRITE(source);
         READWRITE(nLastSuccess);
         READWRITE(nAttempts);
@@ -68,12 +69,12 @@ public:
         nRandomPos = -1;
     }
 
-    CAddrInfo(const CAddress& addrIn, const CNetAddr& addrSource) : CAddress(addrIn), source(addrSource)
+    CAddrInfo(const CI2PAddress& addrIn, const CI2pUrl& addrSource) : CI2PAddress(addrIn), source(addrSource)
     {
         Init();
     }
 
-    CAddrInfo() : CAddress(), source()
+    CAddrInfo() : CI2PAddress(), source()
     {
         Init();
     }
@@ -82,7 +83,7 @@ public:
     int GetTriedBucket(const uint256& nKey) const;
 
     //! Calculate in which "new" bucket this entry belongs, given a certain source
-    int GetNewBucket(const uint256& nKey, const CNetAddr& src) const;
+    int GetNewBucket(const uint256& nKey, const CI2pUrl& src) const;
 
     //! Calculate in which "new" bucket this entry belongs, using its default source
     int GetNewBucket(const uint256& nKey) const
@@ -181,7 +182,7 @@ private:
     std::map<int, CAddrInfo> mapInfo;
 
     //! find an nId based on its network address
-    std::map<CNetAddr, int> mapAddr;
+    std::map<CI2pUrl, int> mapAddr;
 
     //! randomly-ordered vector of all nIds
     std::vector<int> vRandom;
@@ -200,11 +201,11 @@ private:
 
 protected:
     //! Find an entry.
-    CAddrInfo* Find(const CNetAddr& addr, int* pnId = NULL);
+    CAddrInfo* Find(const CI2pUrl& addr, int* pnId = NULL);
 
     //! find an entry, creating it if necessary.
     //! nTime and nServices of the found node are updated, if necessary.
-    CAddrInfo* Create(const CAddress& addr, const CNetAddr& addrSource, int* pnId = NULL);
+    CAddrInfo* Create(const CI2PAddress& addr, const CI2pUrl& addrSource, int* pnId = NULL);
 
     //! Swap two elements in vRandom.
     void SwapRandom(unsigned int nRandomPos1, unsigned int nRandomPos2);
@@ -219,17 +220,17 @@ protected:
     void ClearNew(int nUBucket, int nUBucketPos);
 
     //! Mark an entry "good", possibly moving it from "new" to "tried".
-    void Good_(const CService& addr, int64_t nTime);
+    void Good_(const CDestination& addr, int64_t nTime);
 
     //! Add an entry to the "new" table.
-    bool Add_(const CAddress& addr, const CNetAddr& source, int64_t nTimePenalty);
+    bool Add_(const CI2PAddress& addr, const CI2pUrl& source, int64_t nTimePenalty);
 
     //! Mark an entry as attempted to connect.
-    void Attempt_(const CService& addr, int64_t nTime);
+    void Attempt_(const CDestination& addr, int64_t nTime);
 
     //! Select an address to connect to.
     //! nUnkBias determines how much to favor new addresses over tried ones (min=0, max=100)
-    CAddress Select_();
+    CI2PAddress Select_();
 
 #ifdef DEBUG_ADDRMAN
     //! Perform consistency check. Returns an error code or zero.
@@ -237,10 +238,10 @@ protected:
 #endif
 
     //! Select several addresses at once.
-    void GetAddr_(std::vector<CAddress>& vAddr);
+    void GetAddr_(std::vector<CI2PAddress>& vAddr);
 
     //! Mark an entry as currently-connected-to.
-    void Connected_(const CService& addr, int64_t nTime);
+    void Connected_(const CDestination& addr, int64_t nTime);
 
 public:
     /**
@@ -475,7 +476,7 @@ public:
     }
 
     //! Add a single address.
-    bool Add(const CAddress& addr, const CNetAddr& source, int64_t nTimePenalty = 0)
+    bool Add(const CI2PAddress& addr, const CI2pUrl& source, int64_t nTimePenalty = 0)
     {
         bool fRet = false;
         {
@@ -490,13 +491,13 @@ public:
     }
 
     //! Add multiple addresses.
-    bool Add(const std::vector<CAddress>& vAddr, const CNetAddr& source, int64_t nTimePenalty = 0)
+    bool Add(const std::vector<CI2PAddress>& vAddr, const CI2pUrl& source, int64_t nTimePenalty = 0)
     {
         int nAdd = 0;
         {
             LOCK(cs);
             Check();
-            for (std::vector<CAddress>::const_iterator it = vAddr.begin(); it != vAddr.end(); it++)
+            for (std::vector<CI2PAddress>::const_iterator it = vAddr.begin(); it != vAddr.end(); it++)
                 nAdd += Add_(*it, source, nTimePenalty) ? 1 : 0;
             Check();
         }
@@ -506,7 +507,7 @@ public:
     }
 
     //! Mark an entry as accessible.
-    void Good(const CService& addr, int64_t nTime = GetAdjustedTime())
+    void Good(const CDestination& addr, int64_t nTime = GetAdjustedTime())
     {
         {
             LOCK(cs);
@@ -517,7 +518,7 @@ public:
     }
 
     //! Mark an entry as connection attempted to.
-    void Attempt(const CService& addr, int64_t nTime = GetAdjustedTime())
+    void Attempt(const CDestination& addr, int64_t nTime = GetAdjustedTime())
     {
         {
             LOCK(cs);
@@ -531,9 +532,9 @@ public:
      * Choose an address to connect to.
      * nUnkBias determines how much "new" entries are favored over "tried" ones (0-100).
      */
-    CAddress Select()
+    CI2PAddress Select()
     {
-        CAddress addrRet;
+        CI2PAddress addrRet;
         {
             LOCK(cs);
             Check();
@@ -544,10 +545,10 @@ public:
     }
 
     //! Return a bunch of addresses, selected at random.
-    std::vector<CAddress> GetAddr()
+    std::vector<CI2PAddress> GetAddr()
     {
         Check();
-        std::vector<CAddress> vAddr;
+        std::vector<CI2PAddress> vAddr;
         {
             LOCK(cs);
             GetAddr_(vAddr);
@@ -557,7 +558,7 @@ public:
     }
 
     //! Mark an entry as currently-connected-to.
-    void Connected(const CService& addr, int64_t nTime = GetAdjustedTime())
+    void Connected(const CDestination& addr, int64_t nTime = GetAdjustedTime())
     {
         {
             LOCK(cs);

@@ -20,7 +20,9 @@
 #include "masternode-payments.h"
 #include "masternodeman.h"
 #include "merkleblock.h"
-#include "net.h"
+#include "neti2pd.h"
+#include "netbase.h"
+#include "netdestination.h"
 #include "obfuscation.h"
 #include "pow.h"
 #include "spork.h"
@@ -202,13 +204,13 @@ struct CBlockReject {
 
 /**
  * Maintain validation-specific state about nodes, protected by cs_main, instead
- * by CNode's own locks. This simplifies asynchronous operation, where
+ * by CI2pdNode's own locks. This simplifies asynchronous operation, where
  * processing of incoming data is done after the ProcessMessage call returns,
  * and we're no longer holding the node's locks.
  */
 struct CNodeState {
     //! The peer's address
-    CService address;
+    CDestination address;
     //! Whether we have a fully established connection.
     bool fCurrentlyConnected;
     //! Accumulated misbehaviour score for this peer.
@@ -273,7 +275,7 @@ int GetHeight()
     }
 }
 
-void UpdatePreferredDownload(CNode* node, CNodeState* state)
+void UpdatePreferredDownload(CI2pdNode* node, CNodeState* state)
 {
     nPreferredDownload -= state->fPreferredDownload;
 
@@ -283,7 +285,7 @@ void UpdatePreferredDownload(CNode* node, CNodeState* state)
     nPreferredDownload += state->fPreferredDownload;
 }
 
-void InitializeNode(NodeId nodeid, const CNode* pnode)
+void InitializeNode(NodeId nodeid, const CI2pdNode* pnode)
 {
     LOCK(cs_main);
     CNodeState& state = mapNodeState.insert(std::make_pair(nodeid, CNodeState())).first->second;
@@ -3969,7 +3971,7 @@ bool ActivateBestChain(CValidationState& state, CBlock* pblock, bool fAlreadyChe
             int nBlockEstimate = Checkpoints::GetTotalBlocksEstimate();
             {
                 LOCK(cs_vNodes);
-                BOOST_FOREACH (CNode* pnode, vNodes)
+                BOOST_FOREACH (CI2pdNode* pnode, vNodes)
                     if (chainActive.Height() > nBlockEstimate)
                         pnode->PushInventory(CInv(MSG_BLOCK, hashNewTip));
             }
@@ -4731,7 +4733,7 @@ void CBlockIndex::BuildSkip()
         pskip = pprev->GetAncestor(GetSkipHeight(nHeight));
 }
 
-bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDiskBlockPos* dbp)
+bool ProcessNewBlock(CValidationState& state, CI2pdNode* pfrom, CBlock* pblock, CDiskBlockPos* dbp)
 {
     // Preliminary checks
     int64_t nStartTime = GetTimeMillis();
@@ -5545,7 +5547,7 @@ bool static AlreadyHave(const CInv& inv)
 }
 
 
-void static ProcessGetData(CNode* pfrom)
+void static ProcessGetData(CI2pdNode* pfrom)
 {
     std::deque<CInv>::iterator it = pfrom->vRecvGetData.begin();
 
@@ -5784,7 +5786,7 @@ void static ProcessGetData(CNode* pfrom)
 }
 
 bool fRequestedSporksIDB = false;
-bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, int64_t nTimeReceived)
+bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRecv, int64_t nTimeReceived)
 {
     RandAddSeedPerfmon();
     if (fDebug)
@@ -5815,8 +5817,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         }
 
         int64_t nTime;
-        CAddress addrMe;
-        CAddress addrFrom;
+        CI2PAddress addrMe;
+        CI2PAddress addrFrom;
         uint64_t nNonce = 1;
         vRecv >> pfrom->nVersion >> pfrom->nServices >> nTime >> addrMe;
         if (pfrom->DisconnectOldProtocol(ActiveProtocol(), strCommand))
@@ -5865,7 +5867,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (!pfrom->fInbound) {
             // Advertise our address
             if (fListen && !IsInitialBlockDownload()) {
-                CAddress addr = GetLocalAddress(&pfrom->addr);
+                CI2PAddress addr = GetLocalAddress(&pfrom->addr);
                 if (addr.IsRoutable()) {
                     LogPrintf("ProcessMessages: advertizing address %s\n", addr.ToString());
                     pfrom->PushAddress(addr);
@@ -5883,7 +5885,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             }
             addrman.Good(pfrom->addr);
         } else {
-            if (((CNetAddr)pfrom->addr) == (CNetAddr)addrFrom) {
+            if (((CI2pUrl)pfrom->addr) == (CI2pUrl)addrFrom) {
                 addrman.Add(addrFrom, addrFrom);
                 addrman.Good(addrFrom);
             }
@@ -5932,7 +5934,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
 
     else if (strCommand == "addr") {
-        vector<CAddress> vAddr;
+        vector<CI2PAddress> vAddr;
         vRecv >> vAddr;
 
         // Don't want addr from older versions unless seeding
@@ -5944,10 +5946,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         }
 
         // Store the new addresses
-        vector<CAddress> vAddrOk;
+        vector<CI2PAddress> vAddrOk;
         int64_t nNow = GetAdjustedTime();
         int64_t nSince = nNow - 10 * 60;
-        BOOST_FOREACH (CAddress& addr, vAddr) {
+        BOOST_FOREACH (CI2PAddress& addr, vAddr) {
             boost::this_thread::interruption_point();
 
             if (addr.nTime <= 100000000 || addr.nTime > nNow + 10 * 60)
@@ -5966,8 +5968,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     uint64_t hashAddr = addr.GetHash();
                     uint256 hashRand = hashSalt ^ (hashAddr << 32) ^ ((GetTime() + hashAddr) / (24 * 60 * 60));
                     hashRand = Hash(BEGIN(hashRand), END(hashRand));
-                    multimap<uint256, CNode*> mapMix;
-                    BOOST_FOREACH (CNode* pnode, vNodes) {
+                    multimap<uint256, CI2pdNode*> mapMix;
+                    BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
                         if (pnode->nVersion < CADDR_TIME_VERSION)
                             continue;
                         unsigned int nPointer;
@@ -5977,7 +5979,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                         mapMix.insert(make_pair(hashKey, pnode));
                     }
                     int nRelayNodes = fReachable ? 2 : 1; // limited relaying of addresses outside our network(s)
-                    for (multimap<uint256, CNode*>::iterator mi = mapMix.begin(); mi != mapMix.end() && nRelayNodes-- > 0; ++mi)
+                    for (multimap<uint256, CI2pdNode*>::iterator mi = mapMix.begin(); mi != mapMix.end() && nRelayNodes-- > 0; ++mi)
                         ((*mi).second)->PushAddress(addr);
                 }
             }
@@ -6401,8 +6403,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     // getaddr message mitigates the attack.
     else if ((strCommand == "getaddr") && (pfrom->fInbound)) {
         pfrom->vAddrToSend.clear();
-        vector<CAddress> vAddr = addrman.GetAddr();
-        BOOST_FOREACH (const CAddress& addr, vAddr)
+        vector<CI2PAddress> vAddr = addrman.GetAddr();
+        BOOST_FOREACH (const CI2PAddress& addr, vAddr)
             pfrom->PushAddress(addr);
     }
 
@@ -6518,7 +6520,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 pfrom->setKnown.insert(alertHash);
                 {
                     LOCK(cs_vNodes);
-                    BOOST_FOREACH (CNode* pnode, vNodes)
+                    BOOST_FOREACH (CI2pdNode* pnode, vNodes)
                         alert.RelayTo(pnode);
                 }
             } else {
@@ -6640,7 +6642,7 @@ int ActiveProtocol()
 }
 
 // requires LOCK(cs_vRecvMsg)
-bool ProcessMessages(CNode* pfrom)
+bool ProcessMessages(CI2pdNode* pfrom)
 {
     //if (fDebug)
     //    LogPrintf("ProcessMessages(%u messages)\n", pfrom->vRecvMsg.size());
@@ -6757,7 +6759,7 @@ bool AddressRefreshBroadcast()
         // masternode-sync.cpp: cs_vNodes, cs_vSend
         // ...there's apparently no easy way to handle this?
         LOCK(cs_vNodes);
-        BOOST_FOREACH (CNode* pnode, vNodes) {
+        BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
             // Periodically clear setAddrKnown to allow refresh broadcasts
             if (nLastRebroadcast)
                 pnode->setAddrKnown.clear();
@@ -6773,7 +6775,7 @@ bool AddressRefreshBroadcast()
     return false;
 }
 
-bool SendMessages(CNode* pto, bool fSendTrickle)
+bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
 {
     {
         // Don't send anything until we get their version message
@@ -6817,9 +6819,9 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
         // Message: addr
         //
         if (fSendTrickle) {
-            vector<CAddress> vAddr;
+            vector<CI2PAddress> vAddr;
             vAddr.reserve(pto->vAddrToSend.size());
-            BOOST_FOREACH (const CAddress& addr, pto->vAddrToSend) {
+            BOOST_FOREACH (const CI2PAddress& addr, pto->vAddrToSend) {
                 // returns true if wasn't already contained in the set
                 if (pto->setAddrKnown.insert(addr).second) {
                     vAddr.push_back(addr);
@@ -6844,7 +6846,7 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
                 if (pto->addr.IsLocal())
                     LogPrintf("Warning: not banning local peer %s!\n", pto->addr.ToString());
                 else {
-                    CNode::Ban(pto->addr, BanReasonNodeMisbehaving);
+                    CI2pdNode::Ban(pto->addr, BanReasonNodeMisbehaving);
                 }
             }
             state.fShouldBan = false;

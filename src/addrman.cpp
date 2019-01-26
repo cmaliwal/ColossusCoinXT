@@ -17,7 +17,7 @@ int CAddrInfo::GetTriedBucket(const uint256& nKey) const
     return hash2 % ADDRMAN_TRIED_BUCKET_COUNT;
 }
 
-int CAddrInfo::GetNewBucket(const uint256& nKey, const CNetAddr& src) const
+int CAddrInfo::GetNewBucket(const uint256& nKey, const CI2pUrl& src) const
 {
     std::vector<unsigned char> vchSourceGroupKey = src.GetGroup();
     uint64_t hash1 = (CHashWriter(SER_GETHASH, 0) << nKey << GetGroup() << vchSourceGroupKey).GetHash().GetLow64();
@@ -73,9 +73,9 @@ double CAddrInfo::GetChance(int64_t nNow) const
     return fChance;
 }
 
-CAddrInfo* CAddrMan::Find(const CNetAddr& addr, int* pnId)
+CAddrInfo* CAddrMan::Find(const CI2pUrl& addr, int* pnId)
 {
-    std::map<CNetAddr, int>::iterator it = mapAddr.find(addr);
+    std::map<CI2pUrl, int>::iterator it = mapAddr.find(addr);
     if (it == mapAddr.end())
         return NULL;
     if (pnId)
@@ -86,7 +86,7 @@ CAddrInfo* CAddrMan::Find(const CNetAddr& addr, int* pnId)
     return NULL;
 }
 
-CAddrInfo* CAddrMan::Create(const CAddress& addr, const CNetAddr& addrSource, int* pnId)
+CAddrInfo* CAddrMan::Create(const CI2PAddress& addr, const CI2pUrl& addrSource, int* pnId)
 {
     int nId = nIdCount++;
     mapInfo[nId] = CAddrInfo(addr, addrSource);
@@ -195,7 +195,7 @@ void CAddrMan::MakeTried(CAddrInfo& info, int nId)
     info.fInTried = true;
 }
 
-void CAddrMan::Good_(const CService& addr, int64_t nTime)
+void CAddrMan::Good_(const CDestination& addr, int64_t nTime)
 {
     int nId;
     CAddrInfo* pinfo = Find(addr, &nId);
@@ -206,7 +206,7 @@ void CAddrMan::Good_(const CService& addr, int64_t nTime)
 
     CAddrInfo& info = *pinfo;
 
-    // check whether we are talking about the exact same CService (including same port)
+    // check whether we are talking about the exact same CDestination (including same port)
     if (info != addr)
         return;
 
@@ -244,7 +244,7 @@ void CAddrMan::Good_(const CService& addr, int64_t nTime)
     MakeTried(info, nId);
 }
 
-bool CAddrMan::Add_(const CAddress& addr, const CNetAddr& source, int64_t nTimePenalty)
+bool CAddrMan::Add_(const CI2PAddress& addr, const CI2pUrl& source, int64_t nTimePenalty)
 {
     if (!addr.IsRoutable())
         return false;
@@ -312,7 +312,7 @@ bool CAddrMan::Add_(const CAddress& addr, const CNetAddr& source, int64_t nTimeP
     return fNew;
 }
 
-void CAddrMan::Attempt_(const CService& addr, int64_t nTime)
+void CAddrMan::Attempt_(const CDestination& addr, int64_t nTime)
 {
     CAddrInfo* pinfo = Find(addr);
 
@@ -322,7 +322,7 @@ void CAddrMan::Attempt_(const CService& addr, int64_t nTime)
 
     CAddrInfo& info = *pinfo;
 
-    // check whether we are talking about the exact same CService (including same port)
+    // check whether we are talking about the exact same CDestination (including same port)
     if (info != addr)
         return;
 
@@ -331,10 +331,10 @@ void CAddrMan::Attempt_(const CService& addr, int64_t nTime)
     info.nAttempts++;
 }
 
-CAddress CAddrMan::Select_()
+CI2PAddress CAddrMan::Select_()
 {
     if (size() == 0)
-        return CAddress();
+        return CI2PAddress();
 
     // Use a 50% chance for choosing between tried and new table entries.
     if (nTried > 0 && (nNew == 0 || GetRandInt(2) == 0)) {
@@ -448,7 +448,7 @@ int CAddrMan::Check_()
 }
 #endif
 
-void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr)
+void CAddrMan::GetAddr_(std::vector<CI2PAddress>& vAddr)
 {
     unsigned int nNodes = ADDRMAN_GETADDR_MAX_PCT * vRandom.size() / 100;
     if (nNodes > ADDRMAN_GETADDR_MAX)
@@ -469,7 +469,7 @@ void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr)
     }
 }
 
-void CAddrMan::Connected_(const CService& addr, int64_t nTime)
+void CAddrMan::Connected_(const CDestination& addr, int64_t nTime)
 {
     CAddrInfo* pinfo = Find(addr);
 
@@ -479,7 +479,7 @@ void CAddrMan::Connected_(const CService& addr, int64_t nTime)
 
     CAddrInfo& info = *pinfo;
 
-    // check whether we are talking about the exact same CService (including same port)
+    // check whether we are talking about the exact same CDestination (including same port)
     if (info != addr)
         return;
 

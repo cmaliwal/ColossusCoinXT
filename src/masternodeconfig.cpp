@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 // clang-format off
-#include "net.h"
+#include "neti2pd.h"
 #include "masternodeconfig.h"
 #include "util.h"
 #include "ui_interface.h"

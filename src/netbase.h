@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+//class CI2pUrl;
+
 extern int nConnectTimeout;
 extern bool fNameLookup;
 
@@ -29,11 +31,14 @@ static const int DEFAULT_NAME_LOOKUP = true;
 #undef SetPort
 #endif
 
+// I2PDK: we should add I2P here and use it as 'one more' (though it should be prevaling). Make sure NET_MAX and related is ok (maybe in some places it was expected and max is used to assume that networks are just those few).
 enum Network {
     NET_UNROUTABLE = 0,
     NET_IPV4,
     NET_IPV6,
     NET_TOR,
+
+    NET_I2P,
 
     NET_MAX,
 };
@@ -124,6 +129,7 @@ public:
     explicit CSubNet(const CNetAddr &addr);
 
     bool Match(const CNetAddr& addr) const;
+    //bool Match(const CI2pUrl& addr) const;
 
     std::string ToString() const;
     bool IsValid() const;
@@ -204,6 +210,7 @@ void SplitHostPort(std::string in, int& portOut, std::string& hostOut);
 bool SetProxy(enum Network net, const proxyType &addrProxy);
 bool GetProxy(enum Network net, proxyType& proxyInfoOut);
 bool IsProxy(const CNetAddr& addr);
+//bool IsProxy(const CI2pUrl& addr);
 bool SetNameProxy(const proxyType &addrProxy);
 bool HaveNameProxy();
 bool LookupHost(const char* pszName, std::vector<CNetAddr>& vIP, unsigned int nMaxSolutions = 0, bool fAllowLookup = true);

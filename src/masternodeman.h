@@ -10,7 +10,7 @@
 #include "key.h"
 #include "main.h"
 #include "masternode.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "sync.h"
 #include "util.h"
 
@@ -60,9 +60,9 @@ private:
     // map to hold all MNs
     std::vector<CMasternode> vMasternodes;
     // who's asked for the Masternode list and the last time
-    std::map<CNetAddr, int64_t> mAskedUsForMasternodeList;
+    std::map<CI2pUrl, int64_t> mAskedUsForMasternodeList;
     // who we asked for the Masternode list and the last time
-    std::map<CNetAddr, int64_t> mWeAskedForMasternodeList;
+    std::map<CI2pUrl, int64_t> mWeAskedForMasternodeList;
     // which Masternodes we've asked for
     std::map<COutPoint, int64_t> mWeAskedForMasternodeListEntry;
 
@@ -98,7 +98,7 @@ public:
     bool Add(CMasternode& mn);
 
     /// Ask (source) node for mnb
-    void AskForMN(CNode* pnode, CTxIn& vin);
+    void AskForMN(CI2pdNode* pnode, CTxIn& vin);
 
     /// Check all Masternodes
     void Check();
@@ -113,7 +113,7 @@ public:
 
     void CountNetworks(int protocolVersion, int& ipv4, int& ipv6, int& onion);
 
-    void DsegUpdate(CNode* pnode);
+    void DsegUpdate(CI2pdNode* pnode);
 
     /// Find an entry
     CMasternode* Find(const CScript& payee);
@@ -141,7 +141,7 @@ public:
 
     void ProcessMasternodeConnections();
 
-    void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
+    void ProcessMessage(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv);
 
     /// Return the number of (unique) Masternodes
     int size() { return vMasternodes.size(); }

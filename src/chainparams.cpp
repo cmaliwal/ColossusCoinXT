@@ -34,7 +34,7 @@ struct SeedSpec6 {
  */
 
 //! Convert the pnSeeds6 array into usable address objects.
-static void convertSeed6(std::vector<CAddress>& vSeedsOut, const SeedSpec6* data, unsigned int count)
+static void convertSeed6(std::vector<CI2PAddress>& vSeedsOut, const SeedSpec6* data, unsigned int count)
 {
     // It'll only connect to one or two seed nodes because once it connects,
     // it'll get a pile of addresses with newer timestamps.
@@ -44,7 +44,9 @@ static void convertSeed6(std::vector<CAddress>& vSeedsOut, const SeedSpec6* data
     for (unsigned int i = 0; i < count; i++) {
         struct in6_addr ip;
         memcpy(&ip, data[i].addr, sizeof(ip));
-        CAddress addr(CService(ip, data[i].port));
+        // I2PDK: this needs some work, we should no longer have or use ip-s, there is i2p address + port only.
+        //CI2PAddress addr(CDestination(ip, data[i].port));
+        CI2PAddress addr(CDestination((const char*)data[i].addr, data[i].port));
         addr.nTime = GetTime() - GetRand(nOneWeek) - nOneWeek;
         vSeedsOut.push_back(addr);
     }

@@ -1,0 +1,15 @@
+libi2pd_client/AddressBook.h \
+libi2pd_client/BOB.h \
+libi2pd_client/ClientContext.h \
+libi2pd_client/HTTPProxy.h \
+libi2pd_client/I2CP.h \
+libi2pd_client/I2PPureTunnel.h \
+libi2pd_client/I2PService.h \
+libi2pd_client/I2PTunnel.h \
+libi2pd_client/MatchedDestination.h \
+libi2pd_client/SAM.h \
+libi2pd_client/SOCKS.h \
+libi2pd_client/Websocket.h \
+libi2pd_client/WebSocks.h \
+
+

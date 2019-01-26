@@ -21,7 +21,7 @@ class CMasternodeBlockPayees;
 
 extern CMasternodePayments masternodePayments;
 
-void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
+void ProcessMessageMasternodePayments(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv);
 bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBlockIndex* pindexPrev);
 std::string GetRequiredPaymentsString(int nBlockHeight);
 bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount nExpectedValue, CAmount nMinted, CBlockIndex* pindexPrev);
@@ -188,7 +188,7 @@ public:
     }
 
     bool Sign(CKey& keyMasternode, CPubKey& pubKeyMasternode);
-    bool IsValid(CNode* pnode, std::string& strError);
+    bool IsValid(CI2pdNode* pnode, std::string& strError);
     bool SignatureValid();
     void Relay();
 
@@ -252,7 +252,7 @@ public:
     bool AddWinningMasternode(CMasternodePaymentWinner& winner);
     bool ProcessBlock(int nBlockHeight);
 
-    void Sync(CNode* node, int nCountNeeded);
+    void Sync(CI2pdNode* node, int nCountNeeded);
     void CleanPaymentList();
     int LastPayment(CMasternode& mn);
 
@@ -276,7 +276,7 @@ public:
     }
 
     int GetMinMasternodePaymentsProto();
-    void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
+    void ProcessMessageMasternodePayments(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     std::string GetRequiredPaymentsString(int nBlockHeight);
     void FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
     std::string ToString() const;

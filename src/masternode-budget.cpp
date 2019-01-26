@@ -1013,7 +1013,7 @@ void CBudgetManager::NewBlock()
         }
 
         LOCK(cs_vNodes);
-        BOOST_FOREACH (CNode* pnode, vNodes)
+        BOOST_FOREACH (CI2pdNode* pnode, vNodes)
             if (pnode->nVersion >= ActiveProtocol())
                 Sync(pnode, 0, true);
 
@@ -1102,7 +1102,7 @@ void CBudgetManager::NewBlock()
     LogPrint("masternode","CBudgetManager::NewBlock - PASSED\n");
 }
 
-void CBudgetManager::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void CBudgetManager::ProcessMessage(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
     // lite mode is not supported
     if (fLiteMode) return;
@@ -1362,7 +1362,7 @@ void CBudgetManager::MarkSynced()
 }
 
 
-void CBudgetManager::Sync(CNode* pfrom, uint256 nProp, bool fPartial)
+void CBudgetManager::Sync(CI2pdNode* pfrom, uint256 nProp, bool fPartial)
 {
     LOCK(cs);
 
@@ -1432,7 +1432,7 @@ void CBudgetManager::Sync(CNode* pfrom, uint256 nProp, bool fPartial)
     LogPrint("mnbudget", "CBudgetManager::Sync - sent %d items\n", nInvCount);
 }
 
-bool CBudgetManager::UpdateProposal(CBudgetVote& vote, CNode* pfrom, std::string& strError)
+bool CBudgetManager::UpdateProposal(CBudgetVote& vote, CI2pdNode* pfrom, std::string& strError)
 {
     LOCK(cs);
 
@@ -1459,7 +1459,7 @@ bool CBudgetManager::UpdateProposal(CBudgetVote& vote, CNode* pfrom, std::string
     return mapProposals[vote.nProposalHash].AddOrUpdateVote(vote, strError);
 }
 
-bool CBudgetManager::UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError)
+bool CBudgetManager::UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CI2pdNode* pfrom, std::string& strError)
 {
     LOCK(cs);
 

@@ -10,7 +10,8 @@
 #include <stdint.h>
 #include <vector>
 
-class CNetAddr;
+//class CNetAddr;
+class CI2pUrl;
 
 /** 
  * Median filter over a stream of values.
@@ -71,6 +72,8 @@ public:
 /** Functions to keep track of adjusted P2P time */
 int64_t GetTimeOffset();
 int64_t GetAdjustedTime();
-void AddTimeData(const CNetAddr& ip, int64_t nTime);
+//void AddTimeData(const CNetAddr& ip, int64_t nTime);
+// I2PDK: this is a slightly special case for migration (ip->i2p), as it's outside the net/netbase
+void AddTimeData(const CI2pUrl& url, int64_t nTime);
 
 #endif // BITCOIN_TIMEDATA_H

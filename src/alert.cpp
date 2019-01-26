@@ -7,7 +7,7 @@
 
 #include "chainparams.h"
 #include "clientversion.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "pubkey.h"
 #include "timedata.h"
 #include "ui_interface.h"
@@ -124,7 +124,7 @@ bool CAlert::AppliesToMe() const
     return AppliesTo(PROTOCOL_VERSION, FormatSubVersion(CLIENT_NAME, CLIENT_VERSION, std::vector<std::string>()));
 }
 
-bool CAlert::RelayTo(CNode* pnode) const
+bool CAlert::RelayTo(CI2pdNode* pnode) const
 {
     if (!IsInEffect())
         return false;

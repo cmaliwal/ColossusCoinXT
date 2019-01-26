@@ -435,7 +435,7 @@ int CMasternodePayments::GetMinMasternodePaymentsProto()
         return MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT; // Also allow old peers as long as they are allowed to run
 }
 
-void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void CMasternodePayments::ProcessMessageMasternodePayments(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
     if (!masternodeSync.IsBlockchainSynced()) return;
 
@@ -740,7 +740,7 @@ void CMasternodePayments::CleanPaymentList()
     }
 }
 
-bool CMasternodePaymentWinner::IsValid(CNode* pnode, std::string& strError)
+bool CMasternodePaymentWinner::IsValid(CI2pdNode* pnode, std::string& strError)
 {
     CMasternode* pmn = mnodeman.Find(vinMasternode);
 
@@ -871,7 +871,7 @@ bool CMasternodePaymentWinner::SignatureValid()
     return false;
 }
 
-void CMasternodePayments::Sync(CNode* node, int nCountNeeded)
+void CMasternodePayments::Sync(CI2pdNode* node, int nCountNeeded)
 {
     LOCK(cs_mapMasternodePayeeVotes);
 

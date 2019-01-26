@@ -15,6 +15,7 @@
 #include "masternodeman.h"
 #include "rpcserver.h"
 #include "utilmoneystr.h"
+#include "netdestination.h"
 
 #include <univalue.h>
 
@@ -387,9 +388,9 @@ UniValue masternodeconnect(const UniValue& params, bool fHelp)
 
     std::string strAddress = params[0].get_str();
 
-    CService addr = CService(strAddress);
+    CDestination addr = CDestination(strAddress);
 
-    CNode* pnode = ConnectNode((CAddress)addr, NULL, false);
+    CI2pdNode* pnode = ConnectNode((CI2PAddress)addr, NULL, false);
     if (pnode) {
         pnode->Release();
         return NullUniValue;
@@ -984,7 +985,7 @@ UniValue initmasternode (const UniValue& params, bool fHelp)
     const string strPrivKey = params[0].get_str();
     const string strAddr = params[1].get_str();
 
-    CService addrTest = CService(strAddr);
+    CDestination addrTest = CDestination(strAddr);
     if (!addrTest.IsValid()) 
         throw runtime_error("Invalid masternode address: " + strAddr);
 
@@ -1015,7 +1016,7 @@ UniValue masternodeisinit (const UniValue& params, bool fHelp)
         return false;
 
     // check valid address
-    CService addrTest = CService(strMasterNodeAddr);
+    CDestination addrTest = CDestination(strMasterNodeAddr);
     if (!addrTest.IsValid())
         return false;
 

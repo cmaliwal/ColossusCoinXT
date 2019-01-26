@@ -27,7 +27,9 @@
 #include "masternodeconfig.h"
 #include "masternodeman.h"
 #include "miner.h"
-#include "net.h"
+#include "neti2pd.h"
+#include "netbase.h"
+#include "netdestination.h"
 #include "rpcserver.h"
 #include "script/standard.h"
 #include "scheduler.h"
@@ -319,11 +321,13 @@ bool static InitInformation(const std::string& str)
     return true;
 }
 
-bool static Bind(const CService& addr, unsigned int flags)
+// I2PDK: should we still have the CService variant? BindListenPort only makes sense for nodes and peers.
+bool static Bind(const CDestination& addr, unsigned int flags)
 {
     if (!(flags & BF_EXPLICIT) && IsLimited(addr))
         return false;
     std::string strError;
+    // I2PDK: this should change now
     if (!BindListenPort(addr, strError, (flags & BF_WHITELIST) != 0)) {
         if (flags & BF_REPORT_ERROR)
             return InitError(strError);
@@ -1312,10 +1316,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     if (mapArgs.count("-whitelist")) {
         BOOST_FOREACH (const std::string& net, mapMultiArgs["-whitelist"]) {
-            CSubNet subnet(net);
+            CI2pSubNet subnet(net);
             if (!subnet.IsValid())
                 return InitError(strprintf(_("Invalid netmask specified in -whitelist: '%s'"), net));
-            CNode::AddWhitelistedRange(subnet);
+            CI2pdNode::AddWhitelistedRange(subnet);
         }
     }
 
@@ -1329,6 +1333,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     std::string proxyArg = GetArg("-proxy", "");
     SetLimited(NET_TOR);
     if (proxyArg != "" && proxyArg != "0") {
+        // I2PDK: leave this to go to the old-style IP address lookup (net(i2pd)base.h)
+        // but not sure that proxies still make any sense? for some initial lookups maybe. TOR?
         CService proxyAddr;
         if (!Lookup(proxyArg.c_str(), proxyAddr, 9050, fNameLookup)) {
             return InitError(strprintf(_("Lookup(): Invalid -proxy address or hostname: '%s'"), proxyArg));
@@ -1353,6 +1359,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         if (onionArg == "0") { // Handle -noonion/-onion=0
             SetLimited(NET_TOR); // set onions as unreachable
         } else {
+            // I2PDK: leave this to go to the old-style IP address lookup (net(i2pd)base.h)
+            // but not sure that onion/TOR still make any sense? 
             CService onionProxy;
             if (!Lookup(onionArg.c_str(), onionProxy, 9050, fNameLookup)) {
                 return InitError(strprintf(_("Invalid -onion address or hostname: '%s'"), onionArg));
@@ -1374,13 +1382,14 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (fListen) {
         if (mapArgs.count("-bind") || mapArgs.count("-whitebind")) {
             BOOST_FOREACH (std::string strBind, mapMultiArgs["-bind"]) {
-                CService addrBind;
+                // I2PDK: binding goes to neti2pd and BindListenPort and CreateNode etc. so it needs to be in .i2p-s
+                CDestination addrBind;
                 if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false))
                     return InitError(strprintf(_("Cannot resolve -bind address: '%s'"), strBind));
                 fBound |= Bind(addrBind, (BF_EXPLICIT | BF_REPORT_ERROR));
             }
             BOOST_FOREACH (std::string strBind, mapMultiArgs["-whitebind"]) {
-                CService addrBind;
+                CDestination addrBind;
                 if (!Lookup(strBind.c_str(), addrBind, 0, false))
                     return InitError(strprintf(_("Cannot resolve -whitebind address: '%s'"), strBind));
                 if (addrBind.GetPort() == 0)
@@ -1388,21 +1397,26 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 fBound |= Bind(addrBind, (BF_EXPLICIT | BF_REPORT_ERROR | BF_WHITELIST));
             }
         } else {
-            struct in_addr inaddr_any;
-            inaddr_any.s_addr = INADDR_ANY;
-            fBound |= Bind(CService(in6addr_any, GetListenPort()), BF_NONE);
-            fBound |= Bind(CService(inaddr_any, GetListenPort()), !fBound ? BF_REPORT_ERROR : BF_NONE);
+            // I2PDK: what to do w this? this has no equivalent w/ i2p type of addresses, should we leave it?
+            //throw runtime_error("cannot create node / address based on an Ip?");
+            error("%s : %s", __func__, "cannot create node / address based on an Ip?");
+            //struct in_addr inaddr_any;
+            //inaddr_any.s_addr = INADDR_ANY;
+            //fBound |= Bind(CDestination(in6addr_any, GetListenPort()), BF_NONE);
+            //fBound |= Bind(CDestination(inaddr_any, GetListenPort()), !fBound ? BF_REPORT_ERROR : BF_NONE);
         }
         if (!fBound)
             return InitError(_("Failed to listen on any port. Use -listen=0 if you want this."));
     }
 
     if (mapArgs.count("-externalip")) {
+        // I2PDK: leave this to go to the old-style IP address lookup (netbase.h)
+        // but not sure that external ip still make any sense? it's more like external i2p address?
         BOOST_FOREACH (string strAddr, mapMultiArgs["-externalip"]) {
-            CService addrLocal(strAddr, GetListenPort(), fNameLookup);
+            CDestination addrLocal(strAddr, GetListenPort(), fNameLookup);
             if (!addrLocal.IsValid())
                 return InitError(strprintf(_("Cannot resolve -externalip address: '%s'"), strAddr));
-            AddLocal(CService(strAddr, GetListenPort(), fNameLookup), LOCAL_MANUAL);
+            AddLocal(CDestination(strAddr, GetListenPort(), fNameLookup), LOCAL_MANUAL);
         }
     }
 
@@ -1841,7 +1855,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         LogPrintf(" addr %s\n", strMasterNodeAddr.c_str());
 
         if (!strMasterNodeAddr.empty()) {
-            CService addrTest = CService(strMasterNodeAddr);
+            // I2PDK: mn addresses should be in i2p network - unless we wanna combine
+            CDestination addrTest = CDestination(strMasterNodeAddr);
             if (!addrTest.IsValid()) {
                 return InitError("Invalid -masternodeaddr address: " + strMasterNodeAddr);
             }

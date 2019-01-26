@@ -12,7 +12,7 @@
 #include "init.h"
 #include "main.h"
 #include "miner.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "pow.h"
 #include "rpcserver.h"
 #include "util.h"
@@ -625,7 +625,7 @@ UniValue submitblock(const UniValue& params, bool fHelp)
             return "inconclusive";
         state = sc.state;
 
-        for (CNode* node : vNodes)
+        for (CI2pdNode* node : vNodes)
             node->PushInventory(CInv(MSG_BLOCK, block.GetHash()));
     }
     return BIP22ValidationResult(state);

@@ -8,7 +8,7 @@
 #include "guiconstants.h"
 #include "guiutil.h"
 
-#include "net.h"
+#include "neti2pd.h"
 #include "sync.h"
 
 #include <QDebug>
@@ -61,7 +61,7 @@ public:
 #if QT_VERSION >= 0x040700
             cachedNodeStats.reserve(vNodes.size());
 #endif
-            foreach (CNode* pnode, vNodes) {
+            foreach (CI2pdNode* pnode, vNodes) {
                 CNodeCombinedStats stats;
                 stats.nodeStateStats.nMisbehavior = 0;
                 stats.nodeStateStats.nSyncHeight = -1;

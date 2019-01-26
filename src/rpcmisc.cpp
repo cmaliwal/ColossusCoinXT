@@ -11,7 +11,7 @@
 #include "init.h"
 #include "main.h"
 #include "masternode-sync.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "netbase.h"
 #include "rpcserver.h"
 #include "spork.h"

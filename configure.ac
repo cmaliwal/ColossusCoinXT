@@ -947,6 +947,21 @@ AM_CONDITIONAL([EMBEDDED_UNIVALUE],[test x$system_univalue = xno])
 AC_SUBST(UNIVALUE_CFLAGS)
 AC_SUBST(UNIVALUE_LIBS)
 
+dnl i2pd
+dnl I2PD_CFLAGS='-I$(srcdir)/i2pd/include'
+dnl I2PD_LIBS='i2pd/libi2pd.la'
+dnl AC_SUBST(I2PD_CFLAGS)
+dnl AC_SUBST(I2PD_LIBS)
+I2PD_CPPFLAGS=
+LIBI2PD=
+LIBI2PDCLIENT=
+AM_CONDITIONAL([EMBEDDED_I2PD],[true])
+AC_SUBST(I2PD_CPPFLAGS)
+AC_SUBST(LIBI2PD)
+AC_SUBST(LIBI2PDCLIENT)
+
+
+
 CFLAGS_TEMP="$CFLAGS"
 LIBS_TEMP="$LIBS"
 CFLAGS="$CFLAGS $SSL_CFLAGS $CRYPTO_CFLAGS"
@@ -1185,6 +1200,9 @@ ac_configure_args="${ac_configure_args} --disable-shared --with-pic"
 AC_CONFIG_SUBDIRS([src/secp256k1])
 
 AC_CONFIG_SUBDIRS([src/minizip])
+
+dnl this should be all we need for i2pd - or do it the univalue-way (defining _CFLAGS _LIBS, presume embedded)
+AC_CONFIG_SUBDIRS([src/i2pd])
 
 AC_OUTPUT
 

@@ -9,7 +9,7 @@
 #include "base58.h"
 #include "key.h"
 #include "masternodeman.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "obfuscation.h"
 #include "protocol.h"
 #include "spork.h"
@@ -37,7 +37,7 @@ int nCompleteTXLocks;
 //         Send "txvote", CTransaction, Signature, Approve
 //step 3.) Top 1 masternode, waits for SWIFTTX_SIGNATURES_REQUIRED messages. Upon success, sends "txlock'
 
-void ProcessMessageSwiftTX(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void ProcessMessageSwiftTX(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
     if (fLiteMode) return; //disable all obfuscation/masternode related functionality
     if (!IsSporkActive(SPORK_2_SWIFTTX)) return;
@@ -302,7 +302,7 @@ void DoConsensusVote(CTransaction& tx, int64_t nBlockHeight)
 }
 
 //received a consensus vote
-bool ProcessConsensusVote(CNode* pnode, CConsensusVote& ctx)
+bool ProcessConsensusVote(CI2pdNode* pnode, CConsensusVote& ctx)
 {
     int n = mnodeman.GetMasternodeRank(ctx.vinMasternode, ctx.nBlockHeight, MIN_SWIFTTX_PROTO_VERSION);
 

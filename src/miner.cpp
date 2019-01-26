@@ -12,7 +12,7 @@
 #include "hash.h"
 #include "main.h"
 #include "masternode-sync.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "pow.h"
 #include "primitives/block.h"
 #include "primitives/transaction.h"
@@ -536,7 +536,7 @@ bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
     if (!ProcessNewBlock(state, NULL, pblock))
         return error("COLXMiner : ProcessNewBlock, block not accepted");
 
-    for (CNode* node : vNodes)
+    for (CI2pdNode* node : vNodes)
         node->PushInventory(CInv(MSG_BLOCK, pblock->GetHash()));
 
     return true;

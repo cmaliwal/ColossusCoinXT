@@ -5,11 +5,12 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-DIST_SUBDIRS = secp256k1 univalue minizip
+DIST_SUBDIRS = secp256k1 univalue minizip i2pd
 
 AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS)
 AM_CXXFLAGS = $(HARDENED_CXXFLAGS) $(ERROR_CXXFLAGS)
 AM_CPPFLAGS = $(HARDENED_CPPFLAGS)
+BITCOIN_CORE_H =
 EXTRA_LIBRARIES =
 
 if EMBEDDED_UNIVALUE
@@ -43,12 +44,33 @@ $(LIBMINIZIP):
 	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
 		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
 
+
+# i2pd - 2 libs, see if this is the best way
+# LIBI2PD += $(builddir)/i2pd/libi2pd/libi2pd.a
+# LIBI2PDCLIENT += $(builddir)/i2pd/libi2pd_client/libi2pdclient.a
+I2PD_CPPFLAGS += -I$(srcdir)/i2pd/libi2pd
+I2PD_CPPFLAGS += -I$(srcdir)/i2pd/libi2pd_client
+LIBI2PD += $(builddir)/i2pd/libi2pd.a
+LIBI2PDCLIENT += $(builddir)/i2pd/libi2pdclient.a
+
+# add mkdir here?	@$(MKDIR_P) $(builddir)/obj
+# NOTE: The dependency in case that's an issue
+$(LIBI2PDCLIENT): $(LIBI2PD)
+
+$(LIBI2PDCLIENT) $(LIBI2PD):
+	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
+	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
+		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
+
+
+
 BITCOIN_CONFIG_INCLUDES=-I$(builddir)/config
 BITCOIN_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
 
 BITCOIN_INCLUDES += -I$(srcdir)/secp256k1/include
 BITCOIN_INCLUDES += -I$(srcdir)/minizip
 BITCOIN_INCLUDES += $(UNIVALUE_CFLAGS)
+BITCOIN_INCLUDES += $(I2PD_CPPFLAGS)
 
 LIBBITCOIN_SERVER=libbitcoin_server.a
 LIBBITCOIN_COMMON=libbitcoin_common.a
@@ -74,11 +96,12 @@ $(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
 
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
 # But to build the less dependent modules first, we manually select their order here:
+# move zerocoin above util/common, that seems to fail on windows not sure why?
 EXTRA_LIBRARIES += \
   $(LIBBITCOIN_CRYPTO) \
+  $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_COMMON) \
-  $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_CLI) \
   $(LIBBITCOIN_WALLET) \
@@ -100,6 +123,8 @@ endif
 
 .PHONY: FORCE
 # colx core #
+#  netbase.h \
+#  net.h \
 BITCOIN_CORE_H = \
   activemasternode.h \
   accumulators.h \
@@ -159,7 +184,8 @@ BITCOIN_CORE_H = \
   miner.h \
   mruset.h \
   netbase.h \
-  net.h \
+  neti2pd.h \
+  netdestination.h \
   noui.h \
   pow.h \
   protocol.h \
@@ -205,7 +231,35 @@ BITCOIN_CORE_H = \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h \
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h
+  zmq/zmqpublishnotifier.h  \
+  i2pd/libi2pd_client/AddressBook.h \
+  i2pd/libi2pd_client/BOB.h \
+  i2pd/libi2pd_client/ClientContext.h \
+  i2pd/libi2pd_client/HTTPProxy.h \
+  i2pd/libi2pd_client/I2CP.h \
+  i2pd/libi2pd_client/I2PPureTunnel.h \
+  i2pd/libi2pd_client/I2PService.h \
+  i2pd/libi2pd_client/I2PTunnel.h \
+  i2pd/libi2pd_client/MatchedDestination.h \
+  i2pd/libi2pd_client/SAM.h \
+  i2pd/libi2pd_client/SOCKS.h \
+  i2pd/libi2pd_client/Websocket.h \
+  i2pd/libi2pd_client/WebSocks.h
+
+if TARGET_WINDOWS
+BITCOIN_CORE_H +=
+  libzerocoin/Accumulator.h \
+  libzerocoin/AccumulatorProofOfKnowledge.h \
+  libzerocoin/bignum.h \
+  libzerocoin/Coin.h \
+  libzerocoin/CoinSpend.h \
+  libzerocoin/Commitment.h \
+  libzerocoin/Denominations.h \
+  libzerocoin/ParamGeneration.h \
+  libzerocoin/Params.h \
+  libzerocoin/SerialNumberSignatureOfKnowledge.h \
+  libzerocoin/ZerocoinDefines.h
+endif
 
 JSON_H = \
   json/json_spirit.h \
@@ -226,7 +280,12 @@ libbitcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 
 # server: shared between colxd and colx-qt
 # libbitcoin_server_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS)
-libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
+libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)  
+# libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS) -DBUILD_BIG_OBJ -Wa,-mbig-obj
+if TARGET_WINDOWS
+libbitcoin_server_a_CPPFLAGS +=  -DBUILD_BIG_OBJ -Wa,-mbig-obj
+endif
+
 libbitcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_server_a_SOURCES = \
   addrman.cpp \
@@ -241,7 +300,7 @@ libbitcoin_server_a_SOURCES = \
   main.cpp \
   merkleblock.cpp \
   miner.cpp \
-  net.cpp \
+  neti2pd.cpp \
   noui.cpp \
   pow.cpp \
   rest.cpp \
@@ -274,7 +333,12 @@ endif
 
 # wallet: shared between colxd and colx-qt, but only linked
 # when wallet enabled
-libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)  
+# libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) -DBUILD_BIG_OBJ -Wa,-mbig-obj
+if TARGET_WINDOWS
+libbitcoin_wallet_a_CPPFLAGS +=  -DBUILD_BIG_OBJ -Wa,-mbig-obj
+endif
+
 libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_wallet_a_SOURCES = \
   activemasternode.cpp \
@@ -337,8 +401,8 @@ crypto_libbitcoin_crypto_a_SOURCES = \
   crypto/sph_types.h
 
 # libzerocoin library
-libzerocoin_libbitcoin_zerocin_a_CPPFLAGS = $(AM_CPPFLAGS)
-libzerocoin_libbitcoin_zerocin_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libzerocoin_libbitcoin_zerocoin_a_CPPFLAGS = $(AM_CPPFLAGS)
+libzerocoin_libbitcoin_zerocoin_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
   libzerocoin/Accumulator.h \
   libzerocoin/AccumulatorProofOfKnowledge.h \
@@ -386,6 +450,7 @@ libbitcoin_common_a_SOURCES = \
   key.cpp \
   keystore.cpp \
   netbase.cpp \
+  netdestination.cpp \
   protocol.cpp \
   pubkey.cpp \
   scheduler.cpp \
@@ -461,7 +526,9 @@ colxd_LDADD = \
   $(LIBLEVELDB) \
   $(LIBMEMENV) \
   $(LIBSECP256K1) \
-  $(LIBMINIZIP)
+  $(LIBMINIZIP) \
+  $(LIBI2PD) \
+  $(LIBI2PDCLIENT)
 
 colxd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CURL_LIBS)
 
@@ -479,7 +546,9 @@ colx_cli_LDADD = \
   $(LIBBITCOIN_CLI) \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_UTIL) \
-  $(LIBBITCOIN_CRYPTO)
+  $(LIBBITCOIN_CRYPTO) \
+  $(LIBI2PD) \
+  $(LIBI2PDCLIENT)
 
 colx_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS) $(CURL_LIBS)
 #
@@ -500,7 +569,9 @@ colx_tx_LDADD = \
   $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO) \
-  $(LIBSECP256K1)
+  $(LIBSECP256K1) \
+  $(LIBI2PD) \
+  $(LIBI2PDCLIENT)
 
 colx_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(CURL_LIBS)
 #
@@ -525,18 +596,63 @@ libbitcoinconsensus_la_SOURCES = \
   script/interpreter.cpp \
   script/bitcoinconsensus.cpp \
   uint256.cpp \
-  utilstrencodings.cpp
+  utilstrencodings.cpp  
 
 if GLIBC_BACK_COMPAT
   libbitcoinconsensus_la_SOURCES += compat/glibc_compat.cpp
 endif
 
+if TARGET_WINDOWS
+libbitcoinconsensus_la_SOURCES +=  
+  libzerocoin/Accumulator.cpp \
+  libzerocoin/AccumulatorProofOfKnowledge.cpp \
+  libzerocoin/Coin.cpp \
+  libzerocoin/Denominations.cpp \
+  libzerocoin/CoinSpend.cpp \
+  libzerocoin/Commitment.cpp \
+  libzerocoin/ParamGeneration.cpp \
+  libzerocoin/Params.cpp \
+  libzerocoin/SerialNumberSignatureOfKnowledge.cpp \
+  chainparams.cpp \
+  util.cpp \
+  utiltime.cpp \
+  netbase.cpp \
+  netdestination.cpp \
+  protocol.cpp \
+  random.cpp \
+  chainparamsbase.cpp \
+  primitives/block.cpp \
+  base58.cpp \
+  sync.cpp \
+  script/standard.cpp \
+  key.cpp \
+  crypto/hmac_sha256.cpp \
+  crypto/rfc6979_hmac_sha256.cpp \
+  crypto/aes_helper.c \
+  crypto/blake.c \
+  crypto/bmw.c \
+  crypto/groestl.c \
+  crypto/jh.c \
+  crypto/keccak.c \
+  crypto/skein.c \
+  secp256k1/include/secp256k1.h \
+  secp256k1/src/secp256k1.c \
+  $(BITCOIN_CORE_H)
+endif
+
+
 libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
 libbitcoinconsensus_la_LIBADD = $(CRYPTO_LIBS) $(BOOST_LIBS)
-libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -DBUILD_BITCOIN_INTERNAL
+libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -I$(srcdir)/i2pd/libi2pd_client -I$(srcdir)/i2pd/libi2pd -DBUILD_BITCOIN_INTERNAL
+# libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
+if TARGET_WINDOWS
+libbitcoinconsensus_la_CPPFLAGS +=  -I$(srcdir)/secp256k1/include
+endif
+
 if USE_LIBSECP256K1
 libbitcoinconsensus_la_LIBADD += secp256k1/libsecp256k1.la
 endif
+
 endif
 
 CLEANFILES = $(EXTRA_LIBRARIES)
@@ -549,6 +665,7 @@ CLEANFILES += script/*.gcda script/*.gcno
 CLEANFILES += univalue/*.gcda univalue/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
 CLEANFILES += obj/build.h
+CLEANFILES += i2pd/libi2pd/libi2pd.a i2pd/libi2pd_client/libi2pdclient.a
 
 
 EXTRA_DIST = leveldb
@@ -557,6 +674,7 @@ clean-local:
 	-$(MAKE) -C leveldb clean
 	-$(MAKE) -C secp256k1 clean
 	-$(MAKE) -C univalue clean
+	-$(MAKE) -C i2pd clean
 	rm -f leveldb/*/*.gcno leveldb/helpers/memenv/*.gcno
 	-rm -f config.h
 

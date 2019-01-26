@@ -11,7 +11,7 @@
 #include "key.h"
 #include "main.h"
 #include "masternode.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "sync.h"
 #include "util.h"
 #include <boost/lexical_cast.hpp>
@@ -220,10 +220,10 @@ public:
 
     void ResetSync();
     void MarkSynced();
-    void Sync(CNode* node, uint256 nProp, bool fPartial = false);
+    void Sync(CI2pdNode* node, uint256 nProp, bool fPartial = false);
 
     void Calculate();
-    void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
+    void ProcessMessage(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     void NewBlock();
     CBudgetProposal* FindProposal(const std::string& strProposalName);
     CBudgetProposal* FindProposal(uint256 nHash);
@@ -240,8 +240,8 @@ public:
     void SubmitFinalBudget();
     //bool HasNextFinalizedBudget();
 
-    bool UpdateProposal(CBudgetVote& vote, CNode* pfrom, std::string& strError);
-    bool UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError);
+    bool UpdateProposal(CBudgetVote& vote, CI2pdNode* pfrom, std::string& strError);
+    bool UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CI2pdNode* pfrom, std::string& strError);
     bool PropExists(uint256 nHash);
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CBlockIndex* pindexPrev);
     std::string GetRequiredPaymentsString(int nBlockHeight);

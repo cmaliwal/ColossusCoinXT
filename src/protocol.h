@@ -11,6 +11,7 @@
 #define BITCOIN_PROTOCOL_H
 
 #include "netbase.h"
+#include "netdestination.h"
 #include "serialize.h"
 #include "uint256.h"
 #include "version.h"
@@ -72,10 +73,10 @@ enum {
     // but no longer do as of protocol version 70011 (= NO_BLOOM_VERSION)
     NODE_BLOOM = (1 << 2),
 
-	// NODE_BLOOM_WITHOUT_MN means the node has the same features as NODE_BLOOM with the only difference
-	// that the node doens't want to receive master nodes messages. (the 1<<3 was not picked as constant because on bitcoin 0.14 is witness and we want that update here )
+    // NODE_BLOOM_WITHOUT_MN means the node has the same features as NODE_BLOOM with the only difference
+    // that the node doens't want to receive master nodes messages. (the 1<<3 was not picked as constant because on bitcoin 0.14 is witness and we want that update here )
 
-	 NODE_BLOOM_WITHOUT_MN = (1 << 4),
+     NODE_BLOOM_WITHOUT_MN = (1 << 4),
 
     // Bits 24-31 are reserved for temporary experiments. Just pick a bit that
     // isn't getting used, or one not being used much, and notify the
@@ -121,6 +122,44 @@ public:
     // memory only
     int64_t nLastTry;
 };
+
+/** A CDestination with information about it as peer */
+class CI2PAddress : public CDestination
+{
+public:
+    CI2PAddress();
+    // should we also change the NODE_NETWORK?
+    explicit CI2PAddress(CDestination ipIn, uint64_t nServicesIn = NODE_NETWORK);
+
+    void Init();
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
+    {
+        if (ser_action.ForRead())
+            Init();
+        if (nType & SER_DISK)
+            READWRITE(nVersion);
+        if ((nType & SER_DISK) ||
+            (nVersion >= CADDR_TIME_VERSION && !(nType & SER_GETHASH)))
+            READWRITE(nTime);
+        READWRITE(nServices);
+        READWRITE(*(CDestination*)this);
+    }
+
+    // TODO: make private (improves encapsulation)
+public:
+    uint64_t nServices;
+
+    // disk and network only
+    unsigned int nTime;
+
+    // memory only
+    int64_t nLastTry;
+};
+
 
 /** inv message data */
 class CInv

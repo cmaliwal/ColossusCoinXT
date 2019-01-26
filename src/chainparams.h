@@ -109,7 +109,8 @@ public:
     std::string NetworkIDString() const { return strNetworkID; }
     const std::vector<CDNSSeedData>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
-    const std::vector<CAddress>& FixedSeeds() const { return vFixedSeeds; }
+    //const std::vector<CAddress>& FixedSeeds() const { return vFixedSeeds; }
+    const std::vector<CI2PAddress>& FixedSeeds() const { return vFixedSeeds; }
     int PoolMaxTransactions() const { return nPoolMaxTransactions; }
     std::string SporkKey() const { return strSporkKey; }
     std::string ObfuscationPoolDummyAddress() const { return strObfuscationPoolDummyAddress; }
@@ -180,7 +181,8 @@ protected:
     CBaseChainParams::Network networkID;
     std::string strNetworkID;
     CBlock genesis;
-    std::vector<CAddress> vFixedSeeds;
+    //std::vector<CAddress> vFixedSeeds;
+    std::vector<CI2PAddress> vFixedSeeds;
     bool fRequireRPCPassword;
     bool fMiningRequiresPeers;
     bool fAllowMinDifficultyBlocks;

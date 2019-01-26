@@ -16,7 +16,7 @@
 #include "chain.h"
 #include "chainparams.h"
 #include "coins.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "pow.h"
 #include "primitives/block.h"
 #include "primitives/transaction.h"
@@ -188,7 +188,7 @@ void UnregisterNodeSignals(CNodeSignals& nodeSignals);
  * @param[out]  dbp     If pblock is stored to disk (or already there), this will be set to its location.
  * @return True if state.IsValid()
  */
-bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDiskBlockPos* dbp = NULL);
+bool ProcessNewBlock(CValidationState& state, CI2pdNode* pfrom, CBlock* pblock, CDiskBlockPos* dbp = NULL);
 /** Check whether enough disk space is available for an incoming block */
 bool CheckDiskSpace(uint64_t nAdditionalBytes = 0);
 /** Open a block file (blk?????.dat) */
@@ -208,7 +208,7 @@ void UnloadBlockIndex();
 /** See whether the protocol update is enforced for connected nodes */
 int ActiveProtocol();
 /** Process protocol messages received from a given node */
-bool ProcessMessages(CNode* pfrom);
+bool ProcessMessages(CI2pdNode* pfrom);
 /**
  * Send queued protocol messages to be sent to a give node.
  *
@@ -216,7 +216,7 @@ bool ProcessMessages(CNode* pfrom);
  * @param[in]   fSendTrickle    When true send the trickled data, otherwise trickle the data until true.
  */
 bool AddressRefreshBroadcast();
-bool SendMessages(CNode* pto, bool fSendTrickle);
+bool SendMessages(CI2pdNode* pto, bool fSendTrickle);
 /** Run an instance of the script checking thread */
 void ThreadScriptCheck();
 

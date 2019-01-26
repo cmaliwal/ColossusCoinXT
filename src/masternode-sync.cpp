@@ -179,7 +179,7 @@ std::string CMasternodeSync::GetSyncStatus()
     return "";
 }
 
-void CMasternodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void CMasternodeSync::ProcessMessage(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
     if (strCommand == "ssc") { //Sync status count
         int nItemID;
@@ -221,7 +221,7 @@ void CMasternodeSync::ClearFulfilledRequest()
     TRY_LOCK(cs_vNodes, lockRecv);
     if (!lockRecv) return;
 
-    BOOST_FOREACH (CNode* pnode, vNodes) {
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
         pnode->ClearFulfilledRequest("getspork");
         pnode->ClearFulfilledRequest("mnsync");
         pnode->ClearFulfilledRequest("mnwsync");
@@ -272,7 +272,7 @@ void CMasternodeSync::Process()
     TRY_LOCK(cs_vNodes, lockRecv);
     if (!lockRecv) return;
 
-    BOOST_FOREACH (CNode* pnode, vNodes) {
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
         if (Params().NetworkID() == CBaseChainParams::REGTEST) {
             if (RequestedMasternodeAttempt <= 2) {
                 pnode->PushMessage("getsporks"); //get current network sporks

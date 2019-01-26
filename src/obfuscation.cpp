@@ -43,7 +43,7 @@ CActiveMasternode activeMasternode;
         udjinm6   - udjinm6@dashpay.io
 */
 
-void CObfuscationPool::ProcessMessageObfuscation(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void CObfuscationPool::ProcessMessageObfuscation(CI2pdNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
     if (fLiteMode) return; //disable all Obfuscation/Masternode related functionality
     if (!masternodeSync.IsBlockchainSynced()) return;
@@ -110,7 +110,7 @@ void CObfuscationPool::ProcessMessageObfuscation(CNode* pfrom, std::string& strC
         CObfuscationQueue dsq;
         vRecv >> dsq;
 
-        CService addr;
+        CDestination addr;
         if (!dsq.GetAddress(addr)) return;
         if (!dsq.CheckSignature()) return;
 
@@ -122,7 +122,7 @@ void CObfuscationPool::ProcessMessageObfuscation(CNode* pfrom, std::string& strC
         // if the queue is ready, submit if we can
         if (dsq.ready) {
             if (!pSubmittedToMasternode) return;
-            if ((CNetAddr)pSubmittedToMasternode->addr != (CNetAddr)addr) {
+            if ((CI2pUrl)pSubmittedToMasternode->addr != (CI2pUrl)addr) {
                 LogPrintf("dsq - message doesn't match current Masternode - %s != %s\n", pSubmittedToMasternode->addr.ToString(), addr.ToString());
                 return;
             }
@@ -284,7 +284,7 @@ void CObfuscationPool::ProcessMessageObfuscation(CNode* pfrom, std::string& strC
         }
 
         if (!pSubmittedToMasternode) return;
-        if ((CNetAddr)pSubmittedToMasternode->addr != (CNetAddr)pfrom->addr) {
+        if ((CI2pUrl)pSubmittedToMasternode->addr != (CI2pUrl)pfrom->addr) {
             //LogPrintf("dssu - message doesn't match current Masternode - %s != %s\n", pSubmittedToMasternode->addr.ToString(), pfrom->addr.ToString());
             return;
         }
@@ -333,7 +333,7 @@ void CObfuscationPool::ProcessMessageObfuscation(CNode* pfrom, std::string& strC
         }
 
         if (!pSubmittedToMasternode) return;
-        if ((CNetAddr)pSubmittedToMasternode->addr != (CNetAddr)pfrom->addr) {
+        if ((CI2pUrl)pSubmittedToMasternode->addr != (CI2pUrl)pfrom->addr) {
             //LogPrintf("dsc - message doesn't match current Masternode - %s != %s\n", pSubmittedToMasternode->addr.ToString(), pfrom->addr.ToString());
             return;
         }
@@ -357,7 +357,7 @@ void CObfuscationPool::ProcessMessageObfuscation(CNode* pfrom, std::string& strC
         }
 
         if (!pSubmittedToMasternode) return;
-        if ((CNetAddr)pSubmittedToMasternode->addr != (CNetAddr)pfrom->addr) {
+        if ((CI2pUrl)pSubmittedToMasternode->addr != (CI2pUrl)pfrom->addr) {
             //LogPrintf("dsc - message doesn't match current Masternode - %s != %s\n", pSubmittedToMasternode->addr.ToString(), pfrom->addr.ToString());
             return;
         }
@@ -1255,7 +1255,7 @@ bool CObfuscationPool::StatusUpdate(int newState, int newEntriesCount, int newAc
 // check it to make sure it's what we want, then sign it if we agree.
 // If we refuse to sign, it's possible we'll be charged collateral
 //
-bool CObfuscationPool::SignFinalTransaction(CTransaction& finalTransactionNew, CNode* node)
+bool CObfuscationPool::SignFinalTransaction(CTransaction& finalTransactionNew, CI2pdNode* node)
 {
     if (fMasterNode) return false;
 
@@ -1532,7 +1532,7 @@ bool CObfuscationPool::DoAutomaticDenominating(bool fDryRun)
         if (nUseQueue > 33) {
             // Look through the queues and see if anything matches
             BOOST_FOREACH (CObfuscationQueue& dsq, vecObfuscationQueue) {
-                CService addr;
+                CDestination addr;
                 if (dsq.time == 0) continue;
 
                 if (!dsq.GetAddress(addr)) continue;
@@ -1573,7 +1573,7 @@ bool CObfuscationPool::DoAutomaticDenominating(bool fDryRun)
                 lastTimeChanged = GetTimeMillis();
 
                 // connect to Masternode and submit the queue request
-                CNode* pnode = ConnectNode((CAddress)addr, NULL, true);
+                CI2pdNode* pnode = ConnectNode((CI2PAddress)addr, NULL, true);
                 if (pnode != NULL) {
                     pSubmittedToMasternode = pmn;
                     vecMasternodesUsed.push_back(dsq.vin);
@@ -1615,7 +1615,7 @@ bool CObfuscationPool::DoAutomaticDenominating(bool fDryRun)
 
             lastTimeChanged = GetTimeMillis();
             LogPrintf("DoAutomaticDenominating --- attempt %d connection to Masternode %s\n", i, pmn->addr.ToString());
-            CNode* pnode = ConnectNode((CAddress)pmn->addr, NULL, true);
+            CI2pdNode* pnode = ConnectNode((CI2PAddress)pmn->addr, NULL, true);
             if (pnode != NULL) {
                 pSubmittedToMasternode = pmn;
                 vecMasternodesUsed.push_back(pmn->vin);
@@ -2214,7 +2214,7 @@ bool CObfuscationQueue::Sign()
 bool CObfuscationQueue::Relay()
 {
     LOCK(cs_vNodes);
-    BOOST_FOREACH (CNode* pnode, vNodes) {
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
         // always relay to everyone
         pnode->PushMessage("dsq", (*this));
     }
@@ -2244,7 +2244,7 @@ bool CObfuscationQueue::CheckSignature()
 void CObfuscationPool::RelayFinalTransaction(const int sessionID, const CTransaction& txNew)
 {
     LOCK(cs_vNodes);
-    BOOST_FOREACH (CNode* pnode, vNodes) {
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
         pnode->PushMessage("dsf", sessionID, txNew);
     }
 }
@@ -2262,7 +2262,7 @@ void CObfuscationPool::RelayIn(const std::vector<CTxDSIn>& vin, const int64_t& n
     BOOST_FOREACH (CTxDSOut out, vout)
         vout2.push_back(out);
 
-    CNode* pnode = FindNode(pSubmittedToMasternode->addr);
+    CI2pdNode* pnode = FindNode(pSubmittedToMasternode->addr);
     if (pnode != NULL) {
         LogPrintf("RelayIn - found master, relaying message - %s \n", pnode->addr.ToString());
         pnode->PushMessage("dsi", vin2, nAmount, txCollateral, vout2);
@@ -2272,14 +2272,14 @@ void CObfuscationPool::RelayIn(const std::vector<CTxDSIn>& vin, const int64_t& n
 void CObfuscationPool::RelayStatus(const int sessionID, const int newState, const int newEntriesCount, const int newAccepted, const int errorID)
 {
     LOCK(cs_vNodes);
-    BOOST_FOREACH (CNode* pnode, vNodes)
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes)
         pnode->PushMessage("dssu", sessionID, newState, newEntriesCount, newAccepted, errorID);
 }
 
 void CObfuscationPool::RelayCompletedTransaction(const int sessionID, const bool error, const int errorID)
 {
     LOCK(cs_vNodes);
-    BOOST_FOREACH (CNode* pnode, vNodes)
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes)
         pnode->PushMessage("dsc", sessionID, error, errorID);
 }
 

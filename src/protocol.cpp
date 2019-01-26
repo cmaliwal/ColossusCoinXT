@@ -100,6 +100,26 @@ void CAddress::Init()
     nLastTry = 0;
 }
 
+CI2PAddress::CI2PAddress() : CDestination()
+{
+    Init();
+}
+
+CI2PAddress::CI2PAddress(CDestination ipIn, uint64_t nServicesIn) : CDestination(ipIn)
+{
+    Init();
+    nServices = nServicesIn;
+}
+
+void CI2PAddress::Init()
+{
+    nServices = NODE_NETWORK;
+    nTime = 100000000;
+    nLastTry = 0;
+}
+
+
+
 CInv::CInv()
 {
     type = 0;

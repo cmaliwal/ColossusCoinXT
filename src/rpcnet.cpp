@@ -8,8 +8,9 @@
 
 #include "clientversion.h"
 #include "main.h"
-#include "net.h"
+#include "neti2pd.h"
 #include "netbase.h"
+#include "netdestination.h"
 #include "protocol.h"
 #include "sync.h"
 #include "timedata.h"
@@ -53,7 +54,7 @@ UniValue ping(const UniValue& params, bool fHelp)
     // Request that each node send a ping during next message processing pass
     LOCK2(cs_main, cs_vNodes);
 
-    BOOST_FOREACH (CNode* pNode, vNodes) {
+    BOOST_FOREACH (CI2pdNode* pNode, vNodes) {
         pNode->fPingQueued = true;
     }
 
@@ -66,7 +67,7 @@ static void CopyNodeStats(std::vector<CNodeStats>& vstats)
 
     LOCK(cs_vNodes);
     vstats.reserve(vNodes.size());
-    BOOST_FOREACH (CNode* pnode, vNodes) {
+    BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
         CNodeStats stats;
         pnode->copyStats(stats);
         vstats.push_back(stats);
@@ -181,7 +182,7 @@ UniValue addnode(const UniValue& params, bool fHelp)
     string strNode = params[0].get_str();
 
     if (strCommand == "onetry") {
-        CAddress addr;
+        CI2PAddress addr;
         OpenNetworkConnection(addr, NULL, strNode.c_str());
         return NullUniValue;
     }
@@ -218,11 +219,11 @@ UniValue disconnectnode(const UniValue& params, bool fHelp)
             + HelpExampleRpc("disconnectnode", "\"192.168.0.6:8333\"")
         );
 
-    CNode* pNode = FindNode(params[0].get_str());
+    CI2pdNode* pNode = FindNode(params[0].get_str());
     if (pNode == NULL)
         throw JSONRPCError(RPC_CLIENT_NODE_NOT_CONNECTED, "Node not found in connected nodes");
 
-    pNode->CloseSocketDisconnect();
+    pNode->CloseTunnelDisconnect();
 
     return NullUniValue;
 }
@@ -286,9 +287,9 @@ UniValue getaddednodeinfo(const UniValue& params, bool fHelp)
         return ret;
     }
 
-    list<pair<string, vector<CService> > > laddedAddreses(0);
+    list<pair<string, vector<CDestination> > > laddedAddreses(0);
     BOOST_FOREACH (string& strAddNode, laddedNodes) {
-        vector<CService> vservNode(0);
+        vector<CDestination> vservNode(0);
         if (Lookup(strAddNode.c_str(), vservNode, Params().GetDefaultPort(), fNameLookup, 0))
             laddedAddreses.push_back(make_pair(strAddNode, vservNode));
         else {
@@ -301,17 +302,17 @@ UniValue getaddednodeinfo(const UniValue& params, bool fHelp)
     }
 
     LOCK(cs_vNodes);
-    for (list<pair<string, vector<CService> > >::iterator it = laddedAddreses.begin(); it != laddedAddreses.end(); it++) {
+    for (list<pair<string, vector<CDestination> > >::iterator it = laddedAddreses.begin(); it != laddedAddreses.end(); it++) {
         UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("addednode", it->first));
 
         UniValue addresses(UniValue::VARR);
         bool fConnected = false;
-        BOOST_FOREACH (CService& addrNode, it->second) {
+        BOOST_FOREACH (CDestination& addrNode, it->second) {
             bool fFound = false;
             UniValue node(UniValue::VOBJ);
             node.push_back(Pair("address", addrNode.ToString()));
-            BOOST_FOREACH (CNode* pnode, vNodes)
+            BOOST_FOREACH (CI2pdNode* pnode, vNodes)
                 if (pnode->addr == addrNode) {
                     fFound = true;
                     fConnected = true;
@@ -347,8 +348,8 @@ UniValue getnettotals(const UniValue& params, bool fHelp)
             HelpExampleCli("getnettotals", "") + HelpExampleRpc("getnettotals", ""));
 
     UniValue obj(UniValue::VOBJ);
-    obj.push_back(Pair("totalbytesrecv", CNode::GetTotalBytesRecv()));
-    obj.push_back(Pair("totalbytessent", CNode::GetTotalBytesSent()));
+    obj.push_back(Pair("totalbytesrecv", CI2pdNode::GetTotalBytesRecv()));
+    obj.push_back(Pair("totalbytessent", CI2pdNode::GetTotalBytesSent()));
     obj.push_back(Pair("timemillis", GetTimeMillis()));
     return obj;
 }
@@ -424,7 +425,8 @@ UniValue getnetworkinfo(const UniValue& params, bool fHelp)
     UniValue localAddresses(UniValue::VARR);
     {
         LOCK(cs_mapLocalHost);
-        BOOST_FOREACH (const PAIRTYPE(CNetAddr, LocalServiceInfo) & item, mapLocalHost) {
+        // I2PDK: iterating over the 'std::map<CI2pUrl, LocalServiceInfo> mapLocalHost'.
+        BOOST_FOREACH (const PAIRTYPE(CI2pUrl, LocalServiceInfo) & item, mapLocalHost) {
             UniValue rec(UniValue::VOBJ);
             rec.push_back(Pair("address", item.first.ToString()));
             rec.push_back(Pair("port", item.second.nPort));
@@ -457,24 +459,27 @@ UniValue setban(const UniValue& params, bool fHelp)
                             + HelpExampleRpc("setban", "\"192.168.0.6\", \"add\" 86400")
                             );
 
-    CSubNet subNet;
-    CNetAddr netAddr;
+    // I2PDK: this is likely no longer valid, bans work in i2p-style-addresses now (and I'd guess no
+    // subnets are possible here, maybe routers that we could whitelist or ban? or similar, i2p equivalent).
+    CI2pSubNet subNet;
+    CI2pUrl netAddr;
     bool isSubnet = false;
 
-    if (params[0].get_str().find("/") != string::npos)
-        isSubnet = true;
+    // I2PDK: this is never going to be 'true' but turn it off just in case as it makes no sense.
+    //if (params[0].get_str().find("/") != string::npos)
+    //    isSubnet = true;
 
     if (!isSubnet)
-        netAddr = CNetAddr(params[0].get_str());
+        netAddr = CI2pUrl(params[0].get_str());
     else
-        subNet = CSubNet(params[0].get_str());
+        subNet = CI2pSubNet(params[0].get_str());
 
     if (! (isSubnet ? subNet.IsValid() : netAddr.IsValid()) )
         throw JSONRPCError(RPC_CLIENT_NODE_ALREADY_ADDED, "Error: Invalid IP/Subnet");
 
     if (strCommand == "add")
     {
-        if (isSubnet ? CNode::IsBanned(subNet) : CNode::IsBanned(netAddr))
+        if (isSubnet ? CI2pdNode::IsBanned(subNet) : CI2pdNode::IsBanned(netAddr))
             throw JSONRPCError(RPC_CLIENT_NODE_ALREADY_ADDED, "Error: IP/Subnet already banned");
 
         int64_t banTime = 0; //use standard bantime if not specified
@@ -485,15 +490,15 @@ UniValue setban(const UniValue& params, bool fHelp)
         if (params.size() == 4)
             absolute = params[3].get_bool();
 
-        isSubnet ? CNode::Ban(subNet, BanReasonManuallyAdded, banTime, absolute) : CNode::Ban(netAddr, BanReasonManuallyAdded, banTime, absolute);
+        isSubnet ? CI2pdNode::Ban(subNet, BanReasonManuallyAdded, banTime, absolute) : CI2pdNode::Ban(netAddr, BanReasonManuallyAdded, banTime, absolute);
 
         //disconnect possible nodes
-        while(CNode *bannedNode = (isSubnet ? FindNode(subNet) : FindNode(netAddr)))
-            bannedNode->CloseSocketDisconnect();
+        while(CI2pdNode *bannedNode = (isSubnet ? FindNode(subNet) : FindNode(netAddr)))
+            bannedNode->CloseTunnelDisconnect();
     }
     else if(strCommand == "remove")
     {
-        if (!( isSubnet ? CNode::Unban(subNet) : CNode::Unban(netAddr) ))
+        if (!( isSubnet ? CI2pdNode::Unban(subNet) : CI2pdNode::Unban(netAddr) ))
             throw JSONRPCError(RPC_MISC_ERROR, "Error: Unban failed");
     }
 
@@ -515,7 +520,7 @@ UniValue listbanned(const UniValue& params, bool fHelp)
                             );
 
     banmap_t banMap;
-    CNode::GetBanned(banMap);
+    CI2pdNode::GetBanned(banMap);
 
     UniValue bannedAddresses(UniValue::VARR);
     for (banmap_t::iterator it = banMap.begin(); it != banMap.end(); it++)
@@ -544,7 +549,7 @@ UniValue clearbanned(const UniValue& params, bool fHelp)
                             + HelpExampleRpc("clearbanned", "")
                             );
 
-    CNode::ClearBanned();
+    CI2pdNode::ClearBanned();
     DumpBanlist(); //store banlist to disk
     uiInterface.BannedListChanged();
 

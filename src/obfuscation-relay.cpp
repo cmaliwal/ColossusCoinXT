@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "obfuscation-relay.h"
+#include "netdestination.h"
 
 CObfuScationRelay::CObfuScationRelay()
 {
@@ -103,7 +104,7 @@ void CObfuScationRelay::RelayThroughNode(int nRank)
 
     if (pmn != NULL) {
         //printf("RelayThroughNode %s\n", pmn->addr.ToString().c_str());
-        CNode* pnode = ConnectNode((CAddress)pmn->addr, NULL, false);
+        CI2pdNode* pnode = ConnectNode((CI2PAddress)pmn->addr, NULL, false);
         if (pnode) {
             //printf("Connected\n");
             pnode->PushMessage("dsr", (*this));

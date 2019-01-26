@@ -8,7 +8,7 @@
 #include "guiutil.h"
 #include "peertablemodel.h"
 
-#include "net.h"
+#include "neti2pd.h"
 
 #include <QDialog>
 #include <QCompleter>

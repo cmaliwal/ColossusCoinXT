@@ -183,6 +183,7 @@ static struct event_base* eventBase = 0;
 //! HTTP server
 struct evhttp* eventHTTP = 0;
 //! List of subnets to allow RPC connections from
+// I2PDK: this is still an ok use of ips/subnets and old-style networking, for local rpc/httpserver
 static std::vector<CSubNet> rpc_allow_subnets;
 //! Work queue for handling longer requests off the event loop thread
 static WorkQueue<HTTPClosure>* workQueue = 0;

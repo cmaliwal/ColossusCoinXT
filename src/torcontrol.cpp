@@ -6,7 +6,8 @@
 #include "torcontrol.h"
 #include "utilstrencodings.h"
 #include "netbase.h"
-#include "net.h"
+#include "neti2pd.h"
+#include "netdestination.h"
 #include "util.h"
 #include "crypto/hmac_sha256.h"
 
@@ -429,7 +430,7 @@ private:
     bool reconnect;
     struct event *reconnect_ev;
     float reconnect_timeout;
-    CService service;
+    CDestination service;
     /** Cookie for SAFECOOKIE auth */
     std::vector<uint8_t> cookie;
     /** ClientNonce for SAFECOOKIE auth */
@@ -532,6 +533,13 @@ void TorController::auth_cb(TorControlConnection& _conn, const TorControlReply& 
             CService addrOnion = CService(resolved, 9050);
             SetProxy(NET_TOR, addrOnion);
             SetLimited(NET_TOR, false);
+
+            // I2PDK: not sure about this, proxies are only available under old networking, whether it makes sense at all
+            //CDestination resolved;
+            //assert(LookupNumeric("127.0.0.1", resolved, 9050));
+            //CDestination addrOnion = CDestination(resolved, 9050);
+            //SetProxy(NET_TOR, addrOnion);
+            //SetLimited(NET_TOR, false);
         }
 
         // Finally - now create the service
@@ -696,7 +704,7 @@ void TorController::disconnected_cb(TorControlConnection& _conn)
     // Stop advertising service when disconnected
     if (service.IsValid())
         RemoveLocal(service);
-    service = CService();
+    service = CDestination();
     if (!reconnect)
         return;
 
