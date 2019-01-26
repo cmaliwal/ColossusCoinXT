@@ -1,3 +1,5 @@
+#define BOOST_BIND_NO_PLACEHOLDERS
+
 #include <cassert>
 #include "Base.h"
 #include "Log.h"
@@ -33,11 +35,11 @@ namespace i2p
 
         I2PPureTunnelConnection::I2PPureTunnelConnection(
             I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-            ClientConnectedCallback connectedCallback, ReceivedCallback receivedCallback) :
+            ReceivedCallback receivedCallback) : // ClientConnectedCallback connectedCallback, 
             I2PServiceHandler(owner), 
             //m_Socket(socket), 
             m_Stream(stream),
-            _connectedCallback(connectedCallback),
+            //_connectedCallback(connectedCallback),
             _receivedCallback(receivedCallback),
             //m_RemoteEndpoint(socket->remote_endpoint()), 
             m_IsQuiet(true)
@@ -155,12 +157,12 @@ namespace i2p
 
         void I2PPureTunnelConnection::HandleSendReady(std::string reply, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
         {
-            HandleSendReady((const uint8_t *)reply.data(), reply.length(), readyToSend, errorSend);
+            HandleSendReadyRaw((const uint8_t *)reply.data(), reply.length(), readyToSend, errorSend);
         }
 
         void I2PPureTunnelConnection::HandleSendReadyRawSigned(const char* buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
         {
-            HandleSendReadyRaw(buf, len, readyToSend, errorSend);
+            HandleSendReadyRaw((const uint8_t *)buf, len, readyToSend, errorSend);
         }
         void I2PPureTunnelConnection::HandleSendReadyRaw(const uint8_t * buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
         {
@@ -170,7 +172,7 @@ namespace i2p
                 auto s = shared_from_this();
                 //m_Stream->AsyncSend((const uint8_t *)reply.data(), reply.length(),
                 m_Stream->AsyncSend(buf, len,
-                    [s](const boost::system::error_code& ecode)
+                    [s, readyToSend, errorSend](const boost::system::error_code& ecode)
                 {
                     if (!ecode) {
                         if (readyToSend)
@@ -192,12 +194,12 @@ namespace i2p
 
         void I2PPureTunnelConnection::HandleSend(std::string reply)
         {
-            HandleSend((const uint8_t *)reply.data(), reply.length());
+            HandleSendRaw((const uint8_t *)reply.data(), reply.length());
         }
 
         void I2PPureTunnelConnection::HandleSendRawSigned(const char* buf, size_t len)
         {
-            HandleSendRaw(buf, len);
+            HandleSendRaw((const uint8_t *)buf, len);
         }
         void I2PPureTunnelConnection::HandleSendRaw(const uint8_t * buf, size_t len)
         {
@@ -255,11 +257,11 @@ namespace i2p
         // probably not needed but just to be safe when called from another thread (like node processing)
         void I2PPureTunnelConnection::HandleWriteAsync(const boost::system::error_code& ecode)
         {
-            auto service = GetOwner()->GetService();
+            //auto service = GetOwner()->GetService();
             auto s = shared_from_this();
-            service.post([s, ecode](void)
+            GetOwner()->GetService().post([s, ecode](void)
             {
-                HandleWrite(ecode);
+                s->HandleWrite(ecode);
             });
         }
 
@@ -345,7 +347,7 @@ namespace i2p
             }
 
             // message != nullstr and likely !empty()
-            _receivedCallback(message);
+            _receivedCallback(message, nullptr);
 
             // change: this stops here after we send the message to the receiver, and awaiting receiver to call the
             // HandleWriteAsync in order to continue this 'loop'
@@ -442,7 +444,8 @@ namespace i2p
                 if (Kill()) return;
                 LogPrint(eLogDebug, "I2PPureClientTunnelHandler: new connection");
 
-                auto clientTunnel = std::static_pointer_cast<I2PPureClientTunnel>(GetOwner());
+                auto owner_shared = std::shared_ptr<I2PService>(GetOwner());
+                auto clientTunnel = std::static_pointer_cast<I2PPureClientTunnel>(owner_shared); // GetOwner());
 
                 auto streamCreatedCallback = clientTunnel->GetStreamCreatedCallback();
 
@@ -451,9 +454,10 @@ namespace i2p
 
                 auto connectionCreatedCallback = clientTunnel->GetConnectionCreatedCallback();
                 auto receivedCallback = clientTunnel->GetReceivedCallback();
+                //auto connectedCallback = clientTunnel->GetConnectedCallback();
 
                 auto connection = std::make_shared<I2PPureTunnelConnection>(
-                    GetOwner(), stream, connectedCallback, receivedCallback);
+                    GetOwner(), stream, receivedCallback); // , connectedCallback
                 //auto connection = std::make_shared<I2PPureTunnelConnection>(GetOwner(), m_Socket, stream);
                 GetOwner()->AddHandler(connection);
 
@@ -476,8 +480,8 @@ namespace i2p
 
                 // this or shared_from_this()
                 // or just set our own callbacks and let tunnel handle us when sending
-                clientTunnel->SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSend, connection, _1));
-                clientTunnel->SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReady, connection, _1, _2));
+                clientTunnel->SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, connection, _1, _2));
+                clientTunnel->SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReadyRawSigned, connection, _1, _2, _3, _4));
                 if (connectedCallback) //_connectedCallback)
                 {
                     connectedCallback(connection);
@@ -645,7 +649,7 @@ namespace i2p
 
                 LogPrint(eLogDebug, "I2PPureServerTunnel: Address ", stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " is now streaming...");
 
-                auto serverTunnel = shared_from_this(); // std::static_pointer_cast<I2PPureServerTunnel>(GetOwner());
+                auto serverTunnel = std::static_pointer_cast<I2PPureServerTunnel>(shared_from_this());
 
                 auto acceptedCallback = serverTunnel->GetAcceptedCallback();
 
@@ -670,15 +674,15 @@ namespace i2p
                 // this or shared_from_this()
                 // or just set our own callbacks and let tunnel handle us when sending
                 // or just let the callback set that info from the tunnel/connection, it has everything
-                SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSend, conn, _1));
-                SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReady, conn, _1, _2));
+                SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, conn, _1, _2));
+                SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReadyRawSigned, conn, _1, _2, _3, _4));
 
                 // this is the 'other' Connect for the server side (client uses I2PConnect).
                 conn->Connect(m_IsUniqueLocal);
 
                 if (connectedCallback) //_connectedCallback)
                 {
-                    connectedCallback(connection);
+                    connectedCallback(serverTunnel, conn);
                 }
             }
         }

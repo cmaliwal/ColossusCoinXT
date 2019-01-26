@@ -823,7 +823,7 @@ namespace client
         }
     }
 
-    bool ClientContext::InsertStartClientTunnel(boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PService> tunnel);
+    bool ClientContext::InsertStartClientTunnel(boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PService> tunnel)
     {
         auto ins = m_ClientTunnels.insert(std::make_pair(endpoint, tunnel));
 

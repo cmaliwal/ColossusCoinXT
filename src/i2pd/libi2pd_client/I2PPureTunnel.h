@@ -49,14 +49,13 @@ namespace i2p
         class I2PPureTunnelConnection : public I2PServiceHandler, public std::enable_shared_from_this<I2PPureTunnelConnection>
         {
         public:
-            ClientConnectedCallback _connectedCallback;
+            //ClientConnectedCallback _connectedCallback;
             ReceivedCallback _receivedCallback;
 
         public:
             // std::shared_ptr<boost::asio::ip::tcp::socket> socket,
             I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
-            I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-                ClientConnectedCallback connectedCallback, ReceivedCallback receivedCallback); // to I2P using simplified API
+            I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream, ReceivedCallback receivedCallback); // to I2P using simplified API
             I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream, const boost::asio::ip::tcp::endpoint& target, bool quiet = true); // from I2P
             ~I2PPureTunnelConnection();
             void I2PConnect(const uint8_t * msg = nullptr, size_t len = 0);
@@ -214,7 +213,7 @@ namespace i2p
 
             void Accept();
             void HandleAccept(std::shared_ptr<i2p::stream::Stream> stream);
-            virtual std::shared_ptr<I2PPureTunnelConnection> CreateI2PConnection(std::shared_ptr<i2p::stream::Stream> stream);
+            virtual std::shared_ptr<I2PPureTunnelConnection> CreateI2PConnection(std::shared_ptr<i2p::stream::Stream> stream, ReceivedCallback receivedCallback);
 
         private:
             bool m_IsUniqueLocal;
