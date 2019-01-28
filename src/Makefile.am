@@ -57,11 +57,11 @@ LIBI2PDCLIENT += $(builddir)/i2pd/libi2pdclient.a
 # NOTE: The dependency in case that's an issue
 $(LIBI2PDCLIENT): $(LIBI2PD)
 
+#  $(SSL_LIBS) $(CRYPTO_LIBS)
 $(LIBI2PDCLIENT) $(LIBI2PD):
 	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
 	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
 		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
-
 
 
 BITCOIN_CONFIG_INCLUDES=-I$(builddir)/config

@@ -11,6 +11,7 @@
 #include "keystore.h"
 #include "main.h"
 #include "neti2pd.h"
+#include "netdestination.h"
 #include "pow.h"
 #include "script/sign.h"
 #include "serialize.h"
@@ -34,11 +35,18 @@ struct COrphanTx {
 extern std::map<uint256, COrphanTx> mapOrphanTransactions;
 extern std::map<uint256, std::set<uint256> > mapOrphanTransactionsByPrev;
 
-CService ip(uint32_t i)
+//CService ip(uint32_t i)
+//{
+//    struct in_addr s;
+//    s.s_addr = i;
+//    return CService(CNetAddr(s), Params().GetDefaultPort());
+//}
+
+CDestination i2pUrl(std::string s)
 {
-    struct in_addr s;
-    s.s_addr = i;
-    return CService(CNetAddr(s), Params().GetDefaultPort());
+    //struct in_addr s;
+    //s.s_addr = i;
+    return CDestination(CI2pUrl(s), Params().GetDefaultPort());
 }
 
 BOOST_AUTO_TEST_SUITE(DoS_tests)
@@ -46,16 +54,16 @@ BOOST_AUTO_TEST_SUITE(DoS_tests)
 BOOST_AUTO_TEST_CASE(DoS_banning)
 {
     CI2pdNode::ClearBanned();
-    CI2PAddress addr1(ip(0xa0b0c001));
-    CI2pdNode dummyNode1(INVALID_SOCKET, addr1, "", true);
+    CI2PAddress addr1(i2pUrl("0xa0b0c001.i2p"));
+    CI2pdNode dummyNode1(nullptr, addr1, "", true);
     dummyNode1.nVersion = 1;
     Misbehaving(dummyNode1.GetId(), 100); // Should get banned
     SendMessages(&dummyNode1, false);
     BOOST_CHECK(CI2pdNode::IsBanned(addr1));
-    BOOST_CHECK(!CI2pdNode::IsBanned(ip(0xa0b0c001|0x0000ff00))); // Different IP, not banned
+    BOOST_CHECK(!CI2pdNode::IsBanned(i2pUrl("0xa0b0c001|0x0000ff00.i2p"))); // Different IP, not banned
 
-    CI2PAddress addr2(ip(0xa0b0c002));
-    CI2pdNode dummyNode2(INVALID_SOCKET, addr2, "", true);
+    CI2PAddress addr2(i2pUrl("0xa0b0c002.i2p"));
+    CI2pdNode dummyNode2(nullptr, addr2, "", true);
     dummyNode2.nVersion = 1;
     Misbehaving(dummyNode2.GetId(), 50);
     SendMessages(&dummyNode2, false);
@@ -70,8 +78,8 @@ BOOST_AUTO_TEST_CASE(DoS_banscore)
 {
     CI2pdNode::ClearBanned();
     mapArgs["-banscore"] = "111"; // because 11 is my favorite number
-    CI2PAddress addr1(ip(0xa0b0c001));
-    CI2pdNode dummyNode1(INVALID_SOCKET, addr1, "", true);
+    CI2PAddress addr1(i2pUrl("0xa0b0c001.i2p"));
+    CI2pdNode dummyNode1(nullptr, addr1, "", true);
     dummyNode1.nVersion = 1;
     Misbehaving(dummyNode1.GetId(), 100);
     SendMessages(&dummyNode1, false);
@@ -91,8 +99,8 @@ BOOST_AUTO_TEST_CASE(DoS_bantime)
     int64_t nStartTime = GetTime();
     SetMockTime(nStartTime); // Overrides future calls to GetTime()
 
-    CI2PAddress addr(ip(0xa0b0c001));
-    CI2pdNode dummyNode(INVALID_SOCKET, addr, "", true);
+    CI2PAddress addr(i2pUrl("0xa0b0c001.i2p"));
+    CI2pdNode dummyNode(nullptr, addr, "", true);
     dummyNode.nVersion = 1;
 
     Misbehaving(dummyNode.GetId(), 100);

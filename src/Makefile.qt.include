@@ -402,6 +402,20 @@ $(qt_libbitcoinqt_a_OBJECTS) $(qt_colx_qt_OBJECTS) : | $(QT_MOC)
 $(QT_MOC): $(PROTOBUF_H)
 $(QT_MOC_CPP): $(PROTOBUF_H)
 
+HOST_DIR := $(srcdir)/../depends/$(MAKE_HOST)
+HOST_LIB_DIR := $(HOST_DIR)/lib
+HOST_INCLUDE_DIR := $(HOST_DIR)/include
+
+LDLIBS =
+LDLIBS += $(HOST_LIB_DIR)/libboost_system-mt.a
+LDLIBS += $(HOST_LIB_DIR)/libboost_date_time-mt.a
+LDLIBS += $(HOST_LIB_DIR)/libboost_filesystem-mt.a
+LDLIBS += $(HOST_LIB_DIR)/libboost_program_options-mt.a
+#LDLIBS += $(HOST_LIB_DIR)/libssl-mt.a
+#LDLIBS += $(HOST_LIB_DIR)/libcrypto-mt.a
+#LDLIBS += $(HOST_LIB_DIR)/libz-mt.a
+
+
 # colx-qt binary #
 qt_colx_qt_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
   $(QT_INCLUDES) $(PROTOBUF_CFLAGS) $(QR_CFLAGS)
@@ -423,9 +437,11 @@ if ENABLE_ZMQ
 qt_colx_qt_LDADD += $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
 endif
 qt_colx_qt_LDADD += $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CRYPTO) $(LIBUNIVALUE) $(LIBBITCOIN_ZEROCOIN) $(LIBLEVELDB) $(LIBMEMENV) \
+  $(LIBI2PD) $(LIBI2PDCLIENT) \
   $(BOOST_LIBS) $(QT_LIBS) $(QT_DBUS_LIBS) $(QR_LIBS) $(PROTOBUF_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(LIBSECP256K1) $(CURL_LIBS) \
-  $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(LIBMINIZIP)
-qt_colx_qt_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(QT_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+  $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(LIBMINIZIP) \
+  $(LDLIBS)
+qt_colx_qt_LDFLAGS = $(LDFLAGS) $(RELDFLAGS) $(AM_LDFLAGS) $(QT_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 qt_colx_qt_LIBTOOLFLAGS = --tag CXX
 
 #locale/foo.ts -> locale/foo.qm

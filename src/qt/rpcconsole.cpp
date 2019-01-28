@@ -17,6 +17,7 @@
 #include "rpcclient.h"
 #include "rpcserver.h"
 #include "util.h"
+#include "netdestination.h"
 
 #include <openssl/crypto.h>
 
@@ -991,7 +992,7 @@ void RPCConsole::banSelectedNode(int bantime)
         int port = 0;
         SplitHostPort(nStr, port, addr);
 
-        CI2pdNode::Ban(CNetAddr(addr), BanReasonManuallyAdded, bantime);
+        CI2pdNode::Ban(CI2pUrl(addr), BanReasonManuallyAdded, bantime);
 
         clearSelectedNode();
         clientModel->getBanTableModel()->refresh();
@@ -1005,7 +1006,7 @@ void RPCConsole::unbanSelectedNode()
 
     // Get currently selected ban address
     QString strNode = GUIUtil::getEntryData(ui->banlistWidget, 0, BanTableModel::Address);
-    CSubNet possibleSubnet(strNode.toStdString());
+    CI2pSubNet possibleSubnet(strNode.toStdString());
 
     if (possibleSubnet.IsValid())
     {

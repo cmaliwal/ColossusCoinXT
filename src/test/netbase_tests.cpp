@@ -106,6 +106,7 @@ BOOST_AUTO_TEST_CASE(onioncat_test)
 
 BOOST_AUTO_TEST_CASE(subnet_test)
 {
+    // I2PDK: TODO: we should make tests for CI2pSubNet and related but not sure if it still makes sense? 
     BOOST_CHECK(CSubNet("1.2.3.0/24") == CSubNet("1.2.3.0/255.255.255.0"));
     BOOST_CHECK(CSubNet("1.2.3.0/24") != CSubNet("1.2.4.0/255.255.255.0"));
     BOOST_CHECK(CSubNet("1.2.3.0/24").Match(CNetAddr("1.2.3.4")));

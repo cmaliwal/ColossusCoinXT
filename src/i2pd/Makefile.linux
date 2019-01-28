@@ -2,6 +2,15 @@
 CXXFLAGS ?= ${CXX_DEBUG} -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
 LDFLAGS ?= ${LD_DEBUG}
 
+#.PHONY: test
+#
+#test:
+#    $(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
+
+#listvars:
+#	$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
+
+
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
 ## For example, when adding 'hardening flags' to the build
@@ -35,7 +44,8 @@ ifeq ($(USE_STATIC),yes)
 # NOTE: on glibc you will get this warning:
 #   Using 'getaddrinfo' in statically linked applications requires at runtime
 #   the shared libraries from the glibc version used for linking
-	LIBDIR := /usr/lib
+#	LIBDIR := $(LDFLAGS)
+	LIBDIR := $(CURDIR)/../../depends/$(MAKE_HOST)/lib
 	LDLIBS += $(LIBDIR)/libboost_system.a
 	LDLIBS += $(LIBDIR)/libboost_date_time.a
 	LDLIBS += $(LIBDIR)/libboost_filesystem.a
@@ -43,6 +53,13 @@ ifeq ($(USE_STATIC),yes)
 	LDLIBS += $(LIBDIR)/libssl.a
 	LDLIBS += $(LIBDIR)/libcrypto.a
 	LDLIBS += $(LIBDIR)/libz.a
+#	LDLIBS += libboost_system.a
+#	LDLIBS += libboost_date_time.a
+#	LDLIBS += libboost_filesystem.a
+#	LDLIBS += libboost_program_options.a
+#	LDLIBS += libssl.a
+#	LDLIBS += libcrypto.a
+#	LDLIBS += libz.a
 	LDLIBS += -lpthread -static-libstdc++ -static-libgcc -lrt -ldl
 	USE_AESNI := no
 else
@@ -50,10 +67,11 @@ else
 endif
 
 # UPNP Support (miniupnpc 1.5 and higher)
+#	LDLIBS += $(LIBDIR)/libminiupnpc.a
 ifeq ($(USE_UPNP),yes)
 	CXXFLAGS += -DUSE_UPNP
 ifeq ($(USE_STATIC),yes)
-	LDLIBS += $(LIBDIR)/libminiupnpc.a
+	LDLIBS += libminiupnpc.a
 else
 	LDLIBS += -lminiupnpc
 endif

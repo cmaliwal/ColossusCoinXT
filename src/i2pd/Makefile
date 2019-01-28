@@ -3,6 +3,18 @@ default_target: all
 
 all-recursive: all
 
+#.PHONY: mk_obj_dir
+
+#default_target: all test
+#all-recursive: all test
+#.PHONY: listvars
+#
+#listvars:
+#	$(foreach v, $(.VARIABLES), $(info $(v) = $($(v))))
+
+# this is to avoid any /usr/... includes but that didn't work in the end so we can remove it
+.INCLUDE_DIRS :=
+
 SYS := $(shell $(CXX) -dumpmachine)
 SHLIB := libi2pd.so
 ARLIB := libi2pd.a
@@ -15,6 +27,11 @@ DEPS := obj/make.dep
 LIB_SRC_DIR := libi2pd
 LIB_CLIENT_SRC_DIR := libi2pd_client
 DAEMON_SRC_DIR := daemon
+#HOST_DIR := $(top_srcdir)/depends/$(MAKE_HOST)
+HOST_DIR := $(CURDIR)/../../depends/$(MAKE_HOST)
+HOST_LIB_DIR := $(HOST_DIR)/lib
+HOST_INCLUDE_DIR := $(HOST_DIR)/include
+# .../ColossusCoinXT/depends/x86_64-pc-linux-gnu/include
 
 include filelist.mk
 
@@ -61,6 +78,11 @@ ifeq ($(USE_MESHNET),yes)
 endif
 
 NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)
+#NEEDED_CXXFLAGS += -I$(top_srcdir)/depends/$(MAKE_HOST)/lib
+NEEDED_CXXFLAGS += -I$(HOST_INCLUDE_DIR)
+# we should use $(OPT) instead as that has the $(host)/include and some other settings coming from the 'above'
+# also that's what's used withing other libraries here.
+
 
 all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
 

@@ -674,7 +674,7 @@ namespace i2p
                 // this or shared_from_this()
                 // or just set our own callbacks and let tunnel handle us when sending
                 // or just let the callback set that info from the tunnel/connection, it has everything
-                SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, conn, _1, _2));
+                //SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, conn, _1, _2));
                 SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReadyRawSigned, conn, _1, _2, _3, _4));
 
                 // this is the 'other' Connect for the server side (client uses I2PConnect).

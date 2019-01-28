@@ -6,6 +6,7 @@
 #define BITCOIN_QT_BANTABLEMODEL_H
 
 #include "neti2pd.h"
+#include "netdestination.h"
 
 #include <QAbstractTableModel>
 #include <QStringList>
@@ -14,7 +15,7 @@ class ClientModel;
 class BanTablePriv;
 
 struct CCombinedBan {
-    CSubNet subnet;
+    CI2pSubNet subnet;
     CBanEntry banEntry;
 };
 

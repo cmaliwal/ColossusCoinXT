@@ -51,7 +51,7 @@ namespace data
                     num = ProcessSU3File (su3FileName.c_str ());
                 }
                 if (num == 0)
-                    LogPrint (eLogWarning, "Reseed: failed to reseed from ", su3FileName);
+                    LogPrint (eLogWarning, "Reseed.cpp: failed to reseed from ", su3FileName);
             }
             else if (zipFileName.length() > 0) // bootstrap from ZIP file
             {
