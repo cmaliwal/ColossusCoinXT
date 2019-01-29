@@ -79,7 +79,7 @@ endif
 
 NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)
 #NEEDED_CXXFLAGS += -I$(top_srcdir)/depends/$(MAKE_HOST)/lib
-NEEDED_CXXFLAGS += -I$(HOST_INCLUDE_DIR)
+#NEEDED_CXXFLAGS += -I$(HOST_INCLUDE_DIR)
 # we should use $(OPT) instead as that has the $(host)/include and some other settings coming from the 'above'
 # also that's what's used withing other libraries here.
 
@@ -104,11 +104,11 @@ api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 ## custom FLAGS to work at build-time.
 
 deps: mk_obj_dir
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) -MM *.cpp > $(DEPS)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(OPT) -MM *.cpp > $(DEPS)
 	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
 
 obj/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(OPT) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
