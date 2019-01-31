@@ -4780,9 +4780,24 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
         const bool isBlockFromFork = pindexPrev != nullptr && !chainActive.Contains(pindexPrev);
         CTransaction &stakeTxIn = block.vtx[1];
 
-        // Check validity of the coinStake.
-        if(!stakeTxIn.IsCoinStake())
-            return error("%s: no coin stake on vtx pos 1", __func__);
+        // ZC started after PoS.
+        // Check for serial double spent on the same block, TODO: Move this to the proper method..
+        if(pindex->nHeight >= Params().Zerocoin_StartHeight()) {
+            vector<CBigNum> inBlockSerials;
+            for (CTransaction tx : block.vtx) {
+                for (CTxIn in: tx.vin) {
+                    if (in.scriptSig.IsZerocoinSpend()) {
+                        CoinSpend spend = TxInToZerocoinSpend(in);
+                        // Check for serials double spending in the same block
+                        if (std::find(inBlockSerials.begin(), inBlockSerials.end(), spend.getCoinSerialNumber()) != inBlockSerials.end()) {
+                            return state.DoS(100, error("%s: serial double spent on the same block", __func__));
+                        }
+                        inBlockSerials.push_back(spend.getCoinSerialNumber());
+                    }
+                }
+            }
+            inBlockSerials.clear();
+        }
 
         int splitHeight = -1;
         // Check whether is a fork or not
@@ -4804,14 +4819,23 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
             }
             const bool hasPIVInputs = !pivInputs.empty();
             const bool hasZPIVInputs = !zPIVInputs.empty();
+
+            int forkLength = 0;
             vector<CBigNum> vBlockSerials;
             CBlock bl;
             // Go backwards on the forked chain up to the split
             do {
-                if(!ReadBlockFromDisk(bl, prev))
-                    // Previous block not on disk
-                    return error("%s: previous block %s not on disk", __func__, prev->GetBlockHash().GetHex());
+                // Check if the forked chain is longer than the max reorg limit
+                int64_t nMaxReorganizationDepth = GetSporkValue(SPORK_19_MAX_REORGANIZATION_DEPTH);
+                if(forkLength >= nMaxReorganizationDepth){
+                    // TODO: Remove this chain from disk.
+                    return error("%s: forked chain longer than maximum reorg limit", __func__);
+                }
 
+                if(!ReadBlockFromDisk(bl, prev))
+                    return error("%s: previous block %s not on disk", __func__, prev->GetBlockHash().GetHex());
+                else // Increase amount of read blocks
+                    ++forkLength;
 
                 // Loop through every input from said block
                 for (CTransaction t : bl.vtx) {
@@ -4819,20 +4843,18 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
                         // Loop through every input of the staking tx
                         for (CTxIn stakeIn : pivInputs) {
                             // if it's already spent
+
                             // First regular staking check
                             if(hasPIVInputs) {
                                 if (stakeIn.prevout == in.prevout) {
-                                    // reject the block
-                                    return state.DoS(100,
-                                                     error("%s: input already spent on a previous block",
-                                                           __func__));
+                                    return state.DoS(100, error("%s: input already spent on a previous block", __func__));
                                 }
                             }
+
                             // Second, if there is zPoS staking then store the serials for later check
                             if(hasZPIVInputs) {
                                 if(in.scriptSig.IsZerocoinSpend()){
-                                    CoinSpend spend = TxInToZerocoinSpend(in);
-                                    vBlockSerials.push_back(spend.getCoinSerialNumber());
+                                    vBlockSerials.push_back(TxInToZerocoinSpend(in).getCoinSerialNumber());
                                 }
                             }
                         }
@@ -4844,7 +4866,7 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
             } while (!chainActive.Contains(prev));
 
             // Split height
-            int splitHeight = prev->nHeight;
+            splitHeight = prev->nHeight;
 
             // Now that this loop if completed. Check if we have zPIV inputs.
             if(hasZPIVInputs){
@@ -4856,19 +4878,16 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
                     CBigNum coinSerial = spend.getCoinSerialNumber();
                     for(CBigNum serial : vBlockSerials){
                         if(serial == coinSerial){
-                            return state.DoS(100,
-                                             error("%s: serial double spent on fork",
-                                                   __func__));
+                            return state.DoS(100, error("%s: serial double spent on fork", __func__));
                         }
                     }
+
                     // Now check if the serial exists before the chain split.
                     int nHeightTx = 0;
                     if (IsSerialInBlockchain(spend.getCoinSerialNumber(), nHeightTx)){
                         // if the height is nHeightTx > chainSplit means that the spent occurred after the chain split
                         if(nHeightTx <= splitHeight){
-                            return state.DoS(100,
-                                             error("%s: serial double spent on main chain",
-                                                   __func__));
+                            return state.DoS(100, error("%s: serial double spent on main chain", __func__));
                         }
                     }
 
@@ -4896,10 +4915,12 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
         if(!stakeTxIn.IsZerocoinSpend()) {
             for (CTxIn in: stakeTxIn.vin) {
                 const CCoins* coin = coins.AccessCoins(in.prevout.hash);
+
                 if(!coin && !isBlockFromFork){
                     // No coins on the main chain
                     return error("%s: coin stake inputs not available on main chain", __func__);
                 }
+
                 if(coin && !coin->IsAvailable(in.prevout.n)){
                     // If this is not available get the height of the spent and validate it with the forked height
                     // Check if this occurred before the chain split
