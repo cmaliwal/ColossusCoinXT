@@ -8,7 +8,7 @@
 #endif
 
 #include "netdestination.h"
-//#include "i2pd/libi2pd_client/I2PService.h"
+
 #include "I2PService.h"
 #include <I2PTunnel.h>
 #include <I2PPureTunnel.h>

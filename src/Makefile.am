@@ -5,7 +5,13 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-DIST_SUBDIRS = secp256k1 univalue minizip i2pd
+DIST_SUBDIRS = secp256k1 univalue minizip 
+# i2pd
+#DIST_SUBDIRS = secp256k1 univalue minizip i2pd
+
+#I2PD_CPPFLAGS=
+#LIBI2PD=
+#LIBI2PDCLIENT=
 
 AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS)
 AM_CXXFLAGS = $(HARDENED_CXXFLAGS) $(ERROR_CXXFLAGS)
@@ -46,10 +52,8 @@ $(LIBMINIZIP):
 
 
 # i2pd - 2 libs, see if this is the best way
-# LIBI2PD += $(builddir)/i2pd/libi2pd/libi2pd.a
-# LIBI2PDCLIENT += $(builddir)/i2pd/libi2pd_client/libi2pdclient.a
-I2PD_CPPFLAGS += -I$(srcdir)/i2pd/libi2pd
-I2PD_CPPFLAGS += -I$(srcdir)/i2pd/libi2pd_client
+I2PD_CPPFLAGS += -I$(srcdir)/i2pd/apii2pd
+I2PD_CPPFLAGS += -I$(srcdir)/i2pd/apii2pd_client
 LIBI2PD += $(builddir)/i2pd/libi2pd.a
 LIBI2PDCLIENT += $(builddir)/i2pd/libi2pdclient.a
 
@@ -58,10 +62,23 @@ LIBI2PDCLIENT += $(builddir)/i2pd/libi2pdclient.a
 $(LIBI2PDCLIENT): $(LIBI2PD)
 
 #  $(SSL_LIBS) $(CRYPTO_LIBS)
-$(LIBI2PDCLIENT) $(LIBI2PD):
+#$(LIBI2PDCLIENT) $(LIBI2PD):
+#	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
+#	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
+#		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
+
+$(LIBI2PD): $(wildcard i2pd/apii2pd/*.cpp)
 	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
 	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
 		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
+
+$(LIBI2PDCLIENT): $(wildcard i2pd/apii2pd_client/*.cpp)
+	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
+	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
+		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
+
+#$(LIBI2PDCLIENT): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
+#	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
 
 BITCOIN_CONFIG_INCLUDES=-I$(builddir)/config
@@ -232,19 +249,19 @@ BITCOIN_CORE_H = \
   zmq/zmqconfig.h \
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h  \
-  i2pd/libi2pd_client/AddressBook.h \
-  i2pd/libi2pd_client/BOB.h \
-  i2pd/libi2pd_client/ClientContext.h \
-  i2pd/libi2pd_client/HTTPProxy.h \
-  i2pd/libi2pd_client/I2CP.h \
-  i2pd/libi2pd_client/I2PPureTunnel.h \
-  i2pd/libi2pd_client/I2PService.h \
-  i2pd/libi2pd_client/I2PTunnel.h \
-  i2pd/libi2pd_client/MatchedDestination.h \
-  i2pd/libi2pd_client/SAM.h \
-  i2pd/libi2pd_client/SOCKS.h \
-  i2pd/libi2pd_client/Websocket.h \
-  i2pd/libi2pd_client/WebSocks.h
+  i2pd/apii2pd_client/AddressBook.h \
+  i2pd/apii2pd_client/BOB.h \
+  i2pd/apii2pd_client/ClientContext.h \
+  i2pd/apii2pd_client/HTTPProxy.h \
+  i2pd/apii2pd_client/I2CP.h \
+  i2pd/apii2pd_client/I2PPureTunnel.h \
+  i2pd/apii2pd_client/I2PService.h \
+  i2pd/apii2pd_client/I2PTunnel.h \
+  i2pd/apii2pd_client/MatchedDestination.h \
+  i2pd/apii2pd_client/SAM.h \
+  i2pd/apii2pd_client/SOCKS.h \
+  i2pd/apii2pd_client/Websocket.h \
+  i2pd/apii2pd_client/WebSocks.h
 
 if TARGET_WINDOWS
 BITCOIN_CORE_H +=
@@ -643,7 +660,7 @@ endif
 
 libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
 libbitcoinconsensus_la_LIBADD = $(CRYPTO_LIBS) $(BOOST_LIBS)
-libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -I$(srcdir)/i2pd/libi2pd_client -I$(srcdir)/i2pd/libi2pd -DBUILD_BITCOIN_INTERNAL
+libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -I$(srcdir)/i2pd/apii2pd_client -I$(srcdir)/i2pd/apii2pd -DBUILD_BITCOIN_INTERNAL
 # libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
 if TARGET_WINDOWS
 libbitcoinconsensus_la_CPPFLAGS +=  -I$(srcdir)/secp256k1/include
@@ -665,10 +682,12 @@ CLEANFILES += script/*.gcda script/*.gcno
 CLEANFILES += univalue/*.gcda univalue/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
 CLEANFILES += obj/build.h
-CLEANFILES += i2pd/libi2pd/libi2pd.a i2pd/libi2pd_client/libi2pdclient.a
+CLEANFILES += i2pd/apii2pd/libi2pd.a i2pd/apii2pd_client/libi2pdclient.a i2pd/libi2pd.a i2pd/libi2pdclient.a
 
 
-EXTRA_DIST = leveldb
+EXTRA_DIST = leveldb i2pd
+#EXTRA_DIST = leveldb i2pd/*
+#EXTRA_DIST = leveldb i2pd/Makefile
 
 clean-local:
 	-$(MAKE) -C leveldb clean

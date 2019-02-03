@@ -5,6 +5,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+$(info BOOST_LIBS="$(BOOST_LIBS)")
+
 bin_PROGRAMS += qt/colx-qt
 EXTRA_LIBRARIES += qt/libbitcoinqt.a
 
@@ -406,14 +408,14 @@ HOST_DIR := $(srcdir)/../depends/$(MAKE_HOST)
 HOST_LIB_DIR := $(HOST_DIR)/lib
 HOST_INCLUDE_DIR := $(HOST_DIR)/include
 
-LDLIBS =
-LDLIBS += $(HOST_LIB_DIR)/libboost_system-mt.a
-LDLIBS += $(HOST_LIB_DIR)/libboost_date_time-mt.a
-LDLIBS += $(HOST_LIB_DIR)/libboost_filesystem-mt.a
-LDLIBS += $(HOST_LIB_DIR)/libboost_program_options-mt.a
-#LDLIBS += $(HOST_LIB_DIR)/libssl-mt.a
-#LDLIBS += $(HOST_LIB_DIR)/libcrypto-mt.a
-#LDLIBS += $(HOST_LIB_DIR)/libz-mt.a
+#LDLIBS =
+#LDLIBS += $(HOST_LIB_DIR)/libboost_system-mt.a
+#LDLIBS += $(HOST_LIB_DIR)/libboost_date_time-mt.a
+#LDLIBS += $(HOST_LIB_DIR)/libboost_filesystem-mt.a
+#LDLIBS += $(HOST_LIB_DIR)/libboost_program_options-mt.a
+##LDLIBS += $(HOST_LIB_DIR)/libssl-mt.a
+##LDLIBS += $(HOST_LIB_DIR)/libcrypto-mt.a
+##LDLIBS += $(HOST_LIB_DIR)/libz-mt.a
 
 
 # colx-qt binary #
@@ -496,7 +498,6 @@ moc_%.cpp: %.h
 	@$(MKDIR_P) $(@D)
 	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(LRELEASE) -silent $< -qm $@
 
-.PHONY: test
-
-test:
-	$(info $$BOOST_LIBS is [${BOOST_LIBS}])
+#.PHONY: test
+#test:
+#	$(info $$BOOST_LIBS is [${BOOST_LIBS}])

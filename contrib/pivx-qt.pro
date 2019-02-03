@@ -34,8 +34,8 @@ DEPENDPATH += . \
               src/leveldb/include/leveldb \
               src/leveldb/port/win \
               src/secp256k1/src/java \
-              src/i2pd/libi2pd \
-              src/i2pd/libi2pd_client
+              src/i2pd/apii2pd \
+              src/i2pd/apii2pd_client
 INCLUDEPATH += . \
                src \
                src/config \
@@ -56,8 +56,8 @@ INCLUDEPATH += . \
                src/qt/test \
                src/secp256k1/src \
                src/secp256k1/src/java \
-               src/i2pd/libi2pd \
-               src/i2pd/libi2pd_client
+               src/i2pd/apii2pd \
+               src/i2pd/apii2pd_client
 
 # Input
 #           src/net.h \
@@ -337,72 +337,72 @@ HEADERS += src/activemasternode.h \
            src/leveldb/include/leveldb/write_batch.h \
            src/leveldb/port/win/stdint.h \
            src/secp256k1/src/java/org_bitcoin_NativeSecp256k1.h \
-           src/i2pd/libi2pd/api.h \
-           src/i2pd/libi2pd/Base.h \
-           src/i2pd/libi2pd/BloomFilter.h \
-           src/i2pd/libi2pd/ChaCha20.h \
-           src/i2pd/libi2pd/Config.h \
-           src/i2pd/libi2pd/CPU.h \
-           src/i2pd/libi2pd/Crypto.h \
-           src/i2pd/libi2pd/CryptoKey.h \
-           src/i2pd/libi2pd/CryptoWorker.h \
-           src/i2pd/libi2pd/Datagram.h \
-           src/i2pd/libi2pd/Destination.h \
-           src/i2pd/libi2pd/Ed25519.h \
-           src/i2pd/libi2pd/Event.h \
-           src/i2pd/libi2pd/Family.h \
-           src/i2pd/libi2pd/FS.h \
-           src/i2pd/libi2pd/Garlic.h \
-           src/i2pd/libi2pd/Gost.h \
-           src/i2pd/libi2pd/Gzip.h \
-           src/i2pd/libi2pd/HTTP.h \
-           src/i2pd/libi2pd/I2NPProtocol.h \
-           src/i2pd/libi2pd/I2PEndian.h \
-           src/i2pd/libi2pd/Identity.h \
-           src/i2pd/libi2pd/LeaseSet.h \
-           src/i2pd/libi2pd/LittleBigEndian.h \
-           src/i2pd/libi2pd/Log.h \
-           src/i2pd/libi2pd/NetDbRequests.h \
-           src/i2pd/libi2pd/NTCP2.h \
-           src/i2pd/libi2pd/NTCPSession.h \
-           src/i2pd/libi2pd/Poly1305.h \
-           src/i2pd/libi2pd/Profiling.h \
-           src/i2pd/libi2pd/Queue.h \
-           src/i2pd/libi2pd/Reseed.h \
-           src/i2pd/libi2pd/RouterContext.h \
-           src/i2pd/libi2pd/RouterInfo.h \
-           src/i2pd/libi2pd/Signature.h \
-           src/i2pd/libi2pd/Siphash.h \
-           src/i2pd/libi2pd/SSU.h \
-           src/i2pd/libi2pd/SSUData.h \
-           src/i2pd/libi2pd/SSUSession.h \
-           src/i2pd/libi2pd/Streaming.h \
-           src/i2pd/libi2pd/Tag.h \
-           src/i2pd/libi2pd/Timestamp.h \
-           src/i2pd/libi2pd/TransitTunnel.h \
-           src/i2pd/libi2pd/Transports.h \
-           src/i2pd/libi2pd/TransportSession.h \
-           src/i2pd/libi2pd/Tunnel.h \
-           src/i2pd/libi2pd/TunnelBase.h \
-           src/i2pd/libi2pd/TunnelConfig.h \
-           src/i2pd/libi2pd/TunnelEndpoint.h \
-           src/i2pd/libi2pd/TunnelGateway.h \
-           src/i2pd/libi2pd/TunnelPool.h \
-           src/i2pd/libi2pd/util.h \
-           src/i2pd/libi2pd/version.h \
-           src/i2pd/libi2pd_client/AddressBook.h \
-           src/i2pd/libi2pd_client/BOB.h \
-           src/i2pd/libi2pd_client/ClientContext.h \
-           src/i2pd/libi2pd_client/HTTPProxy.h \
-           src/i2pd/libi2pd_client/I2CP.h \
-           src/i2pd/libi2pd_client/I2PPureTunnel.h \
-           src/i2pd/libi2pd_client/I2PService.h \
-           src/i2pd/libi2pd_client/I2PTunnel.h \
-           src/i2pd/libi2pd_client/MatchedDestination.h \
-           src/i2pd/libi2pd_client/SAM.h \
-           src/i2pd/libi2pd_client/SOCKS.h \
-           src/i2pd/libi2pd_client/Websocket.h \
-           src/i2pd/libi2pd_client/WebSocks.h \
+           src/i2pd/apii2pd/api.h \
+           src/i2pd/apii2pd/Base.h \
+           src/i2pd/apii2pd/BloomFilter.h \
+           src/i2pd/apii2pd/ChaCha20.h \
+           src/i2pd/apii2pd/Config.h \
+           src/i2pd/apii2pd/CPU.h \
+           src/i2pd/apii2pd/Crypto.h \
+           src/i2pd/apii2pd/CryptoKey.h \
+           src/i2pd/apii2pd/CryptoWorker.h \
+           src/i2pd/apii2pd/Datagram.h \
+           src/i2pd/apii2pd/Destination.h \
+           src/i2pd/apii2pd/Ed25519.h \
+           src/i2pd/apii2pd/Event.h \
+           src/i2pd/apii2pd/Family.h \
+           src/i2pd/apii2pd/FS.h \
+           src/i2pd/apii2pd/Garlic.h \
+           src/i2pd/apii2pd/Gost.h \
+           src/i2pd/apii2pd/Gzip.h \
+           src/i2pd/apii2pd/HTTP.h \
+           src/i2pd/apii2pd/I2NPProtocol.h \
+           src/i2pd/apii2pd/I2PEndian.h \
+           src/i2pd/apii2pd/Identity.h \
+           src/i2pd/apii2pd/LeaseSet.h \
+           src/i2pd/apii2pd/LittleBigEndian.h \
+           src/i2pd/apii2pd/Log.h \
+           src/i2pd/apii2pd/NetDbRequests.h \
+           src/i2pd/apii2pd/NTCP2.h \
+           src/i2pd/apii2pd/NTCPSession.h \
+           src/i2pd/apii2pd/Poly1305.h \
+           src/i2pd/apii2pd/Profiling.h \
+           src/i2pd/apii2pd/Queue.h \
+           src/i2pd/apii2pd/Reseed.h \
+           src/i2pd/apii2pd/RouterContext.h \
+           src/i2pd/apii2pd/RouterInfo.h \
+           src/i2pd/apii2pd/Signature.h \
+           src/i2pd/apii2pd/Siphash.h \
+           src/i2pd/apii2pd/SSU.h \
+           src/i2pd/apii2pd/SSUData.h \
+           src/i2pd/apii2pd/SSUSession.h \
+           src/i2pd/apii2pd/Streaming.h \
+           src/i2pd/apii2pd/Tag.h \
+           src/i2pd/apii2pd/Timestamp.h \
+           src/i2pd/apii2pd/TransitTunnel.h \
+           src/i2pd/apii2pd/Transports.h \
+           src/i2pd/apii2pd/TransportSession.h \
+           src/i2pd/apii2pd/Tunnel.h \
+           src/i2pd/apii2pd/TunnelBase.h \
+           src/i2pd/apii2pd/TunnelConfig.h \
+           src/i2pd/apii2pd/TunnelEndpoint.h \
+           src/i2pd/apii2pd/TunnelGateway.h \
+           src/i2pd/apii2pd/TunnelPool.h \
+           src/i2pd/apii2pd/util.h \
+           src/i2pd/apii2pd/version.h \
+           src/i2pd/apii2pd_client/AddressBook.h \
+           src/i2pd/apii2pd_client/BOB.h \
+           src/i2pd/apii2pd_client/ClientContext.h \
+           src/i2pd/apii2pd_client/HTTPProxy.h \
+           src/i2pd/apii2pd_client/I2CP.h \
+           src/i2pd/apii2pd_client/I2PPureTunnel.h \
+           src/i2pd/apii2pd_client/I2PService.h \
+           src/i2pd/apii2pd_client/I2PTunnel.h \
+           src/i2pd/apii2pd_client/MatchedDestination.h \
+           src/i2pd/apii2pd_client/SAM.h \
+           src/i2pd/apii2pd_client/SOCKS.h \
+           src/i2pd/apii2pd_client/Websocket.h \
+           src/i2pd/apii2pd_client/WebSocks.h \
            src/crypto/aes_helper.c \
            src/qt/bitcoinamountfield.moc \
            src/qt/colx.moc \
@@ -714,65 +714,65 @@ SOURCES += src/activemasternode.cpp \
            src/leveldb/helpers/memenv/memenv.cc \
            src/leveldb/helpers/memenv/memenv_test.cc \
            src/secp256k1/src/java/org_bitcoin_NativeSecp256k1.c \
-           src/i2pd/libi2pd/api.cpp \
-           src/i2pd/libi2pd/Base.cpp \
-           src/i2pd/libi2pd/BloomFilter.cpp \
-           src/i2pd/libi2pd/ChaCha20.cpp \
-           src/i2pd/libi2pd/Config.cpp \
-           src/i2pd/libi2pd/CPU.cpp \
-           src/i2pd/libi2pd/Crypto.cpp \
-           src/i2pd/libi2pd/CryptoKey.cpp \
-           src/i2pd/libi2pd/Datagram.cpp \
-           src/i2pd/libi2pd/Destination.cpp \
-           src/i2pd/libi2pd/Ed25519.cpp \
-           src/i2pd/libi2pd/Event.cpp \
-           src/i2pd/libi2pd/Family.cpp \
-           src/i2pd/libi2pd/FS.cpp \
-           src/i2pd/libi2pd/Garlic.cpp \
-           src/i2pd/libi2pd/Gost.cpp \
-           src/i2pd/libi2pd/Gzip.cpp \
-           src/i2pd/libi2pd/HTTP.cpp \
-           src/i2pd/libi2pd/I2NPProtocol.cpp \
-           src/i2pd/libi2pd/I2PEndian.cpp \
-           src/i2pd/libi2pd/Identity.cpp \
-           src/i2pd/libi2pd/LeaseSet.cpp \
-           src/i2pd/libi2pd/Log.cpp \
-           src/i2pd/libi2pd/NetDb.cpp \
-           src/i2pd/libi2pd/NetDb.hpp \
-           src/i2pd/libi2pd/NetDbRequests.cpp \
-           src/i2pd/libi2pd/NTCP2.cpp \
-           src/i2pd/libi2pd/NTCPSession.cpp \
-           src/i2pd/libi2pd/Poly1305.cpp \
-           src/i2pd/libi2pd/Profiling.cpp \
-           src/i2pd/libi2pd/Reseed.cpp \
-           src/i2pd/libi2pd/RouterContext.cpp \
-           src/i2pd/libi2pd/RouterInfo.cpp \
-           src/i2pd/libi2pd/Signature.cpp \
-           src/i2pd/libi2pd/SSU.cpp \
-           src/i2pd/libi2pd/SSUData.cpp \
-           src/i2pd/libi2pd/SSUSession.cpp \
-           src/i2pd/libi2pd/Streaming.cpp \
-           src/i2pd/libi2pd/Timestamp.cpp \
-           src/i2pd/libi2pd/TransitTunnel.cpp \
-           src/i2pd/libi2pd/Transports.cpp \
-           src/i2pd/libi2pd/Tunnel.cpp \
-           src/i2pd/libi2pd/TunnelEndpoint.cpp \
-           src/i2pd/libi2pd/TunnelGateway.cpp \
-           src/i2pd/libi2pd/TunnelPool.cpp \
-           src/i2pd/libi2pd/util.cpp \
-           src/i2pd/libi2pd_client/AddressBook.cpp \
-           src/i2pd/libi2pd_client/BOB.cpp \
-           src/i2pd/libi2pd_client/ClientContext.cpp \
-           src/i2pd/libi2pd_client/HTTPProxy.cpp \
-           src/i2pd/libi2pd_client/I2CP.cpp \
-           src/i2pd/libi2pd_client/I2PPureTunnel.cpp \
-           src/i2pd/libi2pd_client/I2PService.cpp \
-           src/i2pd/libi2pd_client/I2PTunnel.cpp \
-           src/i2pd/libi2pd_client/MatchedDestination.cpp \
-           src/i2pd/libi2pd_client/SAM.cpp \
-           src/i2pd/libi2pd_client/SOCKS.cpp \
-           src/i2pd/libi2pd_client/Websocket.cpp \
-           src/i2pd/libi2pd_client/WebSocks.cpp \
+           src/i2pd/apii2pd/api.cpp \
+           src/i2pd/apii2pd/Base.cpp \
+           src/i2pd/apii2pd/BloomFilter.cpp \
+           src/i2pd/apii2pd/ChaCha20.cpp \
+           src/i2pd/apii2pd/Config.cpp \
+           src/i2pd/apii2pd/CPU.cpp \
+           src/i2pd/apii2pd/Crypto.cpp \
+           src/i2pd/apii2pd/CryptoKey.cpp \
+           src/i2pd/apii2pd/Datagram.cpp \
+           src/i2pd/apii2pd/Destination.cpp \
+           src/i2pd/apii2pd/Ed25519.cpp \
+           src/i2pd/apii2pd/Event.cpp \
+           src/i2pd/apii2pd/Family.cpp \
+           src/i2pd/apii2pd/FS.cpp \
+           src/i2pd/apii2pd/Garlic.cpp \
+           src/i2pd/apii2pd/Gost.cpp \
+           src/i2pd/apii2pd/Gzip.cpp \
+           src/i2pd/apii2pd/HTTP.cpp \
+           src/i2pd/apii2pd/I2NPProtocol.cpp \
+           src/i2pd/apii2pd/I2PEndian.cpp \
+           src/i2pd/apii2pd/Identity.cpp \
+           src/i2pd/apii2pd/LeaseSet.cpp \
+           src/i2pd/apii2pd/Log.cpp \
+           src/i2pd/apii2pd/NetDb.cpp \
+           src/i2pd/apii2pd/NetDb.hpp \
+           src/i2pd/apii2pd/NetDbRequests.cpp \
+           src/i2pd/apii2pd/NTCP2.cpp \
+           src/i2pd/apii2pd/NTCPSession.cpp \
+           src/i2pd/apii2pd/Poly1305.cpp \
+           src/i2pd/apii2pd/Profiling.cpp \
+           src/i2pd/apii2pd/Reseed.cpp \
+           src/i2pd/apii2pd/RouterContext.cpp \
+           src/i2pd/apii2pd/RouterInfo.cpp \
+           src/i2pd/apii2pd/Signature.cpp \
+           src/i2pd/apii2pd/SSU.cpp \
+           src/i2pd/apii2pd/SSUData.cpp \
+           src/i2pd/apii2pd/SSUSession.cpp \
+           src/i2pd/apii2pd/Streaming.cpp \
+           src/i2pd/apii2pd/Timestamp.cpp \
+           src/i2pd/apii2pd/TransitTunnel.cpp \
+           src/i2pd/apii2pd/Transports.cpp \
+           src/i2pd/apii2pd/Tunnel.cpp \
+           src/i2pd/apii2pd/TunnelEndpoint.cpp \
+           src/i2pd/apii2pd/TunnelGateway.cpp \
+           src/i2pd/apii2pd/TunnelPool.cpp \
+           src/i2pd/apii2pd/util.cpp \
+           src/i2pd/apii2pd_client/AddressBook.cpp \
+           src/i2pd/apii2pd_client/BOB.cpp \
+           src/i2pd/apii2pd_client/ClientContext.cpp \
+           src/i2pd/apii2pd_client/HTTPProxy.cpp \
+           src/i2pd/apii2pd_client/I2CP.cpp \
+           src/i2pd/apii2pd_client/I2PPureTunnel.cpp \
+           src/i2pd/apii2pd_client/I2PService.cpp \
+           src/i2pd/apii2pd_client/I2PTunnel.cpp \
+           src/i2pd/apii2pd_client/MatchedDestination.cpp \
+           src/i2pd/apii2pd_client/SAM.cpp \
+           src/i2pd/apii2pd_client/SOCKS.cpp \
+           src/i2pd/apii2pd_client/Websocket.cpp \
+           src/i2pd/apii2pd_client/WebSocks.cpp \
 RESOURCES += src/qt/colx.qrc src/qt/colx_locale.qrc
 
 TRANSLATIONS += src/qt/locale/colx_bg.ts \
