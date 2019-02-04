@@ -54,28 +54,33 @@ $(LIBMINIZIP):
 # i2pd - 2 libs, see if this is the best way
 I2PD_CPPFLAGS += -I$(srcdir)/i2pd/apii2pd
 I2PD_CPPFLAGS += -I$(srcdir)/i2pd/apii2pd_client
+I2PD_CPPFLAGS += -I$(srcdir)/i2pd
 LIBI2PD += $(builddir)/i2pd/libi2pd.a
 LIBI2PDCLIENT += $(builddir)/i2pd/libi2pdclient.a
+LIBI2PDDAEMON += $(builddir)/i2pd/libi2pddaemon.a
 
 # add mkdir here?	@$(MKDIR_P) $(builddir)/obj
 # NOTE: The dependency in case that's an issue
+
+$(LIBI2PDDAEMON) : $(LIBI2PDCLIENT)
+#$(LIBI2PD)
+
 $(LIBI2PDCLIENT): $(LIBI2PD)
 
-#  $(SSL_LIBS) $(CRYPTO_LIBS)
-#$(LIBI2PDCLIENT) $(LIBI2PD):
+$(LIBI2PDDAEMON) $(LIBI2PDCLIENT) $(LIBI2PD):
+	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
+	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
+		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
+
+#$(LIBI2PD): $(wildcard i2pd/apii2pd/*.cpp)
 #	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
 #	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
 #		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
 
-$(LIBI2PD): $(wildcard i2pd/apii2pd/*.cpp)
-	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
-	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
-		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
-
-$(LIBI2PDCLIENT): $(wildcard i2pd/apii2pd_client/*.cpp)
-	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
-	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
-		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
+#$(LIBI2PDCLIENT): $(wildcard i2pd/apii2pd_client/*.cpp)
+#	@echo "Building i2pd ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
+#	  CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" \
+#		  OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)"
 
 #$(LIBI2PDCLIENT): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
 #	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
@@ -261,7 +266,11 @@ BITCOIN_CORE_H = \
   i2pd/apii2pd_client/SAM.h \
   i2pd/apii2pd_client/SOCKS.h \
   i2pd/apii2pd_client/Websocket.h \
-  i2pd/apii2pd_client/WebSocks.h
+  i2pd/apii2pd_client/WebSocks.h \
+  i2pd/Daemon.h \
+  i2pd/HTTPServer.h \
+  i2pd/I2PControl.h \
+  i2pd/UPnP.h
 
 if TARGET_WINDOWS
 BITCOIN_CORE_H +=
@@ -544,8 +553,9 @@ colxd_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1) \
   $(LIBMINIZIP) \
-  $(LIBI2PD) \
-  $(LIBI2PDCLIENT)
+  $(LIBI2PDDAEMON) \
+  $(LIBI2PDCLIENT) \
+  $(LIBI2PD) 
 
 colxd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CURL_LIBS)
 
@@ -565,7 +575,8 @@ colx_cli_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBI2PD) \
-  $(LIBI2PDCLIENT)
+  $(LIBI2PDCLIENT) \
+  $(LIBI2PDDAEMON)
 
 colx_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS) $(CURL_LIBS)
 #
@@ -588,7 +599,8 @@ colx_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1) \
   $(LIBI2PD) \
-  $(LIBI2PDCLIENT)
+  $(LIBI2PDCLIENT) \
+  $(LIBI2PDDAEMON)
 
 colx_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(CURL_LIBS)
 #
@@ -660,7 +672,7 @@ endif
 
 libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
 libbitcoinconsensus_la_LIBADD = $(CRYPTO_LIBS) $(BOOST_LIBS)
-libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -I$(srcdir)/i2pd/apii2pd_client -I$(srcdir)/i2pd/apii2pd -DBUILD_BITCOIN_INTERNAL
+libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj $(I2PD_CPPFLAGS) -DBUILD_BITCOIN_INTERNAL
 # libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
 if TARGET_WINDOWS
 libbitcoinconsensus_la_CPPFLAGS +=  -I$(srcdir)/secp256k1/include
@@ -682,7 +694,7 @@ CLEANFILES += script/*.gcda script/*.gcno
 CLEANFILES += univalue/*.gcda univalue/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
 CLEANFILES += obj/build.h
-CLEANFILES += i2pd/apii2pd/libi2pd.a i2pd/apii2pd_client/libi2pdclient.a i2pd/libi2pd.a i2pd/libi2pdclient.a
+CLEANFILES += i2pd/apii2pd/libi2pd.a i2pd/apii2pd_client/libi2pdclient.a i2pd/libi2pd.a i2pd/libi2pdclient.a i2pd/libi2pddaemon.a
 
 
 EXTRA_DIST = leveldb i2pd

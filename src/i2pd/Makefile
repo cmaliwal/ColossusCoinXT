@@ -29,30 +29,16 @@ include build_config.mk
 #PLATFORM_SHARED_VERSIONED=true
 
 LIB_SRC_DIR := apii2pd_client
-# libi2pd_client
 APII2PD_SRC_DIR := apii2pd
-# libi2pd
+DAEMON_SRC_DIR = .
 APII2PD_CLIENT_SRC_DIR := $(LIB_SRC_DIR)
-
-#LIB_SRC = $(wildcard $(LIB_SRC_DIR)/*.cpp)
-#LIB_CLIENT_SRC = $(wildcard $(LIB_CLIENT_SRC_DIR)/*.cpp)
-#LIB_SRC := $(wildcard $(LIB_SRC_DIR)/*.cpp)
-#APII2PD_SRC := $(wildcard $(APII2PD_SRC_DIR)/*.cpp)
-#APII2PD_CLIENT_SRC := $(LIB_SRC)
 
 #include filelist.mk
 
 SOURCES = $(wildcard $(LIB_SRC_DIR)/*.cpp)
-
-#SOURCES = $(wildcard apii2pd_client/*.cpp)
-
-#APII2PD_SOURCES = $(wildcard apii2pd/*.cpp)
-
-APII2PD_CLIENT_SOURCES = $(SOURCES)
-
 APII2PD_SOURCES = $(wildcard $(APII2PD_SRC_DIR)/*.cpp)
-
-#$(APII2PD_SRC)
+DAEMON_SOURCES = $(wildcard $(DAEMON_SRC_DIR)/*.cpp)
+APII2PD_CLIENT_SOURCES = $(SOURCES)
 
 CFLAGS += -I. -I./include $(PLATFORM_CCFLAGS) $(OPT)
 CXXFLAGS += -I. -I./include $(PLATFORM_CXXFLAGS) $(OPT)
@@ -60,22 +46,21 @@ CXXFLAGS += -I. -I./include $(PLATFORM_CXXFLAGS) $(OPT)
 LDFLAGS += $(PLATFORM_LDFLAGS)
 LIBS += $(PLATFORM_LIBS)
 
-#LIBOBJECTS = $(APII2PD_CLIENT_SOURCES:.cc=.o)
-#APII2PD_OBJECTS = $(APII2PD_SOURCES:.cc=.o)
-#APII2PD_CLIENT_OBJECTS = $(LIBOBJECTS)
-
 LIBOBJECTS = $(patsubst %.cpp,obj/%.o,$(SOURCES))
 APII2PD_LIBOBJECTS = $(patsubst %.cpp,obj/%.o,$(APII2PD_SOURCES))
+DAEMON_LIBOBJECTS = $(patsubst %.cpp,obj/%.o,$(DAEMON_SOURCES))
 APII2PD_CLIENT_LIBOBJECTS = $(LIBOBJECTS)
 
 LIBRARY = libi2pdclient.a
 APII2PD_LIBRARY = libi2pd.a
+DAEMON_LIBRARY = libi2pddaemon.a
 APII2PD_CLIENT_LIBRARY = $(LIBRARY)
 
 # old makefile
 SYS := $(shell $(CXX) -dumpmachine)
 SHARED_LIBRARY := libi2pdclient.so
 APII2PD_SHARED_LIBRARY := libi2pd.so
+DAEMON_SHARED_LIBRARY = libi2pddaemon.so
 I2PD := i2pd
 #GREP := grep
 
@@ -121,7 +106,7 @@ ifeq ($(USE_MESHNET),yes)
 	NEEDED_CXXFLAGS += -DMESHNET
 endif
 
-NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(APII2PD_SRC_DIR)
+NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(APII2PD_SRC_DIR) -I$(DAEMON_SRC_DIR)
 
 # ...old makefile
 
@@ -133,7 +118,7 @@ default: all
 
 #all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) #$(I2PD)
 #all: $(SHARED) $(LIBRARY)
-all: mk_obj_dir $(APII2PD_LIBRARY) $(LIBRARY) # $(APII2PD_SHARED_LIBRARY) $(SHARED_LIBRARY) 
+all: mk_obj_dir $(APII2PD_LIBRARY) $(LIBRARY) $(DAEMON_LIBRARY) # $(APII2PD_SHARED_LIBRARY) $(SHARED_LIBRARY) 
 
 $(I2PD): mk_obj_dir 
 
@@ -143,7 +128,7 @@ $(I2PD): mk_obj_dir
 clean:
 	$(RM) -r obj
 	$(RM) -r docs/generated
-	$(RM) $(APII2PD_SHARED_LIBRARY) $(SHARED_LIBRARY) $(APII2PD_LIBRARY) $(LIBRARY)
+	$(RM) $(APII2PD_SHARED_LIBRARY) $(SHARED_LIBRARY) $(DAEMON_SHARED_LIBRARY) $(APII2PD_LIBRARY) $(LIBRARY) $(DAEMON_LIBRARY)
 
 #strip: $(APII2PD_SHARED_LIBRARY) $(SHARED_LIBRARY)
 #	strip $^
@@ -159,6 +144,9 @@ endif
 $(APII2PD_SHARED_LIBRARY): $(APII2PD_LIBOBJECTS)
 	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
 
+$(DAEMON_SHARED_LIBRARY): $(DAEMON_LIBOBJECTS)
+	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
+
 $(LIBRARY): $(LIBOBJECTS)
 	rm -f $@
 	$(AR) -r $@ $^
@@ -168,6 +156,11 @@ $(APII2PD_LIBRARY) : $(APII2PD_LIBOBJECTS)
 	rm -f $@
 	$(AR) -r $@ $^
 #	$(AR) -rs $@ $(APII2PD_LIBOBJECTS)
+
+$(DAEMON_LIBRARY) : $(DAEMON_LIBOBJECTS)
+	rm -f $@
+	$(AR) -r $@ $^
+#	$(AR) -rs $@ $(DAEMON_LIBOBJECTS)
 
 #$(APII2PD_LIBRARY): $(patsubst %.cpp,obj/%.o,$(APII2PD_SOURCES))
 #	$(AR) -r $@ $^

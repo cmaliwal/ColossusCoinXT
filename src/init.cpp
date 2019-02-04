@@ -50,6 +50,8 @@
 
 #endif
 
+#include "Daemon.h"
+
 #include <fstream>
 #include <stdint.h>
 #include <stdio.h>
@@ -719,7 +721,9 @@ bool AppInitServers(boost::thread_group& threadGroup)
 /** Initialize colx.
  *  @pre Parameters should be parsed and config file should be read.
  */
-bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
+//bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
+//bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc, const char* const argv[])
+bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc, char* argv[])
 {
 // ********************************************************* Step 1: setup
 #ifdef _MSC_VER
@@ -1294,6 +1298,18 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // ********************************************************* Step 6: network initialization
 
     RegisterNodeSignals(GetNodeSignals());
+
+    // I2PDK: this seems like the right place to initialize i2pd 'daemon' (what's a copy of i2pd daemon code)
+    if (Daemon.init(argc, argv))
+    {
+        if (!Daemon.start())
+            return InitError(_("i2pd daemon failed to start!"));
+        //if (Daemon.start())
+        //    Daemon.run();
+        //else
+        //    return EXIT_FAILURE;
+        //Daemon.stop();
+    }
 
     // DRAGAN: this was heavily reworked (see below), is this still ok? // Q:
     // no longer needed, but it's just a flag, to be removed

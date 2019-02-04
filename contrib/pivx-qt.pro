@@ -35,7 +35,8 @@ DEPENDPATH += . \
               src/leveldb/port/win \
               src/secp256k1/src/java \
               src/i2pd/apii2pd \
-              src/i2pd/apii2pd_client
+              src/i2pd/apii2pd_client \
+              src/i2pd
 INCLUDEPATH += . \
                src \
                src/config \
@@ -57,7 +58,8 @@ INCLUDEPATH += . \
                src/secp256k1/src \
                src/secp256k1/src/java \
                src/i2pd/apii2pd \
-               src/i2pd/apii2pd_client
+               src/i2pd/apii2pd_client \
+               src/i2pd
 
 # Input
 #           src/net.h \
@@ -403,6 +405,10 @@ HEADERS += src/activemasternode.h \
            src/i2pd/apii2pd_client/SOCKS.h \
            src/i2pd/apii2pd_client/Websocket.h \
            src/i2pd/apii2pd_client/WebSocks.h \
+           src/i2pd/Daemon.h \
+           src/i2pd/HTTPServer.h \
+           src/i2pd/I2PControl.h \
+           src/i2pd/UPnP.h \
            src/crypto/aes_helper.c \
            src/qt/bitcoinamountfield.moc \
            src/qt/colx.moc \
@@ -773,6 +779,10 @@ SOURCES += src/activemasternode.cpp \
            src/i2pd/apii2pd_client/SOCKS.cpp \
            src/i2pd/apii2pd_client/Websocket.cpp \
            src/i2pd/apii2pd_client/WebSocks.cpp \
+           src/i2pd/Daemon.cpp \
+           src/i2pd/HTTPServer.cpp \
+           src/i2pd/I2PControl.cpp \
+           src/i2pd/UPnP.cpp
 RESOURCES += src/qt/colx.qrc src/qt/colx_locale.qrc
 
 TRANSLATIONS += src/qt/locale/colx_bg.ts \

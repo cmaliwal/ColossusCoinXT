@@ -155,7 +155,7 @@ bool AppInit(int argc, char* argv[])
             LogPrintf("colxd EnableZeroMint default set to: 0 (false)\n");
         }
 
-        fRet = AppInit2(threadGroup, scheduler);
+        fRet = AppInit2(threadGroup, scheduler, argc, argv);
     } catch (std::exception& e) {
         PrintExceptionContinue(&e, "AppInit()");
     } catch (...) {

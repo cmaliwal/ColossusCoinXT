@@ -18,6 +18,20 @@
 #include "util.h"
 #include "version.h"
 
+// for httpserver call
+#include <iomanip>
+#include <sstream>
+#include <thread>
+#include <memory>
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/algorithm/string.hpp>
+
+#include "i2pd/HTTPServer.h"
+//#include "Daemon.h"
+// ...httpserver call
+
+
 #include <boost/foreach.hpp>
 
 #include <univalue.h>
@@ -555,3 +569,75 @@ UniValue clearbanned(const UniValue& params, bool fHelp)
 
     return NullUniValue;
 }
+
+UniValue getdestinations(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getdestinations\n"
+            "\nReturns data about the local i2p destinations as a json array of objects.\n"
+            "\nbResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"id\": n,                   (numeric) Peer index\n"
+            "    \"addr\":\"host:port\",      (string) The ip address and port of the peer\n"
+            "    \"addrlocal\":\"ip:port\",   (string) local address\n"
+            "    \"services\":\"xxxxxxxxxxxxxxxx\",   (string) The services offered\n"
+            "    \"lastsend\": ttt,           (numeric) The time in seconds since epoch (Jan 1 1970 GMT) of the last send\n"
+            "    \"lastrecv\": ttt,           (numeric) The time in seconds since epoch (Jan 1 1970 GMT) of the last receive\n"
+            "    \"bytessent\": n,            (numeric) The total bytes sent\n"
+            "    \"bytesrecv\": n,            (numeric) The total bytes received\n"
+            "    \"conntime\": ttt,           (numeric) The connection time in seconds since epoch (Jan 1 1970 GMT)\n"
+            "    \"timeoffset\": ttt,         (numeric) The time offset in seconds\n"
+            "    \"pingtime\": n,             (numeric) ping time\n"
+            "    \"pingwait\": n,             (numeric) ping wait\n"
+            "    \"version\": v,              (numeric) The peer version, such as 7001\n"
+            "    \"subver\": \"/COLX Core:x.x.x.x/\",  (string) The string version\n"
+            "    \"inbound\": true|false,     (boolean) Inbound (true) or Outbound (false)\n"
+            "    \"startingheight\": n,       (numeric) The starting height (block) of the peer\n"
+            "    \"banscore\": n,             (numeric) The ban score\n"
+            "    \"synced_headers\": n,       (numeric) The last header we have in common with this peer\n"
+            "    \"synced_blocks\": n,        (numeric) The last block we have in common with this peer\n"
+            "    \"inflight\": [\n"
+            "       n,                        (numeric) The heights of blocks we're currently asking from this peer\n"
+            "       ...\n"
+            "    ]\n"
+            "  }\n"
+            "  ,...\n"
+            "]\n"
+            "\nExamples:\n" +
+            HelpExampleCli("getdestinations", "") + HelpExampleRpc("getdestinations", ""));
+
+    LOCK(cs_main);
+
+    vector<CNodeStats> vstats;
+    CopyNodeStats(vstats);
+
+    UniValue ret(UniValue::VARR);
+
+    BOOST_FOREACH(const CNodeStats& stats, vstats) {
+        UniValue obj(UniValue::VOBJ);
+
+        std::stringstream s;
+        std::string content;
+
+        i2p::http::ShowLocalDestinations(s);
+        content = s.str();
+
+        obj.push_back(Pair("destinations", content));
+
+        //obj.push_back(Pair("banscore", statestats.nMisbehavior));
+        //obj.push_back(Pair("synced_headers", statestats.nSyncHeight));
+        //obj.push_back(Pair("synced_blocks", statestats.nCommonHeight));
+        //UniValue heights(UniValue::VARR);
+        //BOOST_FOREACH(int height, statestats.vHeightInFlight) {
+        //    heights.push_back(height);
+        //}
+        //obj.push_back(Pair("inflight", heights));
+
+        ret.push_back(obj);
+    }
+
+    return ret;
+}
+

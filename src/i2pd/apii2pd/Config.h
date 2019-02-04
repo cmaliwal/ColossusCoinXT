@@ -41,7 +41,9 @@ namespace config {
    *
    * Other exceptions will be passed to higher level.
    */
-  void ParseCmdline(int argc, char* argv[], bool ignoreUnknown = false);
+  //void ParseCmdline(int argc, char* argv[], bool ignoreUnknown = false);
+  void ParseCmdline(int argc, const char* const argv[], bool ignoreUnknown = false);
+  
 
   /**
    * @brief  Load and parse given config file

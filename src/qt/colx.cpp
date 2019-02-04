@@ -179,7 +179,7 @@ class BitcoinCore : public QObject
 {
     Q_OBJECT
 public:
-    explicit BitcoinCore();
+    explicit BitcoinCore(int argc, char** argv);
 
 public slots:
     void initialize();
@@ -197,6 +197,10 @@ private:
 
     /// Flag indicating a restart
     bool execute_restart;
+
+    int _argc;
+    char** _argv;
+
 
     /// Pass fatal exception message to UI thread
     void handleRunawayException(std::exception* e);
@@ -256,13 +260,17 @@ private:
     WalletModel* walletModel;
 #endif
     int returnValue;
+    int _argc;
+    char** _argv;
 
     void startThread();
 };
 
 #include "colx.moc"
 
-BitcoinCore::BitcoinCore() : QObject()
+BitcoinCore::BitcoinCore(int argc, char** argv) : QObject(),
+    _argc(argc),
+    _argv(argv)
 {
 }
 
@@ -278,7 +286,7 @@ void BitcoinCore::initialize()
 
     try {
         qDebug() << __func__ << ": Running AppInit2 in thread";
-        int rv = AppInit2(threadGroup, scheduler);
+        int rv = AppInit2(threadGroup, scheduler, _argc, _argv);
         emit initializeResult(rv);
     } catch (std::exception& e) {
         handleRunawayException(&e);
@@ -336,7 +344,9 @@ BitcoinApplication::BitcoinApplication(int& argc, char** argv) : QApplication(ar
                                                                  paymentServer(0),
                                                                  walletModel(0),
 #endif
-                                                                 returnValue(0)
+                                                                 returnValue(0),
+    _argc(argc),
+    _argv(argv)
 {
     setQuitOnLastWindowClosed(false);
 }
@@ -402,7 +412,7 @@ void BitcoinApplication::startThread()
     if (coreThread)
         return;
     coreThread = new QThread(this);
-    BitcoinCore* executor = new BitcoinCore();
+    BitcoinCore* executor = new BitcoinCore(_argc, _argv);
     executor->moveToThread(coreThread);
 
     /*  communication to and from thread */
