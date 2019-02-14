@@ -585,24 +585,36 @@ colx_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS) $(CURL_
 colx_tx_SOURCES = colx-tx.cpp
 colx_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 colx_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-colx_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+
+zlib_top_builddir := $(top_builddir)/..
+#colx_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+colx_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) -L$(zlib_top_builddir) 
+#-lz
 
 if TARGET_WINDOWS
 colx_tx_SOURCES += colx-tx-res.rc
 endif
 
 colx_tx_LDADD = \
-  $(LIBUNIVALUE) \
   $(LIBBITCOIN_COMMON) \
+  $(LIBUNIVALUE) \
   $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1) \
+  $(LIBMINIZIP) \
   $(LIBI2PD) \
   $(LIBI2PDCLIENT) \
   $(LIBI2PDDAEMON)
 
-colx_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(CURL_LIBS)
+$(info top_builddir="$(top_builddir)")
+$(info top_srcdir="$(top_srcdir)")
+$(info CURDIR="$(CURDIR)")
+ZLIBDIR := $(CURDIR)/../depends/$(MAKE_HOST)/lib
+
+#colx_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(CURL_LIBS)
+colx_tx_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CURL_LIBS)
+colx_tx_LDADD += $(ZLIBDIR)/libz.a
 #
 
 # bitcoinconsensus library #

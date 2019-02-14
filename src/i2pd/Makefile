@@ -106,7 +106,13 @@ ifeq ($(USE_MESHNET),yes)
 	NEEDED_CXXFLAGS += -DMESHNET
 endif
 
-NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(APII2PD_SRC_DIR) -I$(DAEMON_SRC_DIR)
+# this is for zlib
+zlib_top_srcdir = $(top_srcdir)/../..
+zlib_top_builddir = $(top_builddir)/../..
+#AM_CPPFLAGS = -I$(zlib_top_srcdir)
+#AM_LDFLAGS = -L$(zlib_top_builddir)
+
+NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(APII2PD_SRC_DIR) -I$(DAEMON_SRC_DIR) -I$(zlib_top_srcdir)
 
 # ...old makefile
 

@@ -1,7 +1,8 @@
 #ifndef GZIP_H__
 #define GZIP_H__
 
-#include <zlib.h>
+//#include <zlib.h>
+#include "zlib.h"
 
 namespace i2p {
 namespace data {

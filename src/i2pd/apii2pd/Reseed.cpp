@@ -6,7 +6,9 @@
 #include <boost/algorithm/string.hpp>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <zlib.h>
+
+//#include <zlib.h>
+#include "zlib.h"
 
 #include "Crypto.h"
 #include "I2PEndian.h"
