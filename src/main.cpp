@@ -4763,6 +4763,7 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
     if (pindex->nStatus & BLOCK_HAVE_DATA) {
         // TODO: deal better with duplicate blocks.
         // return state.DoS(20, error("AcceptBlock() : already have block %d %s", pindex->nHeight, pindex->GetBlockHash().ToString()), REJECT_DUPLICATE, "duplicate");
+        LogPrintf("AcceptBlock() : already have block %d %s", pindex->nHeight, pindex->GetBlockHash().ToString());
         return true;
     }
 
@@ -4777,71 +4778,85 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
     if (block.IsProofOfStake()) {
         AssertLockHeld(cs_main);
 
-        const bool isBlockFromFork = pindexPrev != nullptr && !chainActive.Contains(pindexPrev);
+        // Blocks arrives in order, so if prev block is not the tip then we are on a fork.
+        // Extra info: duplicated blocks are skipping this checks, so we don't have to worry about those here.
+        const bool isBlockFromFork = pindexPrev != nullptr && chainActive.Tip() != pindexPrev;
+
+        // Coin stake
         CTransaction &stakeTxIn = block.vtx[1];
+
+        // Inputs
+        std::vector<CTxIn> pivInputs;
+        std::vector<CTxIn> zPIVInputs;
+
+        for (const CTxIn& stakeIn : stakeTxIn.vin) {
+            if(stakeIn.scriptSig.IsZerocoinSpend()){
+                zPIVInputs.push_back(stakeIn);
+            }else{
+                pivInputs.push_back(stakeIn);
+            }
+        }
+        const bool hasPIVInputs = !pivInputs.empty();
+        const bool hasZPIVInputs = !zPIVInputs.empty();
 
         // ZC started after PoS.
         // Check for serial double spent on the same block, TODO: Move this to the proper method..
-        if(pindex->nHeight >= Params().Zerocoin_StartHeight()) {
-            vector<CBigNum> inBlockSerials;
-            for (CTransaction tx : block.vtx) {
-                for (CTxIn in: tx.vin) {
+
+        vector<CBigNum> inBlockSerials;
+        for (const CTransaction& tx : block.vtx) {
+            for (const CTxIn& in: tx.vin) {
+                if(pindex->nHeight >= Params().Zerocoin_StartHeight()) {
                     if (in.scriptSig.IsZerocoinSpend()) {
                         CoinSpend spend = TxInToZerocoinSpend(in);
                         // Check for serials double spending in the same block
-                        if (std::find(inBlockSerials.begin(), inBlockSerials.end(), spend.getCoinSerialNumber()) != inBlockSerials.end()) {
+                        if (std::find(inBlockSerials.begin(), inBlockSerials.end(), spend.getCoinSerialNumber()) !=
+                            inBlockSerials.end()) {
                             return state.DoS(100, error("%s: serial double spent on the same block", __func__));
                         }
                         inBlockSerials.push_back(spend.getCoinSerialNumber());
                     }
                 }
+                if(tx.IsCoinStake()) continue;
+                if(hasPIVInputs)
+                    // Check if coinstake input is double spent inside the same block
+                    for (const CTxIn& pivIn : pivInputs){
+                        if(pivIn.prevout == in.prevout){
+                            // double spent coinstake input inside block
+                            return error("%s: double spent coinstake input inside block", __func__);
+                        }
+                    }
             }
-            inBlockSerials.clear();
         }
+        inBlockSerials.clear();
 
         int splitHeight = -1;
+        int64_t nMaxReorganizationDepth = GetSporkValue(SPORK_19_MAX_REORGANIZATION_DEPTH);
         // Check whether is a fork or not
         if (isBlockFromFork) {
-
             // Start at the block we're adding on to
             CBlockIndex *prev = pindexPrev;
 
-            // Inputs
-            std::vector<CTxIn> pivInputs;
-            std::vector<CTxIn> zPIVInputs;
-
-            for (CTxIn stakeIn : stakeTxIn.vin) {
-                if(stakeIn.scriptSig.IsZerocoinSpend()){
-                    zPIVInputs.push_back(stakeIn);
-                }else{
-                    pivInputs.push_back(stakeIn);
-                }
-            }
-            const bool hasPIVInputs = !pivInputs.empty();
-            const bool hasZPIVInputs = !zPIVInputs.empty();
-
-            int forkLength = 0;
+            int readBlock = 0;
             vector<CBigNum> vBlockSerials;
             CBlock bl;
             // Go backwards on the forked chain up to the split
             do {
                 // Check if the forked chain is longer than the max reorg limit
-                int64_t nMaxReorganizationDepth = GetSporkValue(SPORK_19_MAX_REORGANIZATION_DEPTH);
-                if(forkLength >= nMaxReorganizationDepth){
+                if(readBlock >= nMaxReorganizationDepth){
                     // TODO: Remove this chain from disk.
                     return error("%s: forked chain longer than maximum reorg limit", __func__);
                 }
 
                 if(!ReadBlockFromDisk(bl, prev))
+                    // Previous block not on disk
                     return error("%s: previous block %s not on disk", __func__, prev->GetBlockHash().GetHex());
-                else // Increase amount of read blocks
-                    ++forkLength;
-
+                // Increase amount of read blocks
+                readBlock++;
                 // Loop through every input from said block
-                for (CTransaction t : bl.vtx) {
-                    for (CTxIn in: t.vin) {
+                for (const CTransaction& t : bl.vtx) {
+                    for (const CTxIn& in: t.vin) {
                         // Loop through every input of the staking tx
-                        for (CTxIn stakeIn : pivInputs) {
+                        for (const CTxIn& stakeIn : pivInputs) {
                             // if it's already spent
 
                             // First regular staking check
@@ -4849,10 +4864,8 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
                                 if (stakeIn.prevout == in.prevout) {
                                     return state.DoS(100, error("%s: input already spent on a previous block", __func__));
                                 }
-                            }
 
-                            // Second, if there is zPoS staking then store the serials for later check
-                            if(hasZPIVInputs) {
+                                // Second, if there is zPoS staking then store the serials for later check
                                 if(in.scriptSig.IsZerocoinSpend()){
                                     vBlockSerials.push_back(TxInToZerocoinSpend(in).getCoinSerialNumber());
                                 }
@@ -4870,13 +4883,12 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
 
             // Now that this loop if completed. Check if we have zPIV inputs.
             if(hasZPIVInputs){
-
-                for (CTxIn zPivInput : zPIVInputs) {
+                for (const CTxIn& zPivInput : zPIVInputs) {
                     CoinSpend spend = TxInToZerocoinSpend(zPivInput);
 
                     // First check if the serials were not already spent on the forked blocks.
                     CBigNum coinSerial = spend.getCoinSerialNumber();
-                    for(CBigNum serial : vBlockSerials){
+                    for(const CBigNum& serial : vBlockSerials){
                         if(serial == coinSerial){
                             return state.DoS(100, error("%s: serial double spent on fork", __func__));
                         }
@@ -4886,13 +4898,12 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
                     int nHeightTx = 0;
                     if (IsSerialInBlockchain(spend.getCoinSerialNumber(), nHeightTx)){
                         // if the height is nHeightTx > chainSplit means that the spent occurred after the chain split
-                        if(nHeightTx <= splitHeight){
+                        if(nHeightTx <= splitHeight)
                             return state.DoS(100, error("%s: serial double spent on main chain", __func__));
-                        }
                     }
 
                     if (!ContextualCheckCoinSpend(spend, pindex, stakeTxIn.GetHash(), true))
-                        return state.DoS(100,error("%s: ContextualCheckCoinSpend failed for tx %s", __func__,
+                        return state.DoS(100,error("%s: forked chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
                                                    stakeTxIn.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
 
                     // Now only the ZKP left..
@@ -4913,14 +4924,13 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
         // If the stake is not a zPoS then let's check if the inputs were spent on the main chain
         const CCoinsViewCache coins(pcoinsTip);
         if(!stakeTxIn.IsZerocoinSpend()) {
-            for (CTxIn in: stakeTxIn.vin) {
+            for (const CTxIn& in: stakeTxIn.vin) {
                 const CCoins* coin = coins.AccessCoins(in.prevout.hash);
 
                 if(!coin && !isBlockFromFork){
                     // No coins on the main chain
-                    return error("%s: coin stake inputs not available on main chain", __func__);
+                    return error("%s: coin stake inputs not available on main chain, received height %d vs current %d", __func__, pindex->nHeight, chainActive.Height());
                 }
-
                 if(coin && !coin->IsAvailable(in.prevout.n)){
                     // If this is not available get the height of the spent and validate it with the forked height
                     // Check if this occurred before the chain split
@@ -4930,6 +4940,14 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex** ppindex, 
                     }
                 }
             }
+        } else {
+            if(!isBlockFromFork)
+                for (const CTxIn& zPivInput : zPIVInputs) {
+                        CoinSpend spend = TxInToZerocoinSpend(zPivInput);
+                        if (!ContextualCheckCoinSpend(spend, pindex, stakeTxIn.GetHash()))
+                            return state.DoS(100,error("%s: main chain ContextualCheckCoinSpend failed for tx %s", __func__,
+                                    stakeTxIn.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
+                }
         }
     }
 
@@ -5067,7 +5085,7 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
     }
 
     // Store to disk
-    CBlockIndex* pindex = NULL;
+    CBlockIndex* pindex = nullptr;
     bool ret = AcceptBlock(*pblock, state, &pindex, dbp, checked);
     if (pindex && pfrom) {
         mapBlockSource[pindex->GetBlockHash()] = pfrom->GetId();
@@ -5077,21 +5095,22 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
 
     if (!ret) {
         // Check spamming
-        if (pfrom && GetBoolArg("-blockspamfilter", DEFAULT_BLOCK_SPAM_FILTER)) {
+        if (pindex && pfrom && GetBoolArg("-blockspamfilter", DEFAULT_BLOCK_SPAM_FILTER)) {
             CNodeState *nodestate = State(pfrom->GetId());
-            nodestate->nodeBlocks.onBlockReceived(pindex->nHeight);
-            bool nodeStatus = true;
-            // UpdateState will return false if the node is attacking us or update the score and return true.
-            nodeStatus = nodestate->nodeBlocks.updateState(state, nodeStatus);
-            int nDoS = 0;
-            if (state.IsInvalid(nDoS)) {
-                if (nDoS > 0)
-                    Misbehaving(pfrom->GetId(), nDoS);
-                nodeStatus = false;
+            if (nodestate != nullptr) {
+                nodestate->nodeBlocks.onBlockReceived(pindex->nHeight);
+                bool nodeStatus = true;
+                // UpdateState will return false if the node is attacking us or update the score and return true.
+                nodeStatus = nodestate->nodeBlocks.updateState(state, nodeStatus);
+                int nDoS = 0;
+                if (state.IsInvalid(nDoS)) {
+                    if (nDoS > 0)
+                        Misbehaving(pfrom->GetId(), nDoS);
+                    nodeStatus = false;
+                }
+                if (!nodeStatus)
+                    return error("%s : AcceptBlock FAILED - block spam protection", __func__);
             }
-
-            if (!nodeStatus)
-                return error("%s : AcceptBlock FAILED - block spam protection", __func__);
         }
         return error("%s : AcceptBlock FAILED", __func__);
     }
