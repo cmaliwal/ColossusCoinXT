@@ -35,16 +35,28 @@ namespace i2p
         typedef std::function<void(std::shared_ptr<I2PPureTunnelConnection> connection)> ConnectionCreatedCallback;
         typedef std::function<void(std::shared_ptr<I2PPureTunnelConnection> connection)> ClientConnectedCallback;
         typedef std::function<void(const boost::system::error_code& ecode)> ContinueToReceiveCallback;
-        typedef std::function<void(std::string, ContinueToReceiveCallback)> ReceivedCallback;
+        // typedef std::function<void(std::string, ContinueToReceiveCallback)> ReceivedCallback;
+        typedef std::function<void(const uint8_t * buf, size_t len, ContinueToReceiveCallback)> ReceivedCallback;
         typedef std::function<void(const char* msg, size_t len)> SendCallback;
         typedef std::function<void()> ReadyToSendCallback;
         typedef std::function<void(const boost::system::error_code& ecode)> ErrorSendCallback;
         typedef std::function<void(const char*, size_t, ReadyToSendCallback, ErrorSendCallback)> SendMoreCallback;
 
+        typedef std::function<void(
+            std::shared_ptr<I2PPureServerTunnel> tunnel, 
+            std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)> ServerConnectionCreatedCallback;
+
+        typedef std::function<void(
+            std::shared_ptr<I2PPureServerTunnel> tunnel, 
+            std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)> ServerClientConnectedCallback;
+
         // this is really the same callback signature as the ClientConnected, but let's separate if needed
-        typedef std::function<void(std::shared_ptr<I2PPureServerTunnel> tunnel)> ServerStreamAcceptedCallback;
-        typedef std::function<void(std::shared_ptr<I2PPureServerTunnel> tunnel, std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)> ServerConnectionCreatedCallback;
-        typedef std::function<void(std::shared_ptr<I2PPureServerTunnel> tunnel, std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)> ServerClientConnectedCallback;
+        typedef std::function<void(
+            std::shared_ptr<I2PPureServerTunnel> tunnel, 
+            std::string identity,
+            ServerConnectionCreatedCallback& connectionCreatedCallback,
+            ServerClientConnectedCallback& connectedCallback,
+            ReceivedCallback& receivedCallback)> ServerStreamAcceptedCallback;
 
         class I2PPureTunnelConnection : public I2PServiceHandler, public std::enable_shared_from_this<I2PPureTunnelConnection>
         {
@@ -56,7 +68,7 @@ namespace i2p
             // std::shared_ptr<boost::asio::ip::tcp::socket> socket,
             I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
             I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream, ReceivedCallback receivedCallback); // to I2P using simplified API
-            I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream, const boost::asio::ip::tcp::endpoint& target, bool quiet = true); // from I2P
+            I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream, const boost::asio::ip::tcp::endpoint& target, ReceivedCallback receivedCallback, bool quiet = true); // from I2P
             ~I2PPureTunnelConnection();
             void I2PConnect(const uint8_t * msg = nullptr, size_t len = 0);
             void Connect(bool isUniqueLocal = true);
@@ -71,6 +83,8 @@ namespace i2p
             void HandleWriteAsync(const boost::system::error_code& ecode);
             // moved to public to be able to callback
             //void HandleWrite(const boost::system::error_code& ecode);
+
+            std::string GetRemoteIdentity() { return m_Stream ? m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32() : ""; }
 
         protected:
             void Terminate();
@@ -161,35 +175,37 @@ namespace i2p
         class I2PPureServerTunnel : public I2PService
         {
             ServerStreamAcceptedCallback _acceptedCallback;
-            ServerConnectionCreatedCallback _connectionCreatedCallback;
-            ServerClientConnectedCallback _clientConnectedCallback;
-            ReceivedCallback _receivedCallback;
-            SendCallback _sendCallback;
-            SendMoreCallback _sendMoreCallback;
+            // ServerConnectionCreatedCallback _connectionCreatedCallback;
+            // ServerClientConnectedCallback _clientConnectedCallback;
+            // ReceivedCallback _receivedCallback;
+            // SendCallback _sendCallback;
+            // SendMoreCallback _sendMoreCallback;
 
         public:
             I2PPureServerTunnel(const std::string& name, const std::string& address, int port,
-                std::shared_ptr<ClientDestination> localDestination, int inport = 0, bool gzip = true,
-                ServerStreamAcceptedCallback acceptedCallback = nullptr);
+                std::shared_ptr<ClientDestination> localDestination, int inport = 0, bool gzip = true);
+            I2PPureServerTunnel(const std::string& name, const std::string& address, int port,
+                std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip,
+                ServerStreamAcceptedCallback acceptedCallback);
 
             // callbacks have to be set a bit later on (ctor goes before node is created).
             void SetAcceptedCallback(ServerStreamAcceptedCallback acceptedCallback) { _acceptedCallback = acceptedCallback; }
             ServerStreamAcceptedCallback GetAcceptedCallback() { return _acceptedCallback; }
 
-            void SetConnectionCreatedCallback(ServerConnectionCreatedCallback connectionCreatedCallback) { _connectionCreatedCallback = connectionCreatedCallback; }
-            ServerConnectionCreatedCallback GetConnectionCreatedCallback() { return _connectionCreatedCallback; }
+            // void SetConnectionCreatedCallback(ServerConnectionCreatedCallback connectionCreatedCallback) { _connectionCreatedCallback = connectionCreatedCallback; }
+            // ServerConnectionCreatedCallback GetConnectionCreatedCallback() { return _connectionCreatedCallback; }
 
-            void SetConnectedCallback(ServerClientConnectedCallback connectedCallback) { _clientConnectedCallback = connectedCallback; }
-            ServerClientConnectedCallback GetConnectedCallback() { return _clientConnectedCallback; }
+            // void SetConnectedCallback(ServerClientConnectedCallback connectedCallback) { _clientConnectedCallback = connectedCallback; }
+            // ServerClientConnectedCallback GetConnectedCallback() { return _clientConnectedCallback; }
 
-            void SetReceivedCallback(ReceivedCallback receivedCallback) { _receivedCallback = receivedCallback; }
-            ReceivedCallback GetReceivedCallback() { return _receivedCallback; }
+            // void SetReceivedCallback(ReceivedCallback receivedCallback) { _receivedCallback = receivedCallback; }
+            // ReceivedCallback GetReceivedCallback() { return _receivedCallback; }
 
-            void SetSendCallback(SendCallback sendCallback) { _sendCallback = sendCallback; }
-            SendCallback GetSendCallback() { return _sendCallback; }
+            // void SetSendCallback(SendCallback sendCallback) { _sendCallback = sendCallback; }
+            // SendCallback GetSendCallback() { return _sendCallback; }
 
-            void SetSendMoreCallback(SendMoreCallback sendMoreCallback) { _sendMoreCallback = sendMoreCallback; }
-            SendMoreCallback GetSendMoreCallback() { return _sendMoreCallback; }
+            // void SetSendMoreCallback(SendMoreCallback sendMoreCallback) { _sendMoreCallback = sendMoreCallback; }
+            // SendMoreCallback GetSendMoreCallback() { return _sendMoreCallback; }
 
 
             void Start();

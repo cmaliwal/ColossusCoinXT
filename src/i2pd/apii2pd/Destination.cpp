@@ -266,7 +266,8 @@ namespace client
 	std::shared_ptr<const i2p::data::LocalLeaseSet> LeaseSetDestination::GetLeaseSet ()
 	{
 		if (!m_Pool) return nullptr;
-		if (!m_LeaseSet)
+		// adding IsExpired check to force it?
+		if (!m_LeaseSet || m_LeaseSet->IsExpired())
 			UpdateLeaseSet ();
 		std::lock_guard<std::mutex> l(m_LeaseSetMutex);
 		return m_LeaseSet;
@@ -591,6 +592,8 @@ namespace client
 
 	bool LeaseSetDestination::RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete)
 	{
+		// // FIX to allow this to pass, as not sure why local lease set is not ready?
+		//if (!m_Pool || !m_LeaseSet)
 		if (!m_Pool || !IsReady ())
 		{
 			if (requestComplete)
@@ -655,6 +658,15 @@ namespace client
 			LogPrint (eLogError, "Destination: Can't request LeaseSet, no floodfills found");
 			if (requestComplete) requestComplete (nullptr);
 		}
+	}
+
+	bool LeaseSetDestination::AreTunnelsReady () const 
+	{ 
+		return 
+			m_LeaseSet && 
+			!m_LeaseSet->IsExpired () && 
+			m_Pool->GetOutboundTunnels ().size () > 0 &&
+			m_Pool->GetInboundTunnels ().size () > 0; 
 	}
 
 	bool LeaseSetDestination::SendLeaseSetRequest (const i2p::data::IdentHash& dest,

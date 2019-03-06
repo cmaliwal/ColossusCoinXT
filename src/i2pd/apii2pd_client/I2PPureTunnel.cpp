@@ -46,12 +46,16 @@ namespace i2p
         {
         }
 
-        I2PPureTunnelConnection::I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+        I2PPureTunnelConnection::I2PPureTunnelConnection(
+            I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
             //std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
-            const boost::asio::ip::tcp::endpoint& target, bool quiet) :
+            const boost::asio::ip::tcp::endpoint& target, 
+            ReceivedCallback receivedCallback,
+            bool quiet) :
             I2PServiceHandler(owner), 
             //m_Socket(socket), 
             m_Stream(stream),
+            _receivedCallback(receivedCallback),
             //m_RemoteEndpoint(target), 
             m_IsQuiet(quiet)
         {
@@ -166,7 +170,13 @@ namespace i2p
         }
         void I2PPureTunnelConnection::HandleSendReadyRaw(const uint8_t * buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
         {
+            // message is never nullstr, and it shouldn't be empty() either
+            // std::string message((const char*)buf, len);
+            std::string message((const char*)buf, std::min((int)len, 30));
+
             LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendReady: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
+            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendReady: Sending... '", message, "' (", len, ")...");
+
             if (m_Stream)
             {
                 auto s = shared_from_this();
@@ -203,6 +213,13 @@ namespace i2p
         }
         void I2PPureTunnelConnection::HandleSendRaw(const uint8_t * buf, size_t len)
         {
+            // message is never nullstr, and it shouldn't be empty() either
+            // std::string message((const char*)buf, len);
+            std::string message((const char*)buf, std::min((int)len, 30));
+
+            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendRaw: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
+            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendRaw: Sending... '", message, "' (", len, ")...");
+
             LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSend: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
             if (m_Stream)
             {
@@ -241,6 +258,11 @@ namespace i2p
             {
                 if (m_Stream)
                 {
+                    // message is never nullstr, and it shouldn't be empty() either
+                    // std::string message((const char*)m_Buffer, bytes_transferred);
+                    std::string message((const char*)m_Buffer, std::min((int)bytes_transferred, 30));
+                    LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleReceived: Sending... '", message, "' (", bytes_transferred, ")...");
+
                     auto s = shared_from_this();
                     m_Stream->AsyncSend(m_Buffer, bytes_transferred,
                         [s](const boost::system::error_code& ecode)
@@ -329,7 +351,8 @@ namespace i2p
         void I2PPureTunnelConnection::Write(const uint8_t * buf, size_t len)
         {
             // message is never nullstr, and it shouldn't be empty() either
-            std::string message((const char*)buf, len);
+            // std::string message((const char*)buf, len);
+            std::string message((const char*)buf, std::min((int)len, 30));
 
             //std::string reply = "confirmed: " + message;
             //m_Stream->Send((const uint8_t *)reply.data(), reply.length());
@@ -347,7 +370,8 @@ namespace i2p
             }
 
             // message != nullstr and likely !empty()
-            _receivedCallback(message, nullptr);
+            // _receivedCallback(message, nullptr);
+            _receivedCallback(buf, len, nullptr);
 
             // change: this stops here after we send the message to the receiver, and awaiting receiver to call the
             // HandleWriteAsync in order to continue this 'loop'
@@ -374,14 +398,15 @@ namespace i2p
                     StreamReceive();
                 else
                 {
-                    // send destination first as if received from I2P
-                    std::string dest = m_Stream->GetRemoteIdentity()->ToBase64();
-                    dest += "\n";
-                    if (sizeof(m_StreamBuffer) >= dest.size()) {
-                        memcpy(m_StreamBuffer, dest.c_str(), dest.size());
-                    }
-                    // shouldn't this go inside the 'if' above? this is a bug (but buffer is empty at this point so nothing usually happens)
-                    HandleStreamReceive(boost::system::error_code(), dest.size());
+                    StreamReceive();
+                    // // send destination first as if received from I2P
+                    // std::string dest = m_Stream->GetRemoteIdentity()->ToBase64();
+                    // dest += "\n";
+                    // if (sizeof(m_StreamBuffer) >= dest.size()) {
+                    //     memcpy(m_StreamBuffer, dest.c_str(), dest.size());
+                    // }
+                    // // shouldn't this go inside the 'if' above? this is a bug (but buffer is empty at this point so nothing usually happens)
+                    // HandleStreamReceive(boost::system::error_code(), dest.size());
                 }
                 Receive();
             }
@@ -394,16 +419,19 @@ namespace i2p
             ReceivedCallback _receivedCallback;
             SendCallback _sendCallback;
             SendMoreCallback _sendMoreCallback;
+            std::shared_ptr<I2PPureClientTunnel> _parentTunnel;
 
         public:
             I2PPureClientTunnelHandler(
-                I2PPureClientTunnel * parent, 
+                std::shared_ptr<I2PPureClientTunnel> parent,
+                //I2PPureClientTunnel * parent, 
                 i2p::data::IdentHash destination,
                 int destinationPort, 
                 std::shared_ptr<boost::asio::ip::tcp::socket> socket,
                 ClientConnectedCallback connectedCallback = nullptr,
                 ReceivedCallback receivedCallback = nullptr) :
-                I2PServiceHandler(parent), 
+                I2PServiceHandler(parent.get()), 
+                _parentTunnel(parent),
                 m_DestinationIdentHash(destination),
                 m_DestinationPort(destinationPort),
                 _connectedCallback(connectedCallback),
@@ -444,8 +472,11 @@ namespace i2p
                 if (Kill()) return;
                 LogPrint(eLogDebug, "I2PPureClientTunnelHandler: new connection");
 
-                auto owner_shared = std::shared_ptr<I2PService>(GetOwner());
-                auto clientTunnel = std::static_pointer_cast<I2PPureClientTunnel>(owner_shared); // GetOwner());
+                // this doesn't work
+                // auto owner_shared = std::shared_ptr<I2PService>(GetOwner());
+                // auto clientTunnel = std::static_pointer_cast<I2PPureClientTunnel>(owner_shared); // GetOwner());
+                // // static_cast<I2PPureClientTunnel*>(GetOwner());
+                auto clientTunnel = _parentTunnel;
 
                 auto streamCreatedCallback = clientTunnel->GetStreamCreatedCallback();
 
@@ -475,8 +506,12 @@ namespace i2p
                 // and we might be losing some of that received content. Or we'd need to watch on send callbacks set
                 // and raise some callback on that which is a bit winded (i.e. we connect before and set send-s after, 
                 // but we'd need to notify the 'watcher' that things are then ready. Or buffer and send on connect.
-                std::string request = "I2PPureClientTunnelHandler::HandleStreamRequestComplete.I2PConnect: test something to send, test data...";
-                connection->I2PConnect((const uint8_t *)request.data(), request.length());
+
+                // std::string request = "I2PPureClientTunnelHandler::HandleStreamRequestComplete.I2PConnect: test something to send, test data...";
+                // connection->I2PConnect((const uint8_t *)request.data(), request.length());
+
+                // don't send any test messages as it'd break the server side parsing, just stick to what is normal headers, buffers etc.
+                connection->I2PConnect();
 
                 // this or shared_from_this()
                 // or just set our own callbacks and let tunnel handle us when sending
@@ -515,7 +550,9 @@ namespace i2p
 
         void I2PPureClientTunnel::Start()
         {
+            // I2PDK: this should be removed (that's the old local-sockets style/waiting)
             TCPIPAcceptor::Start();
+            
             GetIdentHash();
         }
 
@@ -556,21 +593,64 @@ namespace i2p
         {
             const i2p::data::IdentHash *identHash = GetIdentHash();
             if (identHash) {
+                auto s = std::static_pointer_cast<I2PPureClientTunnel>(shared_from_this ());
+                // std::shared_ptr<I2PPureClientTunnel>
+
                 auto handler = std::make_shared<I2PPureClientTunnelHandler>(
-                    this, *identHash, m_DestinationPort, socket, _connectedCallback, _receivedCallback);
+                    s, *identHash, m_DestinationPort, socket, _connectedCallback, _receivedCallback);
                 return handler;
             }
             else
                 return nullptr;
         }
 
-        I2PPureServerTunnel::I2PPureServerTunnel(const std::string& name, const std::string& address,
-            int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip,
-            ServerStreamAcceptedCallback acceptedCallback) : //, ClientConnectedCallback connectedCallback) :
-            I2PService(localDestination), m_IsUniqueLocal(true), m_Name(name), m_Address(address), m_Port(port), m_IsAccessList(false), _acceptedCallback(acceptedCallback) //, _connectedCallback(connectedCallback)
+        // I2PPureServerTunnel::I2PPureServerTunnel(const std::string& name, const std::string& address, int port,
+        //     std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip)
+        // {
+
+        // }
+        // I2PPureServerTunnel::I2PPureServerTunnel(const std::string& name, const std::string& address, int port,
+        //     std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip,
+        //     ServerStreamAcceptedCallback acceptedCallback)
+        // {
+
+        // }
+        I2PPureServerTunnel::I2PPureServerTunnel(const std::string& name, const std::string& address, int port, 
+            std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip) :
+            I2PService(localDestination), 
+            m_IsUniqueLocal(true), 
+            m_Name(name), 
+            m_Address(address), 
+            m_Port(port), 
+            m_IsAccessList(false)
         {
             m_PortDestination = localDestination->CreateStreamingDestination(inport > 0 ? inport : port, gzip);
         }
+        I2PPureServerTunnel::I2PPureServerTunnel(const std::string& name, const std::string& address, int port, 
+            std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip,
+            ServerStreamAcceptedCallback acceptedCallback) : 
+            I2PPureServerTunnel(name, address, port, localDestination, inport, gzip)
+        {
+            _acceptedCallback = acceptedCallback;
+        }
+        // I2PPureServerTunnel::I2PPureServerTunnel(const std::string& name, const std::string& address,
+        //     int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip,
+        //     ServerStreamAcceptedCallback acceptedCallback) :
+        //     I2PService(localDestination), 
+        //     m_IsUniqueLocal(true), 
+        //     m_Name(name), 
+        //     m_Address(address), 
+        //     m_Port(port), 
+        //     m_IsAccessList(false),
+        //     _acceptedCallback(acceptedCallback)
+        // {
+        //     m_PortDestination = localDestination->CreateStreamingDestination(inport > 0 ? inport : port, gzip);
+        // }
+        // I2PPureServerTunnel::I2PPureServerTunnel(const std::string& name, const std::string& address,
+        //     int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip) : 
+        //     I2PPureServerTunnel(name, address, port, localDestination, inport, gzip, nullptr)
+        // {
+        // }
 
         // we don't need port/socket stuff here either?
         void I2PPureServerTunnel::Start()
@@ -637,32 +717,49 @@ namespace i2p
 
             if (stream)
             {
+                std::string remoteIdentity = stream->GetRemoteIdentity()->GetIdentHash().ToBase32();
                 if (m_IsAccessList)
                 {
                     if (!m_AccessList.count(stream->GetRemoteIdentity()->GetIdentHash()))
                     {
-                        LogPrint(eLogWarning, "I2PPureServerTunnel: Address ", stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " is not in white list. Incoming connection dropped");
+                        LogPrint(eLogWarning, "I2PPureServerTunnel: Address ", remoteIdentity, " is not in white list. Incoming connection dropped");
                         stream->Close();
                         return;
                     }
                 }
 
-                LogPrint(eLogDebug, "I2PPureServerTunnel: Address ", stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " is now streaming...");
+                LogPrint(eLogDebug, "I2PPureServerTunnel: Address ", remoteIdentity, " is now streaming...");
 
+                //std::static_pointer_cast<I2PPureServerTunnel>(shared_from_this ())
                 auto serverTunnel = std::static_pointer_cast<I2PPureServerTunnel>(shared_from_this());
 
                 auto acceptedCallback = serverTunnel->GetAcceptedCallback();
+
+                // different approach for setting up callbacks (for the server and after accepted, i.e. all connection specific)
+                // pass refs and get the callbacks set up during the accepted callback, as those callbacks are NOT 'per tunnel'
+                // but instead are 'per connection' (i.e. we can't use the serverTunnel-> pattern as w/ others).
+                // Connection created and connected are one-off used only here so that's fine (we don't need to store it),
+                // and the receive callback is saved within the connection, and only used from in there, so again nothing to save
+                // (i.e. no need for 'std::vector<std::pair<ReceivedCallback, uint32_t> > _receivedCallbacks;', see I2PService.h)
+                ServerConnectionCreatedCallback connectionCreatedCallback;
+                ServerClientConnectedCallback connectedCallback;
+                ReceivedCallback receivedCallback;
 
                 // put this before Connect, prepare others to receive in case a stream gets connected right away.
                 // Since we're a server now, we should be ready before and we probably won't be sending anything before
                 // anyone connects (or are we? we may have part client part server scenarios thought not typically).
                 if (acceptedCallback)
-                    acceptedCallback(serverTunnel);
+                    acceptedCallback(
+                        serverTunnel, 
+                        remoteIdentity,
+                        connectionCreatedCallback,
+                        connectedCallback,
+                        receivedCallback);
 
-                // now the other callbacks should be ready, as we're linking those to the node (set on accept above)
-                auto connectionCreatedCallback = serverTunnel->GetConnectionCreatedCallback();
-                auto connectedCallback = serverTunnel->GetConnectedCallback();
-                auto receivedCallback = serverTunnel->GetReceivedCallback();
+                // // now the other callbacks should be ready, as we're linking those to the node (set on accept above)
+                // auto connectionCreatedCallback = serverTunnel->GetConnectionCreatedCallback();
+                // auto connectedCallback = serverTunnel->GetConnectedCallback();
+                // auto receivedCallback = serverTunnel->GetReceivedCallback();
 
                 // new connection, we only need received inside
                 auto conn = CreateI2PConnection(stream, receivedCallback);
@@ -674,8 +771,9 @@ namespace i2p
                 // this or shared_from_this()
                 // or just set our own callbacks and let tunnel handle us when sending
                 // or just let the callback set that info from the tunnel/connection, it has everything
-                //SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, conn, _1, _2));
-                SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReadyRawSigned, conn, _1, _2, _3, _4));
+                // //SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, conn, _1, _2));
+                // this is now moved and called directly from the neti2pd:TunnelSendData() as we have the connection.
+                // SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReadyRawSigned, conn, _1, _2, _3, _4));
 
                 // this is the 'other' Connect for the server side (client uses I2PConnect).
                 conn->Connect(m_IsUniqueLocal);
@@ -690,7 +788,7 @@ namespace i2p
         std::shared_ptr<I2PPureTunnelConnection> I2PPureServerTunnel::CreateI2PConnection(std::shared_ptr<i2p::stream::Stream> stream, ReceivedCallback receivedCallback)
         {
             //std::make_shared<boost::asio::ip::tcp::socket>(GetService()), 
-            return std::make_shared<I2PPureTunnelConnection>(this, stream, GetEndpoint(), false);
+            return std::make_shared<I2PPureTunnelConnection>(this, stream, GetEndpoint(), receivedCallback, false);
 
         }
 

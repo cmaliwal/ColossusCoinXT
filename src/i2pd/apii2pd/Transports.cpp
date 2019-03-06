@@ -8,6 +8,8 @@
 #include "HTTP.h"
 #include "ClientContext.h"
 #include "I2PService.h"
+//#include "utiltime.h"
+
 #ifdef WITH_EVENTS
 #include "Event.h"
 #include "util.h"
@@ -194,13 +196,13 @@ namespace transport
                 LogPrint(eLogError, "Transports: invalid NTCP proxy url ", ntcpproxy);
             return;
         }
-        // create NTCP2. TODO: move to acceptor	
+        // create NTCP2. TODO: move to acceptor
         bool ntcp2;  i2p::config::GetOption("ntcp2.enabled", ntcp2);
         if (ntcp2)
         {
             m_NTCP2Server = new NTCP2Server ();
             m_NTCP2Server->Start ();
-        }	
+        }
 
         // create acceptors
         auto& addresses = context.GetRouterInfo ().GetAddresses ();
@@ -403,7 +405,7 @@ namespace transport
     {
         if (peer.router) // we have RI already
         {
-            if (!peer.numAttempts) // NTCP2 
+            if (!peer.numAttempts) // NTCP2
             {
                 peer.numAttempts++;
                 if (m_NTCP2Server) // we support NTCP2
@@ -415,12 +417,12 @@ namespace transport
                         auto s = std::make_shared<NTCP2Session> (*m_NTCP2Server, peer.router);
                         m_NTCP2Server->Connect (address->host, address->port, s);
                         return true;
-                    }	
-                }	
+                    }
+                }
             }
             if (peer.numAttempts == 1) // NTCP1
             {
-                peer.numAttempts++;	
+                peer.numAttempts++;
                 auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
                 if (address && m_NTCPServer)
                 {
@@ -766,13 +768,22 @@ namespace transport
             /* this code block still needs some love */
             std::condition_variable newDataReceived;
             std::mutex newDataReceivedMutex;
-            auto localDest = it.second->GetLocalDestination();
+            // auto localDest = it.second->GetLocalDestination();
+            auto localDest = i2p::client::context.GetSharedLocalDestination();
             auto leaseSet = localDest->FindLeaseSet(identHash);
             //auto leaseSet = it.second->GetLocalDestination()->FindLeaseSet(identHash);
             //auto leaseSet = i2p::client::context.GetSharedLocalDestination()->FindLeaseSet(identHash);
             if (!leaseSet)
             {
                 LogPrint(eLogInfo, "ClientServerTest: no lease set, recreate...");
+
+                // int retries = 0;
+                // while(!localDest->IsReady () && retries++ < 5) {
+                //     localDest->GetLeaseSet();
+        		// 	std::this_thread::sleep_for (std::chrono::milliseconds(100)); //seconds(1));
+                //     // MilliSleep(500);
+                // }
+
                 std::unique_lock<std::mutex> l(newDataReceivedMutex);
                 localDest->RequestDestination(identHash,
                     [&newDataReceived, &leaseSet, &newDataReceivedMutex, &dest](std::shared_ptr<i2p::data::LeaseSet> ls)

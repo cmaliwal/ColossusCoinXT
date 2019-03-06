@@ -320,6 +320,7 @@ namespace i2p
 
             LogPrint(eLogInfo, "Daemon: starting Client");
             i2p::client::context.Start ();
+            //i2p::api::RequestLeaseSet();
 
             // I2P Control Protocol
             bool i2pcontrol; i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);

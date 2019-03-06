@@ -495,6 +495,8 @@ namespace client
                     ReadI2CPOptions (section, options);
 
                     std::shared_ptr<ClientDestination> localDestination = nullptr;
+                    localDestination = i2p::client::context.GetSharedLocalDestination();
+
                     if (keys.length () > 0)
                     {
                         i2p::data::PrivateKeys k;
@@ -503,10 +505,15 @@ namespace client
                             localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
                             if (!localDestination)
                             {
-                                if(matchTunnels)
-                                    localDestination = CreateNewMatchedTunnelDestination(k, dest, &options);
-                                else
-                                    localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
+                                localDestination = i2p::client::context.GetSharedLocalDestination();
+                                // I2PDK: turn this off for now, we're having too many local destinations
+                                // and none of them is having enough in/out tunnels, we need to focus on one
+                                // (at least on start) till we're ready to connect and make requests.
+                                
+                                // if(matchTunnels)
+                                //     localDestination = CreateNewMatchedTunnelDestination(k, dest, &options);
+                                // else
+                                //     localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
                             }
                         }
                     }

@@ -212,12 +212,12 @@ CI2PAddress GetLocalAddress(const CI2pUrl* paddrPeer)
 //                return true;
 //            if (nBytes == 0) {
 //                // socket closed
-//                LogPrint("net", "socket closed\n");
+//                LogPrintf("net: socket closed\n");
 //                return false;
 //            } else {
 //                // socket error
 //                int nErr = WSAGetLastError();
-//                LogPrint("net", "recv failed: %s\n", NetworkErrorString(nErr));
+//                LogPrintf("net: recv failed: %s\n", NetworkErrorString(nErr));
 //                return false;
 //            }
 //        }
@@ -449,7 +449,7 @@ CI2pdNode* ConnectNode(CI2PAddress addrConnect, const char* pszDest, bool obfuSc
     }
 
     /// debug print
-    LogPrint("net", "trying connection %s lastseen=%.1fhrs\n",
+    LogPrintf("net: trying connection %s lastseen=%.1fhrs\n",
         pszDest ? pszDest : addrConnect.ToString(),
         pszDest ? 0.0 : (double)(GetAdjustedTime() - addrConnect.nTime) / 3600.0);
 
@@ -484,16 +484,17 @@ CI2pdNode* ConnectNode(CI2PAddress addrConnect, const char* pszDest, bool obfuSc
         //auto clientTunnel = std::static_pointer_cast<I2PPureClientTunnel>(tunnel);
         //shared_from_this()
         //void HandleClientConnectionCreated(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection);
-        auto node_shared = std::shared_ptr<CI2pdNode>(pnode);
-        auto clientConnectionCreatedCallback1 = std::bind(&CI2pdNode::HandleClientConnectionCreated, node_shared, std::placeholders::_1);
+        // auto node_shared = std::shared_ptr<CI2pdNode>(pnode);
+        // auto clientConnectionCreatedCallback1 = std::bind(&CI2pdNode::HandleClientConnectionCreated, node_shared, std::placeholders::_1);
         auto clientConnectionCreatedCallback = std::bind(&CI2pdNode::HandleClientConnectionCreated, pnode, std::placeholders::_1);
         auto clientConnectionCreatedCallback2 = std::bind(&CI2pdNode::HandleClientConnectionCreated, pnode, _1);
         tunnel->SetConnectionCreatedCallback(clientConnectionCreatedCallback);
         tunnel->SetConnectedCallback(std::bind(&CI2pdNode::HandleClientConnected, pnode, _1));
-        tunnel->SetReceivedCallback(std::bind(&CI2pdNode::HandleClientReceived, pnode, _1, _2));
+        tunnel->SetReceivedCallback(std::bind(&CI2pdNode::HandleClientReceived, pnode, _1, _2, _3));
 
         // this moved from ConnectNode here so we can have callbacks hooked to node properly
         auto clientEndpoint = tunnel->GetLocalEndpoint();
+        // AcceptClientTunnel(clientEndpoint, pnode->i2pTunnel);
         AcceptClientTunnel(clientEndpoint, tunnel);
 
         pnode->nTimeConnected = GetTime();
@@ -513,7 +514,7 @@ void CI2pdNode::CloseTunnelDisconnect()
 {
     fDisconnect = true;
     if (i2pTunnel != nullptr) { //INVALID_SOCKET) {
-        LogPrint("net", "disconnecting peer=%d\n", id);
+        LogPrintf("net: disconnecting peer=%d\n", id);
         CloseTunnel(i2pTunnel, fInbound);
     }
 
@@ -547,9 +548,9 @@ void CI2pdNode::PushVersion()
     CI2PAddress addrMe = GetLocalAddress(&addr);
     GetRandBytes((unsigned char*)&nLocalHostNonce, sizeof(nLocalHostNonce));
     if (fLogIPs)
-        LogPrint("net", "send version message: version %d, blocks=%d, us=%s, them=%s, peer=%d\n", PROTOCOL_VERSION, nBestHeight, addrMe.ToString(), addrYou.ToString(), id);
+        LogPrintf("net: send version message: version %d, blocks=%d, us=%s, them=%s, peer=%d\n", PROTOCOL_VERSION, nBestHeight, addrMe.ToString(), addrYou.ToString(), id);
     else
-        LogPrint("net", "send version message: version %d, blocks=%d, us=%s, peer=%d\n", PROTOCOL_VERSION, nBestHeight, addrMe.ToString(), id);
+        LogPrintf("net: send version message: version %d, blocks=%d, us=%s, peer=%d\n", PROTOCOL_VERSION, nBestHeight, addrMe.ToString(), id);
     PushMessage("version", PROTOCOL_VERSION, nLocalServices, nTime, addrYou, addrMe,
         nLocalHostNonce, FormatSubVersion(CLIENT_NAME, CLIENT_VERSION, std::vector<string>()), nBestHeight, true);
 }
@@ -691,7 +692,7 @@ void CI2pdNode::SweepBanned()
                 setBanned.erase(it++);
                 setBannedIsDirty = true;
                 notifyUI = true;
-                LogPrint("net", "%s: Removed banned node ip/subnet from banlist.dat: %s\n", __func__, subNet.ToString());
+                LogPrintf("net: %s: Removed banned node ip/subnet from banlist.dat: %s\n", __func__, subNet.ToString());
             }
             else
                 ++it;
@@ -796,7 +797,7 @@ bool CI2pdNode::ReceiveMsgBytes(const char* pch, unsigned int nBytes)
             return false;
 
         if (msg.in_data && msg.hdr.nMessageSize > MAX_PROTOCOL_MESSAGE_LENGTH) {
-            LogPrint("net", "Oversized message from peer=%i, disconnecting", GetId());
+            LogPrintf("net: Oversized message from peer=%i, disconnecting", GetId());
             return false;
         }
 
@@ -866,6 +867,8 @@ void TunnelSendData(CI2pdNode* pnode)
 
     std::deque<CSerializeData>::iterator it = pnode->vSendMsg.begin();
 
+    static int64_t nLastLogTime = 0; //GetTime();
+
     while (it != pnode->vSendMsg.end()) {
         const CSerializeData& data = *it;
         assert(data.size() > pnode->nSendOffset);
@@ -880,9 +883,21 @@ void TunnelSendData(CI2pdNode* pnode)
         //auto node_shared = std::make_shared<CI2pdNode>(pnode);
         //if (!pnode->_sendCallback || !pnode->_sendMoreCallback) {
         if (!pnode->_connection) {
-            LogPrint("net", "tunnel send callback not set error %s\n", pnode->addr.ToString());
-            continue;
+            // MilliSleep(500);
+            int64_t nTime = GetTime();
+            if (nTime - nLastLogTime > 60) {
+                nLastLogTime = nTime;
+                LogPrintf("net: tunnel connection not set yet, wait a bit... %s\n", pnode->addr.ToString());
+            }
+            return;
+            // continue;
         }
+
+        std::string identity = pnode->addr.ToString();
+        if (pnode->fInbound)
+            identity = pnode->_connection->GetRemoteIdentity();
+
+        LogPrintf("net: tunnel sending some data... %s\n", identity);
 
         //auto readyCallback = std::bind(&CI2pdNode::HandleReadyToSend, pnode);
         //auto errorCallback = std::bind(&CI2pdNode::HandleErrorSend, pnode, _1);
@@ -891,6 +906,13 @@ void TunnelSendData(CI2pdNode* pnode)
         //size_t len = data.size() - pnode->nSendOffset;
         //pnode->_sendMoreCallback(&data[pnode->nSendOffset], data.size() - pnode->nSendOffset);
         //pnode->_sendMoreCallback(msg, len);
+
+        // std::string message(&data[pnode->nSendOffset], data.size() - pnode->nSendOffset);
+        std::string message(&data[pnode->nSendOffset], std::min((int)(data.size() - pnode->nSendOffset), 30));
+        LogPrintf("TunnelSendData: sending message...'%s' (%d) \n", message, data.size() - pnode->nSendOffset);
+
+        // I2PDK: there's an issue here, we're (seems) only made to serve one client at the time?
+        // not sure how this was translated from what was sockets, or maybe not? 
         pnode->_connection->HandleSendReadyRawSigned(
             &data[pnode->nSendOffset], 
             data.size() - pnode->nSendOffset, 
@@ -923,7 +945,7 @@ void TunnelSendData(CI2pdNode* pnode)
         } else {
             if (nBytes < 0) {
                 // error (won't get here, report this from the HandleErrorSend
-                LogPrint("net", "tunnel send error %s\n", pnode->addr.ToString());
+                LogPrintf("net: tunnel send error %s\n", identity);
                 pnode->CloseTunnelDisconnect();
                 //int nErr = WSAGetLastError();
                 //if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS) {
@@ -1090,7 +1112,7 @@ void ThreadTunnelHandler()
                 }
                 ++iNode;
                 if (!(iNode < FD_SETSIZE)) {
-                    LogPrint("net", "!(iNode < FD_SETSIZE) %s\n", pnode->addr.ToString());
+                    LogPrintf("net: !(iNode < FD_SETSIZE) %s\n", pnode->addr.ToString());
                     //exit(-1);
                 }
             }
@@ -1164,10 +1186,17 @@ void ThreadTunnelHandler()
                         // loops back and waits for another batch of data.
 
                         // should _messageReceived be locked? not for the moment, cs_vRecvMsg locks vector vRecvMsg
-                        std::string message = pnode->PopMessageReceived();
-                        if (message.empty()) continue;
-                        const char* pchBuf = message.data();
-                        size_t nBytes = message.length();
+                        // std::string message = pnode->PopMessageReceived();
+                        // if (message.empty()) continue;
+                        // const char* pchBuf = message.data();
+                        // size_t nBytes = message.length();
+
+                        static std::unique_ptr<uint8_t[]> buffer = 
+                            std::unique_ptr<uint8_t[]>(new uint8_t[I2P_TUNNEL_CONNECTION_BUFFER_SIZE]);
+
+                        size_t nBytes = pnode->PopMessageReceived(buffer);
+                        if (nBytes <= 0) continue;
+                        const char* pchBuf = (const char*)buffer.get();
 
                         //// typical socket buffer is 8K-64K
                         //char pchBuf[0x10000];
@@ -1181,11 +1210,11 @@ void ThreadTunnelHandler()
                         } else if (nBytes == 0) {
                             // socket closed gracefully
                             if (!pnode->fDisconnect)
-                                LogPrint("net", "tunnel closed\n");
+                                LogPrintf("net: tunnel closed\n");
                             pnode->CloseTunnelDisconnect();
                         } else if (nBytes < 0) {
                             // error (won't get here)
-                            LogPrint("net", "tunnel recv error %s\n", pnode->addr.ToString());
+                            LogPrintf("net: tunnel recv error %s\n", pnode->addr.ToString());
                             pnode->CloseTunnelDisconnect();
                             //int nErr = WSAGetLastError();
                             //if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS) {
@@ -1219,9 +1248,11 @@ void ThreadTunnelHandler()
             // Inactivity checking
             //
             int64_t nTime = GetTime();
-            if (nTime - pnode->nTimeConnected > 60) {
+            // I2PDK: this interval was too small for I2P network, in 60 secs we're hardly ever connected, not to mention exchanging messages
+            // check if this makes sense, or at least separate these if-s not like this.
+            if (nTime - pnode->nTimeConnected > TIMEOUT_INTERVAL) { //60) {
                 if (pnode->nLastRecv == 0 || pnode->nLastSend == 0) {
-                    LogPrint("net", "tunnel no message in first 60 seconds, %d %d from %d\n", pnode->nLastRecv != 0, pnode->nLastSend != 0, pnode->id);
+                    LogPrintf("net: tunnel no message in first 60 seconds, %d %d from %d\n", pnode->nLastRecv != 0, pnode->nLastSend != 0, pnode->id);
                     pnode->fDisconnect = true;
                 } else if (nTime - pnode->nLastSend > TIMEOUT_INTERVAL) {
                     LogPrintf("tunnel sending timeout: %is\n", nTime - pnode->nLastSend);
@@ -1415,7 +1446,7 @@ static bool DumpAddresses()
     CAddrDB adb;
     adb.Write(addrman);
 
-    LogPrint("net", "Flushed %d addresses to peers.dat %dms\n", addrman.size(), GetTimeMillis() - nStart);
+    LogPrintf("net: Flushed %d addresses to peers.dat %dms\n", addrman.size(), GetTimeMillis() - nStart);
 
     return true; // never exit thread
 }
@@ -1499,6 +1530,13 @@ void ThreadOpenConnections()
         int nTries = 0;
         while (true) {
             CI2PAddress addr = addrman.Select();
+            // I2PDK: in case there's nothing or random buckets algo is stalling (which happens on near empty list)
+            // we'd return an empty address, which is not valid, bail out if so.
+            if (!addr.IsValid())
+                break;
+
+            // I2PDK: not sure about this or how much? due to the random looping forever issue
+            MilliSleep(50);
 
             // if we selected an invalid address, restart
             if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
@@ -1612,6 +1650,16 @@ bool OpenNetworkConnection(const CI2PAddress& addrConnect, CSemaphoreGrant* gran
             return false;
     } else if (FindNode(pszDest))
         return false;
+
+    // I2PDK: this is a precondition to even consider connecting to i2p nodes, we need to be
+    // up and running and 'on the network' with inbound and outbound channels, floodfills etc.
+    // Only once that is available we can try going after lease-sets, and that's a precursor
+    // for any connection.
+    auto localDest = i2p::client::context.GetSharedLocalDestination();
+    if (!localDest->AreTunnelsReady ()) {
+        // this will loop anyway (every 2 mins?) so just bail out and try later on.
+        return false;
+    }
 
     CI2pdNode* pnode = ConnectNode(addrConnect, pszDest);
     boost::this_thread::interruption_point();
@@ -1743,7 +1791,13 @@ void static ThreadStakeMinter()
 // also cs_vNodes is called from here (full, not a try) so that could slow things down vs all in one thread.
 // (sequentiallity could also be different and an issue), i.e. something to have in mind.
 void static HandleServerStreamAccepted(
-    std::shared_ptr<I2PPureServerTunnel> tunnel, const CDestination& addrBind, bool fWhitelisted) //, const ListenTunnel& hListenTunnel)
+    std::shared_ptr<I2PPureServerTunnel> tunnel, 
+    std::string identity,
+    ServerConnectionCreatedCallback& connectionCreatedCallback,
+    ServerClientConnectedCallback& connectedCallback,
+    ReceivedCallback& receivedCallback, 
+    const CDestination& addrBind, 
+    bool fWhitelisted) //, const ListenTunnel& hListenTunnel)
 {
     using namespace std::placeholders;    // adds visibility of _1, _2, _3,...
 
@@ -1753,7 +1807,7 @@ void static HandleServerStreamAccepted(
     // at this point tunnel has already accepted a stream but has no connection, we create the node first...
 
     if (!tunnel) {
-        LogPrint("net", "tunnel accept failed: %s\n", addrBind.ToString());
+        LogPrintf("net: tunnel accept failed: %s\n", addrBind.ToString());
         return;
     }
 
@@ -1767,13 +1821,13 @@ void static HandleServerStreamAccepted(
     }
 
     if (nInbound >= nMaxConnections - MAX_OUTBOUND_CONNECTIONS) {
-        LogPrint("net", "connection from %s dropped (full)\n", addrBind.ToString());
+        LogPrintf("net: connection from %s dropped (full)\n", addrBind.ToString());
         CloseTunnel(tunnel);
         return;
     }
 
     if (CI2pdNode::IsBanned(addrBind) && !whitelisted) {
-        LogPrint("net", "connection from %s dropped (banned)\n", addrBind.ToString());
+        LogPrintf("net: connection from %s dropped (banned)\n", addrBind.ToString());
         CloseTunnel(tunnel);
         return;
     }
@@ -1786,6 +1840,9 @@ void static HandleServerStreamAccepted(
     //CI2PAddress addr; 
     //addr = CDestination(*(const struct sockaddr_in*)paddr); // : CI2pUrl(addr.sin_addr), port(ntohs(addr.sin_port))
 
+    // server node created here, addr doesn't make much sense as it's going to point back to us
+    // as mentioned in the comment above (binding), we get one of these per each client connection
+    // so that's fine but callbacks are not, they're set on the tunnel - which has many connections.
     CI2pdNode* pnode = new CI2pdNode(tunnel, addr, "", true);
     pnode->AddRef();
     pnode->fWhitelisted = whitelisted;
@@ -1795,13 +1852,22 @@ void static HandleServerStreamAccepted(
         vNodes.push_back(pnode);
     }
 
+    connectionCreatedCallback = std::bind(&CI2pdNode::HandleServerConnectionCreated, pnode, _1, _2);
+    connectedCallback = std::bind(&CI2pdNode::HandleServerClientConnected, pnode, _1, _2);
+    receivedCallback = std::bind(&CI2pdNode::HandleServerReceived, pnode, _1, _2, _3);
+
     // now that we have a node register callbacks (bound to the node itself)
     // should this be before or after the vNodes.push?
 
     //auto node_shared = std::make_shared<CI2pdNode>(pnode);
-    tunnel->SetConnectionCreatedCallback(std::bind(&CI2pdNode::HandleServerConnectionCreated, pnode, _1, _2));
-    tunnel->SetConnectedCallback(std::bind(&CI2pdNode::HandleServerClientConnected, pnode, _1, _2));
-    tunnel->SetReceivedCallback(std::bind(&CI2pdNode::HandleServerReceived, pnode, _1, _2));
+    // I2PDK: these need to be lists (of callbacks) and we're just adding our callback to the list
+    // when callbacks are to be called it iterates and sends the connection along, each callback 
+    // then decides whether to process or not, something like that. We also need to 'decrement', 
+    // i.e. both add and remove to the list - I guess on the CI2pNode deconstcruct or so.
+    // GetSendMoreCallback
+    // tunnel->SetConnectionCreatedCallback(std::bind(&CI2pdNode::HandleServerConnectionCreated, pnode, _1, _2));
+    // tunnel->SetConnectedCallback(std::bind(&CI2pdNode::HandleServerClientConnected, pnode, _1, _2));
+    // tunnel->SetReceivedCallback(std::bind(&CI2pdNode::HandleServerReceived, pnode, _1, _2, _3));
 
 }
 
@@ -1898,8 +1964,12 @@ bool BindListenPort(const CDestination& addrBind, string& strError, bool fWhitel
 
     std::shared_ptr<I2PPureServerTunnel> tunnel;
 
-    //std::placeholders::_1
-    ServerStreamAcceptedCallback acceptedCallback = std::bind(HandleServerStreamAccepted, _1, addrBind, fWhitelisted);
+    // I2PDK: we're binding here only to be able to accept incoming connections/streams from clients.
+    // but we're not yet creating server nodes, 'each' server node gets created only once the client stream
+    // is opened - i.e. we have one server node per each client.
+    // ServerStreamAcceptedCallback acceptedCallback = std::bind(HandleServerStreamAccepted, _1, addrBind, fWhitelisted);
+    ServerStreamAcceptedCallback acceptedCallback = 
+        std::bind(HandleServerStreamAccepted, _1, _2, _3, _4, _5, addrBind, fWhitelisted);
     if (ConnectServerTunnel(addrBind, tunnel, nConnectTimeout, acceptedCallback)) { //std::bind(HandleServerStreamAccepted, _1, addrBind, fWhitelisted))) {
         vhListenTunnel.push_back(ListenTunnel(tunnel, fWhitelisted));
 
@@ -2435,15 +2505,19 @@ CI2pdNode::CI2pdNode(std::shared_ptr<I2PService> tunnelIn, CI2PAddress addrIn, s
     fPingQueued = false;
     fObfuScationMaster = false;
 
+    _receivedBuffer = std::unique_ptr<uint8_t[]>();
+    _receivedBufferSize = 0;
+    _hasPushedMessages = false;
+
     {
         LOCK(cs_nLastNodeId);
         id = nLastNodeId++;
     }
 
     if (fLogIPs)
-        LogPrint("net", "Added connection to %s peer=%d\n", addrName, id);
+        LogPrintf("net: Added connection to %s peer=%d\n", addrName, id);
     else
-        LogPrint("net", "Added connection peer=%d\n", id);
+        LogPrintf("net: Added connection peer=%d\n", id);
 
     // Be shy and don't send version until we hear
     //if (i2pTunnel != INVALID_SOCKET && !fInbound)
@@ -2474,22 +2548,39 @@ void CI2pdNode::HandleClientConnected(std::shared_ptr<i2p::client::I2PPureTunnel
     // we're now ready to send etc. - so trigger IsReady or something
 }
 
-void CI2pdNode::HandleClientReceived(std::string message, ContinueToReceiveCallback continueToReceiveCallback)
+// void CI2pdNode::HandleClientReceived(std::string message, ContinueToReceiveCallback continueToReceiveCallback)
+void CI2pdNode::HandleClientReceived(const uint8_t * buf, size_t len, ContinueToReceiveCallback continueToReceiveCallback)
 {
+    // std::string message((const char*)buf, len);
+    std::string message((const char*)buf, std::min((int)len, 30));
+    LogPrintf("HandleClientReceived: message received...'%s' (%d) \n", message, len);
+
     LOCK(cs_messageReceived);
 
-    if (_hasPushedMessages || !_messageReceived.empty()) {
-        LogPrint("net", "HandleServerReceived: this shouldn't have happened! old message is not processed and we have a new one coming in?  (%s)\n", addr.ToString());
+    // if (_hasPushedMessages || !_messageReceived.empty()) {
+    if (_hasPushedMessages || _receivedBufferSize > 0) {
+        LogPrintf("net: HandleServerReceived: this shouldn't have happened! old message is not processed and we have a new one coming in?  (%s)\n", addr.ToString());
         // try and do a fast message processing here if possible? we're outside the processing thread so it's not easy
     }
-    _messageReceived = message;
+
+    // std::shared_ptr<uint8_t> sp(new uint8_t[10], std::default_delete<uint8_t[]>());
+
+    auto buffer = new uint8_t[len];
+    memcpy (buffer, buf, len);
+    _receivedBuffer = std::unique_ptr<uint8_t[]>(buffer); // _receivedBuffer.reset (buffer);
+    _receivedBufferSize = len;
+
     _hasPushedMessages = true;
+
+    // _messageReceived = message;
 }
 
 void CI2pdNode::HandleServerConnectionCreated(std::shared_ptr<I2PPureServerTunnel> tunnel, std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)
 {
     using namespace std::placeholders;    // adds visibility of _1, _2, _3,...
 
+    LogPrintf("HandleServerConnectionCreated: connection created...'%s' \n", connection->GetRemoteIdentity());
+    
     // now we can bind the connection send for when we need to send messages (this is the right place to do it)
     _connection = connection;
 
@@ -2507,25 +2598,42 @@ void CI2pdNode::HandleServerConnectionCreated(std::shared_ptr<I2PPureServerTunne
 
 void CI2pdNode::HandleServerClientConnected(std::shared_ptr<I2PPureServerTunnel> tunnel, std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)
 {
+    LogPrintf("HandleServerClientConnected: connected...'%s' \n", connection->GetRemoteIdentity());
 }
 
-void CI2pdNode::HandleServerReceived(std::string message, ContinueToReceiveCallback continueToReceiveCallback)
+// void CI2pdNode::HandleServerReceived(std::string message, ContinueToReceiveCallback continueToReceiveCallback)
+void CI2pdNode::HandleServerReceived(const uint8_t * buf, size_t len, ContinueToReceiveCallback continueToReceiveCallback)
 {
+    // std::string message((const char*)buf, len);
+    std::string message((const char*)buf, std::min((int)len, 30));
+    
+    LogPrintf("HandleServerReceived: message received...'%s' (%d), from '%s' \n", message, len, _connection->GetRemoteIdentity());
+    // LogPrintf("HandleServerReceived: message received...'%s' (%d) \n", _connection->GetRemoteIdentity(), len);
+
     LOCK(cs_messageReceived);
 
-    if (_hasPushedMessages || !_messageReceived.empty()) {
-        LogPrint("net", "HandleServerReceived: this shouldn't have happened! old message is not processed and we have a new one coming in?  (%s)\n", addr.ToString());
+    if (_hasPushedMessages || _receivedBufferSize > 0) { //!_messageReceived.empty()) {
+        LogPrintf("net: HandleServerReceived: this shouldn't have happened! old message is not processed and we have a new one coming in?  (%s)\n", addr.ToString());
         // try and do a fast message processing here if possible? we're outside the processing thread so it's not easy
     }
-    _messageReceived = message;
+
+    auto buffer = new uint8_t[len];
+    memcpy (buffer, buf, len);
+    _receivedBuffer = std::unique_ptr<uint8_t[]>(buffer); // _receivedBuffer.reset (buffer);
+    _receivedBufferSize = len;
+
     _hasPushedMessages = true;
+
+    // _messageReceived = message;
 }
 
 // this gets, clears and signals the tunnel to continue receiving
 // should _messageReceived be locked?
-std::string CI2pdNode::PopMessageReceived()
+// std::string CI2pdNode::PopMessageReceived()
+size_t CI2pdNode::PopMessageReceived(std::unique_ptr<uint8_t[]>& buffer)
 {
-    std::string message;
+    // std::string message;
+    size_t len = 0;
     bool hasPushedMessages;
 
     {
@@ -2533,17 +2641,37 @@ std::string CI2pdNode::PopMessageReceived()
 
         // only nullptr _messageReceived means we've had nothing received, anything else (even empty) requires restarting...
         hasPushedMessages = _hasPushedMessages; // && !_messageReceived.empty()
-        message = hasPushedMessages ? _messageReceived : message;
 
+        if ((hasPushedMessages && _receivedBufferSize <= 0) ||
+            (!hasPushedMessages && _receivedBufferSize > 0)) {
+            LogPrintf("net: PopMessageReceived: this shouldn't have happened!?\n");
+        }
+
+        if (hasPushedMessages && _receivedBufferSize > 0) {
+            memcpy (buffer.get(), _receivedBuffer.get(), _receivedBufferSize);
+            len = _receivedBufferSize;
+        }
+
+        _receivedBuffer = std::unique_ptr<uint8_t[]>(); // _receivedBuffer.reset ();
+        _receivedBufferSize = 0;
         _hasPushedMessages = false;
-        _messageReceived = std::string();
+
+        // message = hasPushedMessages ? _messageReceived : message;
+        // _hasPushedMessages = false;
+        // _messageReceived = std::string();
     }
 
     // signal the tunnel/connection to continue receiving (as it stops automatically once we receive something)
     if (hasPushedMessages)
         _connection->HandleWriteAsync(boost::system::error_code());
 
-    return message;
+    if (len > 0) {
+        // std::string message((const char*)buffer.get(), len);
+        std::string message((const char*)buffer.get(), std::min((int)len, 30));
+        LogPrintf("PopMessageReceived: message popped...'%s' (%d) \n", message, len);
+    }
+
+    return len;
 }
 
 void CI2pdNode::HandleReadyToSend()
@@ -2552,7 +2680,7 @@ void CI2pdNode::HandleReadyToSend()
 
 void CI2pdNode::HandleErrorSend(const boost::system::error_code& ecode)
 {
-    LogPrint("net", "HandleErrorSend: %s  (%s)\n", ecode.message(), addr.ToString());
+    LogPrintf("net: HandleErrorSend: %s  (%s)\n", ecode.message(), addr.ToString());
 }
 
 void CI2pdNode::AskFor(const CInv& inv)
@@ -2567,7 +2695,7 @@ void CI2pdNode::AskFor(const CInv& inv)
         nRequestTime = it->second;
     else
         nRequestTime = 0;
-    LogPrint("net", "askfor %s  %d (%s) peer=%d\n", inv.ToString(), nRequestTime, DateTimeStrFormat("%H:%M:%S", nRequestTime / 1000000), id);
+    LogPrintf("net: askfor %s  %d (%s) peer=%d\n", inv.ToString(), nRequestTime, DateTimeStrFormat("%H:%M:%S", nRequestTime / 1000000), id);
 
     // Make sure not to reuse time indexes to keep things in the same order
     int64_t nNow = GetTimeMicros() - 1000000;
@@ -2590,7 +2718,7 @@ void CI2pdNode::BeginMessage(const char* pszCommand) EXCLUSIVE_LOCK_FUNCTION(cs_
     ENTER_CRITICAL_SECTION(cs_vSend);
     assert(ssSend.size() == 0);
     ssSend << CMessageHeader(pszCommand, 0);
-    LogPrint("net", "sending: %s ", SanitizeString(pszCommand));
+    LogPrintf("net.BeginMessage: sending: command: %s \n", SanitizeString(pszCommand));
 }
 
 void CI2pdNode::AbortMessage() UNLOCK_FUNCTION(cs_vSend)
@@ -2599,7 +2727,7 @@ void CI2pdNode::AbortMessage() UNLOCK_FUNCTION(cs_vSend)
 
     LEAVE_CRITICAL_SECTION(cs_vSend);
 
-    LogPrint("net", "(aborted)\n");
+    LogPrintf("net.AbortMessage: (aborted)\n");
 }
 
 void CI2pdNode::EndMessage() UNLOCK_FUNCTION(cs_vSend)
@@ -2608,7 +2736,7 @@ void CI2pdNode::EndMessage() UNLOCK_FUNCTION(cs_vSend)
     // since they are only used during development to debug the networking code and are
     // not intended for end-users.
     if (mapArgs.count("-dropmessagestest") && GetRand(GetArg("-dropmessagestest", 2)) == 0) {
-        LogPrint("net", "dropmessages DROPPING SEND MESSAGE\n");
+        LogPrintf("net: dropmessages DROPPING SEND MESSAGE\n");
         AbortMessage();
         return;
     }
@@ -2617,6 +2745,9 @@ void CI2pdNode::EndMessage() UNLOCK_FUNCTION(cs_vSend)
 
     if (ssSend.size() == 0)
         return;
+
+    auto str = ssSend.str();
+    LogPrintf("net.EndMessage: message: '%s' (%d)\n", str, str.size());
 
     // Set the size
     unsigned int nSize = ssSend.size() - CMessageHeader::HEADER_SIZE;
@@ -2629,7 +2760,7 @@ void CI2pdNode::EndMessage() UNLOCK_FUNCTION(cs_vSend)
     assert(ssSend.size() >= CMessageHeader::CHECKSUM_OFFSET + sizeof(nChecksum));
     memcpy((char*)&ssSend[CMessageHeader::CHECKSUM_OFFSET], &nChecksum, sizeof(nChecksum));
 
-    LogPrint("net", "(%d bytes) peer=%d\n", nSize, id);
+    LogPrintf("net.EndMessage: (%d bytes) peer=%d\n", nSize, id);
 
     std::deque<CSerializeData>::iterator it = vSendMsg.insert(vSendMsg.end(), CSerializeData());
     ssSend.GetAndClear(*it);
@@ -2759,6 +2890,6 @@ void DumpBanlist()
         CI2pdNode::SetBannedSetDirty(false);
     }
 
-    LogPrint("net", "Flushed %d banned node ips/subnets to banlist.dat  %dms\n",
+    LogPrintf("net: Flushed %d banned node ips/subnets to banlist.dat  %dms\n",
         banmap.size(), GetTimeMillis() - nStart);
 }

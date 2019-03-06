@@ -178,8 +178,12 @@ template<typename... TArgs>
 void LogPrint (LogLevel level, TArgs&&... args) noexcept
 {
 	i2p::log::Log &log = i2p::log::Logger();
-	if (level > log.GetLogLevel ())
-		return;
+	// if (level > log.GetLogLevel ())
+	// 	return;
+	if (level > log.GetLogLevel ()) {
+	    // I2PDK: TODO: TEMP: quick fix to log all
+		//return;
+	}
 
 	// fold message to single string
 	std::stringstream ss("");

@@ -161,7 +161,7 @@ bool LookupNumeric(const char* pszName, CDestination& addr, int portDefault = 0)
 
 bool ConnectClientTunnel(const CDestination& addr, std::shared_ptr<i2p::client::I2PPureClientTunnel>& tunnel, int nTimeout, i2p::client::StreamCreatedCallback streamCreated);
 bool ConnectClientTunnelByName(CDestination& addr, std::shared_ptr<i2p::client::I2PPureClientTunnel>& tunnel, const char* pszDest, int portDefault, int nTimeout, i2p::client::StreamCreatedCallback streamCreated);
-bool AcceptClientTunnel(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr<i2p::client::I2PPureClientTunnel> tunnel, int retries = 0);
+bool AcceptClientTunnel(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr<i2p::client::I2PPureClientTunnel> tunnel);
 
 bool ConnectServerTunnel(const CDestination &addrDest, std::shared_ptr<i2p::client::I2PPureServerTunnel>& tunnel, int nTimeout, i2p::client::ServerStreamAcceptedCallback acceptedCallback);
 

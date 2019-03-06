@@ -229,6 +229,9 @@ static void DebugPrintInit()
 
 bool LogAcceptCategory(const char* category)
 {
+    // // I2PDK: TODO: TEMP: quick fix to log all
+    // return true;
+
     if (category != NULL) {
         if (!fDebug)
             return false;
@@ -469,7 +472,12 @@ const boost::filesystem::path& GetDataDir(bool fNetSpecific)
 {
     namespace fs = boost::filesystem;
 
-    LOCK(csPathCached);
+    // LOCK(csPathCached);
+    // I2PDK: just a test
+    TRY_LOCK(csPathCached, lockPathCached);
+    if (!lockPathCached) {
+        MilliSleep(50);
+    }
 
     fs::path& path = fNetSpecific ? pathCachedNetSpecific : pathCached;
 

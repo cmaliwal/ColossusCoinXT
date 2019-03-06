@@ -520,12 +520,23 @@ public:
     //! Mark an entry as connection attempted to.
     void Attempt(const CDestination& addr, int64_t nTime = GetAdjustedTime())
     {
-        {
-            LOCK(cs);
+        while (true) {
+            TRY_LOCK(cs, lockcs);
+            if (!lockcs) {
+                MilliSleep(50);
+                continue;
+            }
             Check();
             Attempt_(addr, nTime);
             Check();
+            break;
         }
+        // {
+        //     LOCK(cs);
+        //     Check();
+        //     Attempt_(addr, nTime);
+        //     Check();
+        // }
     }
 
     /**

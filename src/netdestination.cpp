@@ -296,9 +296,10 @@ bool Lookup(const char* pszName, std::vector<CDestination>& vAddr, int portDefau
     //vAddr.resize(vIP.size());
 
     vAddr.resize(1);
-    for (unsigned int i = 0; i < vIP.size(); i++) {
-        vAddr[i] = CDestination(CI2pUrl(hostname), port);
-    }
+    vAddr[0] = CDestination(CI2pUrl(hostname), port);
+    // for (unsigned int i = 0; i < vIP.size(); i++) {
+    //     vAddr[i] = CDestination(CI2pUrl(hostname), port);
+    // }
     return true;
 }
 
@@ -545,11 +546,13 @@ bool static ConnectClientTunnelDirectly(const CDestination& addrConnect, std::sh
 
     std::string dest = addrConnect.ToStringIP();
     int destinationPort = addrConnect.GetPort(); // .ToStringPort(); // 6667; // 0;
-    std::string name = dest;
+    // std::string name = dest;
+    std::string name = "MY-SOCKS-CLIENT";
 
     // I2PDK: 
     // this is always client, server doesn't use ConnectTunnel*()
-    std::shared_ptr<ClientDestination> localDestination = GetLocalDestination(false);
+    auto localDest = i2p::client::context.GetSharedLocalDestination();
+    std::shared_ptr<ClientDestination> localDestination = localDest; //nullptr; // GetLocalDestination(false);
     //if (server && !localDestination) return false;
 
     // can this fail here (like it's not possible to create, wrong address or something? surely)
@@ -693,7 +696,7 @@ bool static ConnectClientTunnelDirectly(const CDestination& addrConnect, std::sh
 //    return true;
 }
 
-bool AcceptClientTunnel(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr<I2PPureClientTunnel> tunnel, int retries)
+bool AcceptClientTunnel(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr<I2PPureClientTunnel> tunnel)
 {
     // now from the 'ClientServerTest()'
 
@@ -711,8 +714,18 @@ bool AcceptClientTunnel(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr
     LogPrint(eLogInfo, "AcceptClientTunnel: name: ", name, ", local:", endpoint.address().to_string(), ", port:", endpoint.port(), ", dest:", dest, ", hash:", i2p::client::context.GetAddressBook().ToAddress(ident), ", hash1:", ident.ToBase32());
 
     // not sure about this one, test it out
-    auto localDest = tunnel->GetLocalDestination();
-    //auto localDest = context.GetSharedLocalDestination();
+    // auto localDest = tunnel->GetLocalDestination();
+    // //auto localDest = context.GetSharedLocalDestination();
+    auto localDest = i2p::client::context.GetSharedLocalDestination();
+
+    int retries = 0;
+
+    while(!localDest->IsReady () && retries++ < 10) {
+        localDest->GetLeaseSet();
+        MilliSleep(500);
+    }
+    retries = 0;
+
     auto leaseSet = localDest->FindLeaseSet(identHash);
 
     if (leaseSet) {
@@ -732,36 +745,79 @@ bool AcceptClientTunnel(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr
     std::condition_variable newDataReceived;
     std::mutex newDataReceivedMutex;
 
+    retries = 0;
     // if (!leaseSet)
+    while (retries < 5) //true)
     {
         //auto s = GetSharedFromThis();
         LogPrint(eLogInfo, "AcceptClientTunnel: no lease set yet, recreate...");
         std::unique_lock<std::mutex> l(newDataReceivedMutex);
+
+        // std::shared_ptr<I2PPureClientTunnel> tunnel_shared(tunnel.get());
+        // assert( tunnel_shared.get() == tunnel.get() );
+        // // auto tunnel_shared = std::shared_ptr<I2PPureClientTunnel>(tunnel.get());
+        // // std::shared_ptr<I2PPureClientTunnel> tunnel_shared(tunnel.get());
+        // // std::shared_ptr<boost::asio::ip::tcp::endpoint> endpoint_shared (endpoint);
+
+        // auto localDest_shared = tunnel_shared->GetLocalDestination();
+
+        // , &endpoint, &localDest_shared, &retries, &tunnel_shared, &tunnel
+        // endpoint is ok probably, but not really needed to pass
+
+        // localDest_shared->RequestDestination(identHash,
+        //     [&newDataReceived, &leaseSet, &newDataReceivedMutex](std::shared_ptr<i2p::data::LeaseSet> ls)
         localDest->RequestDestination(identHash,
-            [&newDataReceived, &leaseSet, &newDataReceivedMutex, &dest, &endpoint, &tunnel, &identHash, &retries, &localDest](std::shared_ptr<i2p::data::LeaseSet> ls)
+            [&newDataReceived, &leaseSet, &newDataReceivedMutex, &dest](std::shared_ptr<i2p::data::LeaseSet> ls)
         {
+            // auto clientEndpoint = tunnel_shared->GetLocalEndpoint();
+
+            // // reworking this to be done here again to avoid faults ('dest' above is not good here)
+            // std::string tunnelDest = tunnel_shared->GetDestination();
+            // i2p::data::IdentHash identHashDest;
+            // if (!i2p::client::context.GetAddressBook().GetIdentHash(tunnelDest, identHashDest))
+            // {
+            //     LogPrint(eLogWarning, "AcceptClientTunnel: Remote destination ", tunnelDest, " not found");
+            // }
+
             if (!ls) {
                 /* still no leaseset found */
                 LogPrint(eLogError, "AcceptClientTunnel.RequestDestination: LeaseSet for address ", dest, " not found");
 
-                // shouldn't be necessary but given code it should be ok to call (w overhead though)
-                localDest->CancelDestinationRequest(identHash, false); // don't notify, we know
+                // // shouldn't be necessary but given code it should be ok to call (w overhead though)
+                // localDest_shared->CancelDestinationRequest(identHashDest, false); // don't notify, we know
 
-                if (retries < 5)
-                    AcceptClientTunnel(endpoint, tunnel, retries + 1);
+                // if (retries < 5)
+                //     AcceptClientTunnel(clientEndpoint, tunnel_shared, retries + 1);
+
+                // will this not unlock, i.e. wait another 120 secs unnecessarily?
+                std::unique_lock<std::mutex> l1(newDataReceivedMutex);
+                newDataReceived.notify_all();
 
                 return;
             } else {
                 LogPrint(eLogInfo, "AcceptClientTunnel: LeaseSet set!");
                 leaseSet = ls;
 
-                // this is the accept call (mimicking the local socket)
-                std::static_pointer_cast<i2p::client::TCPIPAcceptor>(tunnel)->InvokeHandleAccept();
+                // // this is the accept call (mimicking the local socket)
+                // std::static_pointer_cast<i2p::client::TCPIPAcceptor>(tunnel_shared)->InvokeHandleAccept();
 
                 std::unique_lock<std::mutex> l1(newDataReceivedMutex);
                 newDataReceived.notify_all();
             }
         });
+        if (newDataReceived.wait_for(l, std::chrono::seconds(i2p::client::SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+        {
+            LogPrint(eLogError, "AcceptClientTunnel: Subscription LeaseSet request for address ", dest, " - timeout expired");
+            localDest->CancelDestinationRequest(identHash, false); // don't notify, because we know it already
+            // return;
+        }
+
+        if (!leaseSet) {
+            retries++;
+            continue;
+        }
+
+        break;
 
         // we don't want to block though we may need this in some situations
         //if (newDataReceived.wait_for(l, std::chrono::seconds(i2p::client::SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
@@ -771,6 +827,23 @@ bool AcceptClientTunnel(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr
         //    return;
         //}
     }
+
+    auto leaseSet1 = localDest->FindLeaseSet(identHash);
+    if (!leaseSet1) {
+        /* still no leaseset found */
+        LogPrint(eLogError, "AcceptClientTunnel: LeaseSet for address ", dest, " not found");
+        return false;
+    }
+
+    if (!leaseSet) {
+        LogPrint(eLogError, "AcceptClientTunnel: Fully failed subscription LeaseSet request for address ", dest, "");
+        return false;
+    }
+
+    // this is the accept call (mimicking the local socket)
+    // the cast is no longer needed as we have specific tunnel type here
+    std::static_pointer_cast<i2p::client::TCPIPAcceptor>(tunnel)->InvokeHandleAccept();
+
     return true;
 
     //auto leaseSet1 = localDest->FindLeaseSet(identHash);
@@ -1107,8 +1180,9 @@ bool CI2pUrl::IsLocal() const
 
 bool CI2pUrl::IsValid() const
 {
-    // TODO: do something here, at least check for .i2p or something (if that makes sense)
-    return true;
+    return !url.empty();
+    // // TODO: do something here, at least check for .i2p or something (if that makes sense)
+    // return true;
 
     //// Cleanup 3-byte shifted addresses caused by garbage in size field
     //// of addr messages from versions before 0.2.9 checksum.

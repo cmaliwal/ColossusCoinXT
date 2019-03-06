@@ -30,6 +30,8 @@
 #include "i2pd/HTTPServer.h"
 //#include "Daemon.h"
 // ...httpserver call
+#include "Transports.h"
+#include "ClientContext.h"
 
 
 #include <boost/foreach.hpp>
@@ -608,36 +610,115 @@ UniValue getdestinations(const UniValue& params, bool fHelp)
             "\nExamples:\n" +
             HelpExampleCli("getdestinations", "") + HelpExampleRpc("getdestinations", ""));
 
-    LOCK(cs_main);
+    UniValue destinations(UniValue::VARR);
+    for (auto& it: i2p::client::context.GetDestinations ())
+    {
+        auto ident = it.second->GetIdentHash ();
+        std::string address = i2p::client::context.GetAddressBook ().ToAddress(ident);
 
-    vector<CNodeStats> vstats;
-    CopyNodeStats(vstats);
+        UniValue obj(UniValue::VOBJ);
+        obj.push_back(Pair("destination", address));
+        destinations.push_back(obj);
+    }
+
+    auto i2cpServer = i2p::client::context.GetI2CPServer ();
+    if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
+    {
+        for (auto& it: i2cpServer->GetSessions ())
+        {
+            auto dest = it.second->GetDestination ();
+            if (dest)
+            {
+                auto ident = dest->GetIdentHash ();
+                auto& name = dest->GetNickname ();
+                std::string address = i2p::client::context.GetAddressBook ().ToAddress(ident);
+
+                UniValue obj(UniValue::VOBJ);
+                obj.push_back(Pair("destination", address));
+                destinations.push_back(obj);
+            }
+        }
+    }
+    return destinations;
+
+    // UniValue ret(UniValue::VARR);
+    // UniValue obj(UniValue::VOBJ);
+    // std::stringstream s;
+    // std::string content;
+    // i2p::http::ShowLocalDestinations(s);
+    // content = s.str();
+    // UniValue obj(UniValue::VOBJ);
+    // UniValue destinations(UniValue::VARR);
+    // {
+    //     BOOST_FOREACH (const PAIRTYPE(CI2pUrl, LocalServiceInfo) & item, mapLocalHost) {
+    //         UniValue rec(UniValue::VOBJ);
+    //         rec.push_back(Pair("address", item.first.ToString()));
+    //         rec.push_back(Pair("port", item.second.nPort));
+    //         rec.push_back(Pair("score", item.second.nScore));
+    //         destinations.push_back(rec);
+    //     }
+    // }
+    // obj.push_back(Pair("destinations", destinations));
+    // return obj;
+    // ret.push_back(obj);
+    // return ret;
+}
+
+UniValue testclienttunnel(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "testclienttunnel\n"
+            "\nReturns data about the local i2p destinations as a json array of objects.\n"
+            "\nbResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"id\": n,                   (numeric) Peer index\n"
+            "    \"addr\":\"host:port\",      (string) The ip address and port of the peer\n"
+            "    \"addrlocal\":\"ip:port\",   (string) local address\n"
+            "    \"services\":\"xxxxxxxxxxxxxxxx\",   (string) The services offered\n"
+            "    \"lastsend\": ttt,           (numeric) The time in seconds since epoch (Jan 1 1970 GMT) of the last send\n"
+            "    \"lastrecv\": ttt,           (numeric) The time in seconds since epoch (Jan 1 1970 GMT) of the last receive\n"
+            "    \"bytessent\": n,            (numeric) The total bytes sent\n"
+            "    \"bytesrecv\": n,            (numeric) The total bytes received\n"
+            "    \"conntime\": ttt,           (numeric) The connection time in seconds since epoch (Jan 1 1970 GMT)\n"
+            "    \"timeoffset\": ttt,         (numeric) The time offset in seconds\n"
+            "    \"pingtime\": n,             (numeric) ping time\n"
+            "    \"pingwait\": n,             (numeric) ping wait\n"
+            "    \"version\": v,              (numeric) The peer version, such as 7001\n"
+            "    \"subver\": \"/COLX Core:x.x.x.x/\",  (string) The string version\n"
+            "    \"inbound\": true|false,     (boolean) Inbound (true) or Outbound (false)\n"
+            "    \"startingheight\": n,       (numeric) The starting height (block) of the peer\n"
+            "    \"banscore\": n,             (numeric) The ban score\n"
+            "    \"synced_headers\": n,       (numeric) The last header we have in common with this peer\n"
+            "    \"synced_blocks\": n,        (numeric) The last block we have in common with this peer\n"
+            "    \"inflight\": [\n"
+            "       n,                        (numeric) The heights of blocks we're currently asking from this peer\n"
+            "       ...\n"
+            "    ]\n"
+            "  }\n"
+            "  ,...\n"
+            "]\n"
+            "\nExamples:\n" +
+            HelpExampleCli("getdestinations", "") + HelpExampleRpc("getdestinations", ""));
 
     UniValue ret(UniValue::VARR);
 
-    BOOST_FOREACH(const CNodeStats& stats, vstats) {
-        UniValue obj(UniValue::VOBJ);
+    UniValue obj(UniValue::VOBJ);
 
-        std::stringstream s;
-        std::string content;
+    std::stringstream s;
+    std::string content;
 
-        i2p::http::ShowLocalDestinations(s);
-        content = s.str();
+    i2p::transport::transports.ClientServerTest();
+    i2p::http::ShowLocalDestinations(s);
+    content = s.str();
 
-        obj.push_back(Pair("destinations", content));
+    obj.push_back(Pair("destinations", content));
 
-        //obj.push_back(Pair("banscore", statestats.nMisbehavior));
-        //obj.push_back(Pair("synced_headers", statestats.nSyncHeight));
-        //obj.push_back(Pair("synced_blocks", statestats.nCommonHeight));
-        //UniValue heights(UniValue::VARR);
-        //BOOST_FOREACH(int height, statestats.vHeightInFlight) {
-        //    heights.push_back(height);
-        //}
-        //obj.push_back(Pair("inflight", heights));
-
-        ret.push_back(obj);
-    }
+    ret.push_back(obj);
 
     return ret;
+
+
 }
 
