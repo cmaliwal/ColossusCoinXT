@@ -51,6 +51,7 @@ namespace client
             void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
             void CreateStream(StreamRequestComplete complete, const i2p::data::IdentHash & ident, int port);
             inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); }
+            inline bool IsStopped() { return _isStopped; }
 
             virtual void Start () = 0;
             virtual void Stop () = 0;
@@ -75,6 +76,9 @@ namespace client
       
         public:
             bool isUpdated; // transient, used during reload only
+
+        protected:
+            bool _isStopped;
     };
 
     //typedef std::function<void(const boost::system::error_code &)> ReadyCallback;

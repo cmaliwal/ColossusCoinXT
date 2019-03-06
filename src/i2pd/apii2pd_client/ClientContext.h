@@ -88,8 +88,10 @@ namespace client
             std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
 
             bool InsertStartServerTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureServerTunnel> tunnel);           
+            bool InsertStartClientTunnel(boost::asio::ip::tcp::endpoint&, std::shared_ptr<I2PPureClientTunnel>);
 
-            bool InsertStartClientTunnel(boost::asio::ip::tcp::endpoint&, std::shared_ptr<I2PService>);
+            bool RemoveServerTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureServerTunnel> tunnel);           
+            bool RemoveClientTunnel(const boost::asio::ip::tcp::endpoint&, std::shared_ptr<I2PPureClientTunnel>);
 
         private:
 

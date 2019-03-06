@@ -817,6 +817,20 @@ namespace client
         } 
         else
         {
+            if (!RemoveServerTunnel(hash, port, tunnel)) {
+                LogPrint(eLogInfo, "Clients.InsertStartServerTunnel.RemoveServerTunnel: failed?");
+                return false;
+            }
+
+            ins = m_ServerPureTunnels.insert(std::make_pair(std::make_pair(hash, port), tunnel));
+
+            // if returns success == true
+            if (ins.second)
+            {
+                tunnel->Start();
+                return true;
+            } 
+
             // this means that our tunnel exists already
             // TODO: update
             if (ins.first->second->GetLocalDestination() != tunnel->GetLocalDestination())
@@ -830,7 +844,7 @@ namespace client
         }
     }
 
-    bool ClientContext::InsertStartClientTunnel(boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PService> tunnel)
+    bool ClientContext::InsertStartClientTunnel(boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PPureClientTunnel> tunnel)
     {
         auto ins = m_ClientTunnels.insert(std::make_pair(endpoint, tunnel));
 
@@ -841,6 +855,18 @@ namespace client
             return true;
         } else
         {
+            if (!RemoveClientTunnel(endpoint, tunnel)) {
+                LogPrint(eLogInfo, "Clients.InsertStartClientTunnel.RemoveClientTunnel: failed?");
+                return false;
+            }
+
+            ins = m_ClientTunnels.insert(std::make_pair(endpoint, tunnel));
+            if (ins.second)
+            {
+                tunnel->Start();
+                return true;
+            }
+
             // TODO: update
             if (ins.first->second->GetLocalDestination() != tunnel->GetLocalDestination())
             {
@@ -849,9 +875,55 @@ namespace client
             }
             ins.first->second->isUpdated = true;
             LogPrint(eLogInfo, "Clients: I2P client tunnel for endpoint ", endpoint, " already exists");
+            
+            // this shouldn't happen basically, but just let it start as we don't care much about the map I think
+            // but tunnel needs to start
+            tunnel->Start();
             return false;
         }
     }
+
+    bool ClientContext::RemoveServerTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureServerTunnel> tunnel)
+    {
+        // auto ins = m_ServerPureTunnels.insert(std::make_pair(
+        //     std::make_pair(localDestination->GetIdentHash(), inPort),
+        //     serverTunnel));
+        auto it = m_ServerPureTunnels.find(std::make_pair(hash, port));
+        if (it != m_ServerPureTunnels.end()) {
+            // std::string dest = tunnel->GetDestination();
+            // std::string originalDest = it->second->GetDestination();
+            // if (originalDest != dest) {
+            //     LogPrint(eLogInfo, "Clients.RemoveServerTunnel: destinations should match (at least)?");
+            // }
+            if (it->second != tunnel){
+                LogPrint(eLogInfo, "Clients.RemoveServerTunnel: tunnels should also match?");
+            }
+            m_ServerPureTunnels.erase(it);
+            return true;
+        }
+        return false;
+    }
+    bool ClientContext::RemoveClientTunnel(const boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PPureClientTunnel> clientTunnel)
+    {
+        auto it = m_ClientTunnels.find(endpoint); //clientTunnel->GetLocalEndpoint());
+        if (it != m_ClientTunnels.end()) {
+            std::string dest = clientTunnel->GetDestination();
+            std::string originalDest = it->second->GetDestination();
+            if (originalDest != dest) {
+                LogPrint(eLogInfo, "Clients.RemoveClientTunnel: destinations should match (at least)?");
+            }
+            if (it->second != clientTunnel){
+                LogPrint(eLogInfo, "Clients.RemoveClientTunnel: tunnels should also match?");
+            }
+            m_ClientTunnels.erase(it);
+            return true;
+        }
+        return false;
+        // // boost::asio::ip::tcp::endpoint clientEndpoint = clientTunnel->GetLocalEndpoint();
+        // m_ClientTunnels.erase(clientTunnel->GetLocalEndpoint());
+        // return true;
+    }
+    
 
     void ClientContext::ReadHttpProxy ()
     {

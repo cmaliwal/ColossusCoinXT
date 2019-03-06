@@ -1044,13 +1044,32 @@ void CDestination::SetPort(unsigned short portIn)
 
 bool CloseTunnel(std::shared_ptr<I2PPureClientTunnel> tunnel)
 {
+    if (tunnel->IsStopped()){
+        LogPrint(eLogWarning, "CloseTunnel(I2PPureClientTunnel): already stopped?");
+        // return;
+    }
+    // we need to remove before renewing the tunnel, or InsertStartClientTunnel might behave strangely
+    // remove from map first then stop? I guess    
+    i2p::client::context.RemoveClientTunnel(tunnel->GetLocalEndpoint(), tunnel);
     tunnel->Stop();
     return true;
 }
 bool CloseTunnel(std::shared_ptr<I2PPureServerTunnel> tunnel)
 {
+    if (tunnel->IsStopped()){
+        LogPrint(eLogWarning, "CloseTunnel(I2PPureServerTunnel): already stopped?");
+        // return;
+    }
+    // port is a bit iffy here, but this should be ok, we normally pass '0' for inport, which means
+    // it's actually using the local ('sockets' port), all should point to the same # anyways.
+    // anyhow server tunnel should only be created once for the lifetime of the app.
+    i2p::client::context.RemoveServerTunnel(
+        tunnel->GetLocalDestination()->GetIdentHash(), 
+        tunnel->GetLocalPort(),
+        tunnel);
     tunnel->Stop();
     return true;
+    // what's the equivalent of the invalid socket check for tunnels here?
 //    if (hSocket == INVALID_SOCKET)
 //        return false;
 //#ifdef WIN32

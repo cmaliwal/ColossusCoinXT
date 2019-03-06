@@ -551,17 +551,23 @@ namespace i2p
         void I2PPureClientTunnel::Start()
         {
             // I2PDK: this should be removed (that's the old local-sockets style/waiting)
-            TCPIPAcceptor::Start();
+            // as it stands, acceptor (sockets) won't be initialized (i.e. null) and will be skipped 
+            // TCPIPAcceptor::Start();
             
             GetIdentHash();
         }
 
         void I2PPureClientTunnel::Stop()
         {
+            if (IsStopped()){
+                LogPrint(eLogWarning, "I2PPureClientTunnel.Stop: already stopped?");
+                return;
+            }
             TCPIPAcceptor::Stop();
             auto *originalIdentHash = m_DestinationIdentHash;
             m_DestinationIdentHash = nullptr;
             delete originalIdentHash;
+            _isStopped = true;
         }
 
         /* HACK: maybe we should create a caching IdentHash provider in AddressBook */
@@ -674,7 +680,12 @@ namespace i2p
 
         void I2PPureServerTunnel::Stop()
         {
+            if (IsStopped()){
+                LogPrint(eLogWarning, "I2PPureServerTunnel.Stop: already stopped?");
+                return;
+            }
             ClearHandlers();
+            _isStopped = true;
         }
 
         void I2PPureServerTunnel::HandleResolve(const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,

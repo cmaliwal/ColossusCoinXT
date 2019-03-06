@@ -16,7 +16,8 @@ namespace client
 			m_ReadyTimer(m_LocalDestination->GetService()),
 			m_ReadyTimerTriggered(false),
 			m_ConnectTimeout(0),
-			isUpdated (true)
+			isUpdated (true),
+			_isStopped(false)
 	{
 		m_LocalDestination->Acquire ();
 	}
@@ -25,7 +26,8 @@ namespace client
 		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt)),
 		m_ReadyTimer(m_LocalDestination->GetService()),
 		m_ConnectTimeout(0),
-		isUpdated (true)
+		isUpdated (true),
+		_isStopped(false)
 	{
 		m_LocalDestination->Acquire ();
 	}
@@ -278,6 +280,8 @@ namespace client
 
 	void TCPIPAcceptor::Start ()
 	{
+		// just don't call the 'Start' from the above tunnel class and nothing sockets related we'll be done. 
+		// local endpoint is anyhow created (this is just update here)
 		m_Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), m_LocalEndpoint));
 		//update the local end point in case port has been set zero and got updated now
 		m_LocalEndpoint = m_Acceptor->local_endpoint();
@@ -298,9 +302,14 @@ namespace client
 
 	void TCPIPAcceptor::Accept ()
 	{
-		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
-		m_Acceptor->async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
-			std::placeholders::_1, newSocket));
+		// a quick fix to turn acceptor (local sockets) off, but we still need it for some general functionality
+		// just don't call the 'Start' from the above tunnel class and nothing sockets related we'll be done. 
+		if (m_Acceptor)
+		{
+			auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
+			m_Acceptor->async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
+				std::placeholders::_1, newSocket));
+		}
 	}
 
 	void TCPIPAcceptor::InvokeHandleAccept()
