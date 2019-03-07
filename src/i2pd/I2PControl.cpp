@@ -635,6 +635,14 @@ namespace client
 			client_tunnels.add_child(it.second->GetName (), ct);
 		}
 
+		for (auto& it: i2p::client::context.GetClientPureTunnels ())
+		{
+			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+			boost::property_tree::ptree ct;
+			ct.put("address", i2p::client::context.GetAddressBook ().ToAddress(ident));
+			client_tunnels.add_child(it.second->GetName (), ct);
+		}
+
 		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
 		if (!serverTunnels.empty ()) {
 			for (auto& it: serverTunnels)

@@ -6377,6 +6377,8 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
 
             CValidationState state;
             if (!mapBlockIndex.count(block.GetHash())) {
+                // TRY_FIX: FIX: threads are stalling when syncing, give it a bit of extra time here?
+                MilliSleep(10);
                 ProcessNewBlock(state, pfrom, &block);
                 int nDoS;
                 if(state.IsInvalid(nDoS)) {

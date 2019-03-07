@@ -468,6 +468,7 @@ namespace tunnel
 		uint64_t lastTs = 0;
 		while (m_IsRunning)
 		{
+			// std::this_thread::sleep_for(std::chrono::seconds(1));
 			try
 			{
 				auto msg = m_Queue.GetNextWithTimeout (1000); // 1 sec

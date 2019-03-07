@@ -88,10 +88,12 @@ namespace client
             std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
 
             bool InsertStartServerTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureServerTunnel> tunnel);           
-            bool InsertStartClientTunnel(boost::asio::ip::tcp::endpoint&, std::shared_ptr<I2PPureClientTunnel>);
+            bool InsertStartClientTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureClientTunnel>);
+            // bool InsertStartClientTunnel(boost::asio::ip::tcp::endpoint&, std::shared_ptr<I2PPureClientTunnel>);
 
             bool RemoveServerTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureServerTunnel> tunnel);           
-            bool RemoveClientTunnel(const boost::asio::ip::tcp::endpoint&, std::shared_ptr<I2PPureClientTunnel>);
+            // bool RemoveClientTunnel(const boost::asio::ip::tcp::endpoint&, std::shared_ptr<I2PPureClientTunnel>);
+            bool RemoveClientTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureClientTunnel> tunnel);
 
         private:
 
@@ -125,6 +127,7 @@ namespace client
             i2p::proxy::SOCKSProxy * m_SocksProxy;
             std::map<boost::asio::ip::tcp::endpoint, std::shared_ptr<I2PService> > m_ClientTunnels; // local endpoint->tunnel
             std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
+            std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PPureClientTunnel> > m_ClientPureTunnels; // <dest,port>->tunnel
             std::map<std::pair<i2p::data::IdentHash, int>, std::shared_ptr<I2PPureServerTunnel> > m_ServerPureTunnels; // <destination,port>->tunnel
 
             std::mutex m_ForwardsMutex;
@@ -142,6 +145,7 @@ namespace client
             const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
             const decltype(m_ClientTunnels)& GetClientTunnels () const { return m_ClientTunnels; };
             const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
+            const decltype(m_ClientPureTunnels)& GetClientPureTunnels () const { return m_ClientPureTunnels; };
             const decltype(m_ServerPureTunnels)& GetServerPureTunnels() const { return m_ServerPureTunnels; };
             const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
             const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }

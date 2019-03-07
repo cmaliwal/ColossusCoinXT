@@ -689,7 +689,8 @@ namespace transport
     void Transports::CreateLeaseSetTest()
     {
         std::string name = "MY-SOCKS";
-        for (auto& it : i2p::client::context.GetClientTunnels())
+        // for (auto& it : i2p::client::context.GetClientTunnels())
+        for (auto& it : i2p::client::context.GetClientPureTunnels())
         {
             auto& ident = it.second->GetLocalDestination()->GetIdentHash();
             if (name != it.second->GetName()) { continue; }
@@ -702,7 +703,7 @@ namespace transport
                 LogPrint(eLogWarning, "CreateLeaseSetTest: Remote destination ", dest, " not found");
             }
 
-            LogPrint(eLogInfo, "CreateLeaseSetTest: name: ", name, ", local:", it.first.address().to_string(), ", port:", it.first.port(), ", dest:", dest, ", hash:", i2p::client::context.GetAddressBook().ToAddress(ident), ", hash1:", ident.ToBase32());
+            LogPrint(eLogInfo, "CreateLeaseSetTest: name: ", name, ", local:", it.first.first.ToBase32(), ", port:", it.first.second, ", dest:", dest, ", hash:", i2p::client::context.GetAddressBook().ToAddress(ident), ", hash1:", ident.ToBase32());
 
 
             /* this code block still needs some love */
@@ -749,7 +750,7 @@ namespace transport
     void Transports::ClientServerTest()
     {
         std::string name = "MY-SOCKS";
-        for (auto& it : i2p::client::context.GetClientTunnels())
+        for (auto& it : i2p::client::context.GetClientPureTunnels())
         {
             auto& ident = it.second->GetLocalDestination()->GetIdentHash();
             if (name != it.second->GetName()) { continue; }
@@ -762,8 +763,7 @@ namespace transport
                 LogPrint(eLogWarning, "ClientServerTest: Remote destination ", dest, " not found");
             }
 
-            LogPrint(eLogInfo, "ClientServerTest: name: ", name, ", local:", it.first.address().to_string(), ", port:", it.first.port(), ", dest:", dest, ", hash:", i2p::client::context.GetAddressBook().ToAddress(ident), ", hash1:", ident.ToBase32());
-
+            LogPrint(eLogInfo, "ClientServerTest: name: ", name, ", local:", it.first.first.ToBase32(), ", port:", it.first.second, ", dest:", dest, ", hash:", i2p::client::context.GetAddressBook().ToAddress(ident), ", hash1:", ident.ToBase32());
 
             /* this code block still needs some love */
             std::condition_variable newDataReceived;

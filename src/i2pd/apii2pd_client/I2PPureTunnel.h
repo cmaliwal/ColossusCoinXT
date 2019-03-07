@@ -160,10 +160,12 @@ namespace i2p
             void Start();
             void Stop();
 
+            int GetDestinationPort() { return m_DestinationPort; }
             const char* GetName() { return m_Name.c_str(); }
             const char* GetDestination() { return m_Destination.c_str(); }
 
-        private:
+        // private:
+        public:
             const i2p::data::IdentHash * GetIdentHash();
 
         private:

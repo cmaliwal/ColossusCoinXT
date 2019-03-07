@@ -714,6 +714,16 @@ namespace http {
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
 		}
+
+		for (auto& it: i2p::client::context.GetClientPureTunnels ())
+		{
+			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
+			s << it.second->GetName () << "</a> &#8656; ";
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << "<br>\r\n"<< std::endl;
+		}
+
 		auto httpProxy = i2p::client::context.GetHttpProxy ();
 		if (httpProxy)
 		{

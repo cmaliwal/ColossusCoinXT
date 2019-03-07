@@ -41,7 +41,7 @@ Client side setup is relatively painless.
 - Copy all files from `i2pconfig/client` (or client.ColossusXT.tar.gz) into your data directory. Make sure all subdirs are copies as well. 
 - Copy your 'testnet4' (with your wallet, blocks etc.) into this new data directory.  
 - Edit 'ColossusXT.conf': adjust 'addnode'-s to include the latest list of i2p addresses (to be supplied, or expanded as we go) or seeding when available.  
-- run with that datadir=... e.g. './colx-qt -testnet -datadir=...' or colxd...  
+- run with that datadir=... e.g. './colx-qt -testnet -datadir=...' or './colxd -daemon -testnet -datadir=...'.  
 - .  
 
 
@@ -66,6 +66,12 @@ That is the way to create new keys and matching destinations/addresses. For each
 You only need to go through this for the server/MN. Client nodes have their local destinations craated as temporary ones, and those change on each run (can't be persisted accrosss sessions, not w/o some code adjustments, it'll be available for client/server mix nodes).  
 
 
+# Server (regular-non-MN) Setup
+
+**Note: this isn't verified yet, I'll try that soon.**  
+It should be doable to just fill in the `bind` parameter (and possibly `externalip`) in the ColossusXT.conf - and leave out all the MN specifics. That way we should have a 'server' tunnel set up (with a visible public destination) w/o all the MN extra work. Yet to be tested and confirmed.
+
+
 # Firewalls, Other Setup  
 
 Nothing to do here. No firewall setup is needed (except if wishing to improve performance and for public nodes as per the official documentation, but I didn't explore that avenue).  
@@ -77,5 +83,5 @@ All should be the same except for a few things:
 - visuals are slightly different (as instead of IP-s we have i2p addresses).  
 - initialization is a bit slower, you need to wait a bit for i2p network to kick in and start synchronizing things. Sometimes that's right away, sometimes it's couple minutes, could be more in some cases, most of the time you won't notice big difference but just slightly slower.
 - block syncing is slower and performance in general (i.e. things are slow in GUI), see known issues, this isn't optimized at all (should be an easy fix).  
-- some network scenarios are not tested, there may be issues etc. (again see known issues for me). 
+- some network scenarios are not tested, there may be issues etc. (again see known issues for more). 
 

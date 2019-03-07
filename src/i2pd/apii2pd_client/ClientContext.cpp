@@ -132,6 +132,13 @@ namespace client
         }
         m_ClientTunnels.clear ();
 
+        for (auto& it: m_ClientPureTunnels)
+        {
+            LogPrint(eLogInfo, "Clients: stopping I2P pure client tunnel on port ", it.first.first.ToBase32());
+            it.second->Stop ();
+        }
+        m_ClientPureTunnels.clear ();
+
         for (auto& it: m_ServerTunnels)
         {
             LogPrint(eLogInfo, "Clients: stopping I2P server tunnel");
@@ -582,6 +589,15 @@ namespace client
                             }
                             LogPrint(eLogInfo, "tunnels.created: name: ", name, ", dest:", dest, ", getname:", tun->GetName(), ", hash:", identHash.ToBase32(), ", hash1:", clientTunnel->GetLocalDestination()->GetIdentHash().ToBase32());
 
+                            uint32_t timeout = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT, 0);
+                            if(timeout)
+                            {
+                                clientTunnel->SetConnectTimeout(timeout);
+                                LogPrint(eLogInfo, "Clients: I2P Client tunnel connect timeout set to ", timeout);
+                            }
+
+                            InsertStartClientTunnel(identHash, destinationPort, tun);
+                            continue;
                         } else
                         {
                             //LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ", localDestination->GetIdentHash().ToBase32());
@@ -844,28 +860,30 @@ namespace client
         }
     }
 
-    bool ClientContext::InsertStartClientTunnel(boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PPureClientTunnel> tunnel)
+    // bool ClientContext::InsertStartClientTunnel(boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PPureClientTunnel> tunnel)
+    bool ClientContext::InsertStartClientTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureClientTunnel> tunnel)
     {
-        auto ins = m_ClientTunnels.insert(std::make_pair(endpoint, tunnel));
+        auto ins = m_ClientPureTunnels.insert(std::make_pair(std::make_pair(hash, port), tunnel));
 
         if (ins.second)
         {
             tunnel->Start();
-            //numClientTunnels++;
             return true;
         } else
         {
-            if (!RemoveClientTunnel(endpoint, tunnel)) {
+            if (!RemoveClientTunnel(hash, port, tunnel)) {
                 LogPrint(eLogInfo, "Clients.InsertStartClientTunnel.RemoveClientTunnel: failed?");
                 return false;
             }
 
-            ins = m_ClientTunnels.insert(std::make_pair(endpoint, tunnel));
+            ins = m_ClientPureTunnels.insert(std::make_pair(std::make_pair(hash, port), tunnel));
             if (ins.second)
             {
                 tunnel->Start();
                 return true;
             }
+
+            LogPrint(eLogInfo, "Clients.InsertStartClientTunnel: we shouldn't be getting here?");
 
             // TODO: update
             if (ins.first->second->GetLocalDestination() != tunnel->GetLocalDestination())
@@ -874,7 +892,7 @@ namespace client
                 ins.first->second->SetLocalDestination(tunnel->GetLocalDestination());
             }
             ins.first->second->isUpdated = true;
-            LogPrint(eLogInfo, "Clients: I2P client tunnel for endpoint ", endpoint, " already exists");
+            LogPrint(eLogInfo, "Clients: I2P client tunnel for destination ", hash.ToBase32(), " already exists");
             
             // this shouldn't happen basically, but just let it start as we don't care much about the map I think
             // but tunnel needs to start
@@ -890,11 +908,11 @@ namespace client
         //     serverTunnel));
         auto it = m_ServerPureTunnels.find(std::make_pair(hash, port));
         if (it != m_ServerPureTunnels.end()) {
-            // std::string dest = tunnel->GetDestination();
-            // std::string originalDest = it->second->GetDestination();
-            // if (originalDest != dest) {
-            //     LogPrint(eLogInfo, "Clients.RemoveServerTunnel: destinations should match (at least)?");
-            // }
+            auto identHash = it->second->GetLocalDestination()->GetIdentHash();
+            auto port = it->second->GetPort();
+            if (identHash != hash) {
+                LogPrint(eLogInfo, "Clients.RemoveServerTunnel: destinations should match (at least)?");
+            }
             if (it->second != tunnel){
                 LogPrint(eLogInfo, "Clients.RemoveServerTunnel: tunnels should also match?");
             }
@@ -903,10 +921,11 @@ namespace client
         }
         return false;
     }
-    bool ClientContext::RemoveClientTunnel(const boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PPureClientTunnel> clientTunnel)
+    // bool ClientContext::RemoveClientTunnel(const boost::asio::ip::tcp::endpoint& endpoint, std::shared_ptr<I2PPureClientTunnel> clientTunnel)
+    bool ClientContext::RemoveClientTunnel(i2p::data::IdentHash hash, int port, std::shared_ptr<I2PPureClientTunnel> clientTunnel)
     {
-        auto it = m_ClientTunnels.find(endpoint); //clientTunnel->GetLocalEndpoint());
-        if (it != m_ClientTunnels.end()) {
+        auto it = m_ClientPureTunnels.find(std::make_pair(hash, port));
+        if (it != m_ClientPureTunnels.end()) {
             std::string dest = clientTunnel->GetDestination();
             std::string originalDest = it->second->GetDestination();
             if (originalDest != dest) {
@@ -915,13 +934,10 @@ namespace client
             if (it->second != clientTunnel){
                 LogPrint(eLogInfo, "Clients.RemoveClientTunnel: tunnels should also match?");
             }
-            m_ClientTunnels.erase(it);
+            m_ClientPureTunnels.erase(it);
             return true;
         }
         return false;
-        // // boost::asio::ip::tcp::endpoint clientEndpoint = clientTunnel->GetLocalEndpoint();
-        // m_ClientTunnels.erase(clientTunnel->GetLocalEndpoint());
-        // return true;
     }
     
 
@@ -1042,6 +1058,7 @@ namespace client
     {
         VisitTunnelsContainer (m_ClientTunnels, v);
         VisitTunnelsContainer (m_ServerTunnels, v);
+        VisitTunnelsContainer (m_ClientPureTunnels, v);
         VisitTunnelsContainer(m_ServerPureTunnels, v);
 
         // TODO: implement UDP forwards

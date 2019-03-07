@@ -11,7 +11,9 @@ I2PD Setup
 Generally all should compile and run ok, but there're still some issues to keep in mind:  
 - Only Linux is supported, Windows was at some point but isn't working right now (Linux testing only for the moment).
 - make is not picking up changes in the src/i2pd folder (I'll investigate this when time). For now just remove *.a, *.o from it and recompile.  
-- in certain cases after a while build will fail with libminzip related errors. Something due to make clean or make install. Fix is to do a clean clone and build.
+- in certain cases after a while build will fail with libminzip related errors. Something due to make clean or make install. Fix is to do a clean clone and build.  
+- i2pd branch is a bit behind the master, it's based on the pre-NY master, all the changes afterwards (including the major GUI/qt changes) are not yet merged in.  
+
 
 ## Stability, Performance
 COLX should run relatively stable now, I've fixed couple major problems and things are running ok for a while.  

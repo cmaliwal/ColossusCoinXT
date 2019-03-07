@@ -422,6 +422,9 @@ std::shared_ptr<ClientDestination> static GetLocalDestination(bool isServer)
     return GetLocalDestination(dest, isServer);
 }
 
+// There really should be only one server tunnel (at least one per a specific bind address:port).
+// Once created, we're listening to clients and accepting new connections, at which point we're
+// creating new server nodes - nodes are per connection, but one tunnel only.
 bool ConnectServerTunnel(const CDestination &addrDest, std::shared_ptr<I2PPureServerTunnel>& tunnel, int nTimeout, ServerStreamAcceptedCallback acceptedCallback)
 {
     tunnel = nullptr; // invalid tunnel;
@@ -561,6 +564,10 @@ bool static ConnectClientTunnelDirectly(const CDestination& addrConnect, std::sh
 
     //std::shared_ptr<I2PService> clientTunnel = tun;
     std::shared_ptr<I2PPureClientTunnel> clientTunnel = tun;
+
+    // endpoint here is always the same (as it's basically address:port above), i.e. we can't use
+    // that for the map key/index (within the InsertStartClientTunnel). Ideally we should use
+    // dest:destPort
     boost::asio::ip::tcp::endpoint clientEndpoint = tun->GetLocalEndpoint();
 
     // recheck just...
@@ -582,7 +589,8 @@ bool static ConnectClientTunnelDirectly(const CDestination& addrConnect, std::sh
 
     // add to the context list (mimick what's normally done on startup, when reading .conf, adding nodes)
     //auto ins = i2p::client::context.GetClientTunnels().insert(std::make_pair(clientEndpoint, clientTunnel));
-    bool success = i2p::client::context.InsertStartClientTunnel(clientEndpoint, clientTunnel);
+    bool success = i2p::client::context.InsertStartClientTunnel(identHash, destinationPort, clientTunnel);
+    // bool success = i2p::client::context.InsertStartClientTunnel(clientEndpoint, clientTunnel);
 
     if (success) {
         // done inside
@@ -1050,7 +1058,7 @@ bool CloseTunnel(std::shared_ptr<I2PPureClientTunnel> tunnel)
     }
     // we need to remove before renewing the tunnel, or InsertStartClientTunnel might behave strangely
     // remove from map first then stop? I guess    
-    i2p::client::context.RemoveClientTunnel(tunnel->GetLocalEndpoint(), tunnel);
+    i2p::client::context.RemoveClientTunnel(*tunnel->GetIdentHash(), tunnel->GetDestinationPort(), tunnel);
     tunnel->Stop();
     return true;
 }
