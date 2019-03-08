@@ -26,6 +26,8 @@ Private nodes (while not having published destinations) could also be 'listening
 # How it works 
 Communication in between nodes is fully bi-directional, once connection is established - and doesn't require any firewall setup (though nodes may be setup with public ip:port with improved performance - but that wasn't explored at the moment, see previous discussion on this). For performance and more see the `I2PD_Setup_Usage.md`.   
 
-
+Other files:   
+[Setup, Usage](I2PD_Setup_Usage.md)  
+[Known Issues](I2PD_Status_Known_Issues.md)
 
 

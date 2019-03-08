@@ -24,6 +24,7 @@ router.info | predefined or generated | data directory | client, server |  |
 testnet4 | custom user data (supplied by user) | data directory | client, server | | yes
 i2pd.log | i2pd log file (generated, appended) | bin / colxd directory | client, server | | 
 debug.log | COLX log file (generated, appended) | testnet4 sub directory | client, server | | 
+mncache.dat | MN cache file (regenerated) | testnet4 sub directory | client, server | | 
   
 ## Additional Explanations     
 - i2pd.log path can also be setup in the i2pd.conf file - default is bin directory (colxd/colx-qt dir)
@@ -42,9 +43,33 @@ Client side setup is relatively painless.
 - Copy your 'testnet4' (with your wallet, blocks etc.) into this new data directory.  
 - Edit 'ColossusXT.conf': adjust 'addnode'-s to include the latest list of i2p addresses (to be supplied, or expanded as we go) or seeding when available.  
 - run with that datadir=... e.g. './colx-qt -testnet -datadir=...' or './colxd -daemon -testnet -datadir=...'.  
-- .  
+- .    
+  
+**Note: mncache.dat file, if reused from before (when copying your testnet4), will result in an early on error and app will fail to run (daemon or qt). Just delete the file to be recreated.**
 
+ColossusXT.conf should look similar to this:  
 
+```
+listen=0 # listen=1
+testnet=1
+server=1
+txindex=1
+rpcuser=colxrpc
+rpcpassword=m5JbgKWGs4VH8z9y329oTvNizvbMbUbRJRYK5aFrzbi
+rpcport=51473
+port=51572
+rpcallowip=127.0.0.1
+testnet=1
+enablezeromint=0 # we should specify this for masternodes (COLX docs)
+logtimestamps=1
+staking=1
+banscore=1000
+bantime=10 # that's in seconds
+#daemon=1
+addnode=xqt6q6kten5nkzdo6ojxs5sbthtp7wjlnewid2l3iit55venn5pq.b32.i2p:6667
+addnode=h722acegogbffjgwd52bydcycifugd5lmvdnsk7rtuk2vjpge5ea.b32.i2p:6667
+addnode=ker57lgh3hl5jqfflpwuuhmopqe54f3x23hggd2prwovfo3byw3q.b32.i2p:6667
+```
 
 # Server (MN) Setup
 
@@ -60,16 +85,68 @@ Same as for the client above, + some more...
 - open the ColossusXT.conf, replace all instances of 'ker57lgh3hl5jqfflpwuuhmopqe54f3x23hggd2prwovfo3byw3q' with the new <hash>.
 - if any other server nodes are available add them to addnode-s, like - addnode=<other-hash>.b32.i2p:6667
 - port is almost always the same (6667), can be changed though.  
-- of course adjust your MN masternodeprivkey to match your wallets/setup (refer to MN setup).
+- of course adjust your MN masternodeprivkey to match your wallets/setup (refer to MN setup).  
+  
+**Note: mncache.dat file, if reused from before (when copying your testnet4), will result in an early on error and app will fail to run (daemon or qt). Just delete the file to be recreated.**  
   
 That is the way to create new keys and matching destinations/addresses. For each new node (of server/MN type) you need to repeat the procedure - do not reuse addresses.  
 You only need to go through this for the server/MN. Client nodes have their local destinations craated as temporary ones, and those change on each run (can't be persisted accrosss sessions, not w/o some code adjustments, it'll be available for client/server mix nodes).  
+  
+It should look something like this:  
+```
+listen=1
+server=1
+daemon=1
+txindex=1
+rpcuser=colxrpc
+rpcpassword=m5JbgKWGs4VH8z9y329oTvNizvbMbUbRJRYK5aFrzbi
+rpcport=51473
+port=6667 #51374
+rpcallowip=127.0.0.1
+testnet=1
+logtimestamps=1
+maxconnections=256
+banscore=1000
+bantime=10 # that's in seconds
+externalip=h722acegogbffjgwd52bydcycifugd5lmvdnsk7rtuk2vjpge5ea.b32.i2p
+bind=h722acegogbffjgwd52bydcycifugd5lmvdnsk7rtuk2vjpge5ea.b32.i2p:6667
+masternode=1
+masternodeaddr=h722acegogbffjgwd52bydcycifugd5lmvdnsk7rtuk2vjpge5ea.b32.i2p:6667
+masternodeprivkey=92cWzpBA42MK3wzpctamzvzM44T6TkdyLpEcrPoUrnH6hAe33uX # important
+addnode=ker57lgh3hl5jqfflpwuuhmopqe54f3x23hggd2prwovfo3byw3q.b32.i2p:6667
+```  
 
 
 # Server (regular-non-MN) Setup
 
-**Note: this isn't verified yet, I'll try that soon.**  
-It should be doable to just fill in the `bind` parameter (and possibly `externalip`) in the ColossusXT.conf - and leave out all the MN specifics. That way we should have a 'server' tunnel set up (with a visible public destination) w/o all the MN extra work. Yet to be tested and confirmed.
+**Note: this is the least tested option, but working ok so far.**  
+This is a 'middle-way' variant. Basically just fill in the `bind` parameter (and possibly `externalip`) in the ColossusXT.conf - and leave out all the MN specifics. That way we should have a 'server' tunnel set up (with a visible public destination) w/o all the MN extra work.  
+- do everything as for the 'Server (MN)' above.
+- change the ColossusXT.conf, remove all the mn specific attributes (private key, address, all w/ 'mn' in front). To something like this
+```
+listen=1
+server=1
+daemon=1
+txindex=1
+rpcuser=colxrpc
+rpcpassword=m5JbgKWGs4VH8z9y329oTvNizvbMbUbRJRYK5aFrzbi
+rpcport=51473
+port=6667 #51374
+rpcallowip=127.0.0.1
+testnet=1
+enablezeromint=0 # we should specify this for masternodes (COLX docs)
+logtimestamps=1
+staking=1
+maxconnections=256
+banscore=1000
+bantime=10 # that's in seconds
+
+externalip=xqt6q6kten5nkzdo6ojxs5sbthtp7wjlnewid2l3iit55venn5pq.b32.i2p
+bind=xqt6q6kten5nkzdo6ojxs5sbthtp7wjlnewid2l3iit55venn5pq.b32.i2p:6667
+
+addnode=ker57lgh3hl5jqfflpwuuhmopqe54f3x23hggd2prwovfo3byw3q.b32.i2p:6667
+addnode=h722acegogbffjgwd52bydcycifugd5lmvdnsk7rtuk2vjpge5ea.b32.i2p:6667
+```
 
 
 # Firewalls, Other Setup  
