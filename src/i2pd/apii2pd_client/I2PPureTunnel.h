@@ -73,18 +73,21 @@ namespace i2p
             void I2PConnect(const uint8_t * msg = nullptr, size_t len = 0);
             void Connect(bool isUniqueLocal = true);
 
-            void HandleSendReady(std::string reply, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend);
-            void HandleSendReadyRaw(const uint8_t * buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend);
-            void HandleSendReadyRawSigned(const char* buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend);
-            void HandleSend(std::string reply);
-            void HandleSendRaw(const uint8_t * buf, size_t len);
-            void HandleSendRawSigned(const char* buf, size_t len);
+            bool HandleSendReady(std::string reply, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend);
+            bool HandleSendReadyRaw(const uint8_t * buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend);
+            bool HandleSendReadyRawSigned(const char* buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend);
+            // while it may be handy to have just a pure send w/o callbacks it's really not usable, error callback
+            // is the only way to get a notification if something fails.
+            // void HandleSend(std::string reply);
+            // void HandleSendRaw(const uint8_t * buf, size_t len);
+            // void HandleSendRawSigned(const char* buf, size_t len);
 
             void HandleWriteAsync(const boost::system::error_code& ecode);
             // moved to public to be able to callback
             //void HandleWrite(const boost::system::error_code& ecode);
 
             std::string GetRemoteIdentity() { return m_Stream ? m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32() : ""; }
+            bool IsStreamAlive() { return m_Stream != nullptr; }
 
         protected:
             void Terminate();
@@ -151,11 +154,11 @@ namespace i2p
             void SetReceivedCallback(ReceivedCallback receivedCallback) { _receivedCallback = receivedCallback; }
             ReceivedCallback GetReceivedCallback() { return _receivedCallback; }
             
-            void SetSendCallback(SendCallback sendCallback) { _sendCallback = sendCallback; }
-            SendCallback GetSendCallback() { return _sendCallback; }
+            // void SetSendCallback(SendCallback sendCallback) { _sendCallback = sendCallback; }
+            // SendCallback GetSendCallback() { return _sendCallback; }
 
-            void SetSendMoreCallback(SendMoreCallback sendMoreCallback) { _sendMoreCallback = sendMoreCallback; }
-            SendMoreCallback GetSendMoreCallback() { return _sendMoreCallback; }
+            // void SetSendMoreCallback(SendMoreCallback sendMoreCallback) { _sendMoreCallback = sendMoreCallback; }
+            // SendMoreCallback GetSendMoreCallback() { return _sendMoreCallback; }
 
             void Start();
             void Stop();

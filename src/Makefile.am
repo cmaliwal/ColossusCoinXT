@@ -273,7 +273,7 @@ BITCOIN_CORE_H = \
   i2pd/UPnP.h
 
 if TARGET_WINDOWS
-BITCOIN_CORE_H +=
+BITCOIN_CORE_H += \
   libzerocoin/Accumulator.h \
   libzerocoin/AccumulatorProofOfKnowledge.h \
   libzerocoin/bignum.h \
@@ -644,7 +644,7 @@ if GLIBC_BACK_COMPAT
 endif
 
 if TARGET_WINDOWS
-libbitcoinconsensus_la_SOURCES +=  
+libbitcoinconsensus_la_SOURCES += \  
   libzerocoin/Accumulator.cpp \
   libzerocoin/AccumulatorProofOfKnowledge.cpp \
   libzerocoin/Coin.cpp \

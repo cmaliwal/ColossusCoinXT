@@ -3,6 +3,11 @@ I2PD Notes
 
 [![Build Status](https://travis-ci.org/COLX-Project/COLX.svg?branch=i2pd)](https://travis-ci.org/COLX-Project/COLX) [![GitHub version](https://badge.fury.io/gh/COLX-Project%2FCOLX.svg)](https://badge.fury.io/gh/COLX-Project%2FCOLX)
 
+
+# Other files:   
+[Setup, Usage](I2PD_Setup_Usage.md) - **important**  
+[Known Issues](I2PD_Status_Known_Issues.md)
+
 # I2P / I2PD integration
 I2PD is now part of the COLX networking layer and it's where bulk of the changes are. Old sockets-based networking is (fully) replaced and it's now using I2P network for messages and communication in between the nodes.  
 Other parts (of the COLX) should pretty much work as before, only network related calls are replaced or adjusted to use new format and structures.
@@ -25,9 +30,5 @@ Private nodes (while not having published destinations) could also be 'listening
 
 # How it works 
 Communication in between nodes is fully bi-directional, once connection is established - and doesn't require any firewall setup (though nodes may be setup with public ip:port with improved performance - but that wasn't explored at the moment, see previous discussion on this). For performance and more see the `I2PD_Setup_Usage.md`.   
-
-Other files:   
-[Setup, Usage](I2PD_Setup_Usage.md)  
-[Known Issues](I2PD_Status_Known_Issues.md)
 
 

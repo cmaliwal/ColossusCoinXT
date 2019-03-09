@@ -84,47 +84,9 @@ namespace i2p
             Receive();
         }
 
-        //static boost::asio::ip::address GetLoopbackAddressFor(const i2p::data::IdentHash & addr)
-        //{
-        //	boost::asio::ip::address_v4::bytes_type bytes;
-        //	const uint8_t * ident = addr;
-        //	bytes[0] = 127;
-        //	memcpy(bytes.data() + 1, ident, 3);
-        //	boost::asio::ip::address ourIP = boost::asio::ip::address_v4(bytes);
-        //	return ourIP;
-        //}
-
-        //static void MapToLoopback(const std::shared_ptr<boost::asio::ip::tcp::socket> & sock, const i2p::data::IdentHash & addr)
-        //{
-        //	// bind to 127.x.x.x address
-        //	// where x.x.x are first three bytes from ident
-        //	auto ourIP = GetLoopbackAddressFor(addr);
-        //	sock->bind(boost::asio::ip::tcp::endpoint(ourIP, 0));
-        //}
-
         // this is server tunnel connect
         void I2PPureTunnelConnection::Connect(bool isUniqueLocal)
         {
-            //I2PPureTunnelSetSocketOptions(m_Socket);
-//			if (m_Socket)
-//			{
-//#ifdef __linux__
-//				if (isUniqueLocal && m_RemoteEndpoint.address().is_v4() &&
-//					m_RemoteEndpoint.address().to_v4().to_bytes()[0] == 127)
-//				{
-//					m_Socket->open(boost::asio::ip::tcp::v4());
-//					auto ident = m_Stream->GetRemoteIdentity()->GetIdentHash();
-//					MapToLoopback(m_Socket, ident);
-//				}
-//#endif
-//
-//				LogPrint(eLogDebug, "I2PPureTunnelConnection: connecting...");
-//				LogPrint(eLogDebug, "I2PPureTunnelConnection: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - connecting...");
-//
-//				m_Socket->async_connect(m_RemoteEndpoint, std::bind(&I2PPureTunnelConnection::HandleConnect,
-//					shared_from_this(), std::placeholders::_1));
-//			}
-
             HandleConnect(boost::system::error_code());
         }
 
@@ -137,49 +99,42 @@ namespace i2p
                 m_Stream.reset();
             }
 
-            //boost::system::error_code ec;
-            //m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec); // avoid RST
-            //m_Socket->close();
-
             Done(shared_from_this());
         }
 
         void I2PPureTunnelConnection::Receive()
         {
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.Receive: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - receiving...");
+            if (m_Stream){
+                LogPrint(eLogDebug, "I2PPureTunnelConnection.Receive: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - receiving...");
+            }
 
             // this isn't doing anything for the moment, we need some event/signal to be fired when we place some
             // data for send - which would call HandleReceived
-
-            // we need a mutex here and wait on it to signal when new data arrived in the buffer to send.
-            ////m_Stream->Send((const uint8_t *)reply.data(), reply.length());
-
-            //m_Socket->async_read_some(boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
-            //	std::bind(&I2PPureTunnelConnection::HandleReceived, shared_from_this(),
-            //		std::placeholders::_1, std::placeholders::_2));
+            // or we need a mutex here and wait on it to signal when new data arrived in the buffer to send.
+            // this was previously a local socket async read wait calling HandleReceived
         }
 
-        void I2PPureTunnelConnection::HandleSendReady(std::string reply, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
+        bool I2PPureTunnelConnection::HandleSendReady(std::string reply, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
         {
-            HandleSendReadyRaw((const uint8_t *)reply.data(), reply.length(), readyToSend, errorSend);
+            return HandleSendReadyRaw((const uint8_t *)reply.data(), reply.length(), readyToSend, errorSend);
         }
 
-        void I2PPureTunnelConnection::HandleSendReadyRawSigned(const char* buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
+        bool I2PPureTunnelConnection::HandleSendReadyRawSigned(const char* buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
         {
-            HandleSendReadyRaw((const uint8_t *)buf, len, readyToSend, errorSend);
+            return HandleSendReadyRaw((const uint8_t *)buf, len, readyToSend, errorSend);
         }
-        void I2PPureTunnelConnection::HandleSendReadyRaw(const uint8_t * buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
+
+        bool I2PPureTunnelConnection::HandleSendReadyRaw(const uint8_t * buf, size_t len, ReadyToSendCallback readyToSend, ErrorSendCallback errorSend)
         {
-            // message is never nullstr, and it shouldn't be empty() either
-            // std::string message((const char*)buf, len);
-            std::string message((const char*)buf, std::min((int)len, 30));
-
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendReady: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendReady: Sending... '", message, "' (", len, ")...");
-
             if (m_Stream)
             {
+                // message is never nullstr, and it shouldn't be empty() either
+                std::string message((const char*)buf, std::min((int)len, 30)); // limit it just for logs
+                LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendReadyRaw: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
+                LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendReadyRaw: Sending... '", message, "' (", len, ")...");
+
                 auto s = shared_from_this();
+                // don't use strings, use buffers directly, less overhead plus safer w/ any encoding issues etc.
                 //m_Stream->AsyncSend((const uint8_t *)reply.data(), reply.length(),
                 m_Stream->AsyncSend(buf, len,
                     [s, readyToSend, errorSend](const boost::system::error_code& ecode)
@@ -187,6 +142,7 @@ namespace i2p
                     if (!ecode) {
                         if (readyToSend)
                             readyToSend();
+                        // this is off because this->Receive above doesn't really do anything any more, should be removed
                         //s->Receive();
                     }
                     else {
@@ -195,58 +151,52 @@ namespace i2p
                         s->Terminate();
                     }
                 });
-            }
-
-            //m_Stream->Send((const uint8_t *)reply.data(), reply.length());
-            ////m_Stream->Send((const uint8_t *)reply.data(), reply.length());
-            //HandleReceived(boost::system::error_code());
-        }
-
-        void I2PPureTunnelConnection::HandleSend(std::string reply)
-        {
-            HandleSendRaw((const uint8_t *)reply.data(), reply.length());
-        }
-
-        void I2PPureTunnelConnection::HandleSendRawSigned(const char* buf, size_t len)
-        {
-            HandleSendRaw((const uint8_t *)buf, len);
-        }
-        void I2PPureTunnelConnection::HandleSendRaw(const uint8_t * buf, size_t len)
-        {
-            // message is never nullstr, and it shouldn't be empty() either
-            // std::string message((const char*)buf, len);
-            std::string message((const char*)buf, std::min((int)len, 30));
-
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendRaw: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendRaw: Sending... '", message, "' (", len, ")...");
-
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSend: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
-            if (m_Stream)
-            {
-                auto s = shared_from_this();
                 
-                // Send is again AsyncSend, there's no such thing as 'send right now', w/ async we get the callback
-                //m_Stream->Send((const uint8_t *)reply.data(), reply.length());
-
-                //m_Stream->AsyncSend((const uint8_t *)reply.data(), reply.length(),
-                m_Stream->AsyncSend(buf, len,
-                    [s](const boost::system::error_code& ecode)
-                {
-                    if (!ecode)
-                        s->Receive();
-                    else
-                        s->Terminate();
-                });
+                return true;
             }
-
-            //m_Stream->Send((const uint8_t *)reply.data(), reply.length());
-            ////m_Stream->Send((const uint8_t *)reply.data(), reply.length());
-            //HandleReceived(boost::system::error_code());
+            return false;
         }
 
+        // void I2PPureTunnelConnection::HandleSend(std::string reply)
+        // {
+        //     HandleSendRaw((const uint8_t *)reply.data(), reply.length());
+        // }
+
+        // void I2PPureTunnelConnection::HandleSendRawSigned(const char* buf, size_t len)
+        // {
+        //     HandleSendRaw((const uint8_t *)buf, len);
+        // }
+        // void I2PPureTunnelConnection::HandleSendRaw(const uint8_t * buf, size_t len)
+        // {
+        //     if (m_Stream)
+        //     {
+        //         std::string message((const char*)buf, std::min((int)len, 30));
+        //         LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendRaw: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
+        //         LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSendRaw: Sending... '", message, "' (", len, ")...");
+
+        //         LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleSend: Sending to Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " (outbound)...");
+
+        //         auto s = shared_from_this();
+                
+        //         // Send is again AsyncSend, there's no such thing as 'send right now', w/ async we get the callback
+        //         //m_Stream->Send((const uint8_t *)reply.data(), reply.length());
+
+        //         //m_Stream->AsyncSend((const uint8_t *)reply.data(), reply.length(),
+        //         m_Stream->AsyncSend(buf, len,
+        //             [s](const boost::system::error_code& ecode)
+        //         {
+        //             if (!ecode)
+        //                 s->Receive();
+        //             else
+        //                 s->Terminate();
+        //         });
+        //     }
+        // }
+
+        // This isn't really used any more, like Receive, should be removed, naming is also misleading left from local sockets.
+        // this is now actually HandleSendReadyRaw()
         void I2PPureTunnelConnection::HandleReceived(const boost::system::error_code& ecode, std::size_t bytes_transferred)
         {
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleReceived: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - receiving...");
             if (ecode)
             {
                 if (ecode != boost::asio::error::operation_aborted)
@@ -258,9 +208,8 @@ namespace i2p
             {
                 if (m_Stream)
                 {
-                    // message is never nullstr, and it shouldn't be empty() either
-                    // std::string message((const char*)m_Buffer, bytes_transferred);
                     std::string message((const char*)m_Buffer, std::min((int)bytes_transferred, 30));
+                    LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleReceived: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - receiving...");
                     LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleReceived: Sending... '", message, "' (", bytes_transferred, ")...");
 
                     auto s = shared_from_this();
@@ -327,7 +276,9 @@ namespace i2p
         // this is what gets called on a new I2P message over net
         void I2PPureTunnelConnection::HandleStreamReceive(const boost::system::error_code& ecode, std::size_t bytes_transferred)
         {
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleStreamReceive: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - received from stream...");
+            if (m_Stream){
+                LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleStreamReceive: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - received from stream...");
+            }
 
             if (ecode)
             {
@@ -350,44 +301,36 @@ namespace i2p
         // the actual 'write' to a local socket has been removed (as a socket itself), so we loop back right away.
         void I2PPureTunnelConnection::Write(const uint8_t * buf, size_t len)
         {
-            // message is never nullstr, and it shouldn't be empty() either
-            // std::string message((const char*)buf, len);
-            std::string message((const char*)buf, std::min((int)len, 30));
+            if (m_Stream){
+                // message is never nullstr, and it shouldn't be empty() either
+                std::string message((const char*)buf, std::min((int)len, 30));
+                LogPrint(eLogDebug, "I2PPureTunnelConnection.Write: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - received from stream...: ", message);
+            }
 
-            //std::string reply = "confirmed: " + message;
-            //m_Stream->Send((const uint8_t *)reply.data(), reply.length());
-
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.Write: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - received from stream...: ", message);
-
-            //boost::asio::async_write(*m_Socket, boost::asio::buffer(buf, len), boost::asio::transfer_all(),
-            //	std::bind(&I2PPureTunnelConnection::HandleWrite, shared_from_this(), std::placeholders::_1));
-
-            // TODO: we might want to add a callback here, back here when the received message is processed, async - though not sure if we have that (if it's just fast processing), see the sockets related code.
             if (!_receivedCallback) {
                 LogPrint(eLogError, "I2PPureTunnelConnection: error: no received callback specified... ", "");
                 Terminate();
                 return;
             }
 
-            // message != nullstr and likely !empty()
-            // _receivedCallback(message, nullptr);
             _receivedCallback(buf, len, nullptr);
+
+            // TODO: we might want to add a callback to call back in here again (and continue the loop), when the received is processed
+            // Note: this is the old way, we've now reorganized, we call from the Node when node has read the message and is ready
+            // to continue receiving more data. I'm leaving this here as not sure if that's ideal.
 
             // change: this stops here after we send the message to the receiver, and awaiting receiver to call the
             // HandleWriteAsync in order to continue this 'loop'
-
-            //// ...if no callback here then we have to right away call the HandleWrite
-            //HandleWrite(boost::system::error_code());
         }
 
         void I2PPureTunnelConnection::HandleConnect(const boost::system::error_code& ecode)
         {
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleConnect: connected.");
-            LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleConnect: Address ", i2p::client::context.GetAddressBook().ToAddress(m_Stream->GetRemoteIdentity()->GetIdentHash()), " - connected.");
+            if (m_Stream){
+                LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleConnect: connected.");
+                LogPrint(eLogDebug, "I2PPureTunnelConnection.HandleConnect: Address ", i2p::client::context.GetAddressBook().ToAddress(m_Stream->GetRemoteIdentity()->GetIdentHash()), " - connected.");
+            }
 
-            // DRAGAN: turn this off, it's off for server tunnel, it tries to connect back to client and it's not ever used? But this is shared across so we can't just turn it off, make sure it's a server connection...
-            // ...but it further on fails send/receive w/ message that socket is not connected.
-            if (ecode) //false) //ecode)
+            if (ecode)
             {
                 LogPrint(eLogError, "I2PPureTunnelConnection: connect error: ", ecode.message());
                 Terminate();
@@ -399,6 +342,10 @@ namespace i2p
                 else
                 {
                     StreamReceive();
+                    // Note: this was the old way of 'not quiet' and sending local sockets some info about us, but that's 
+                    // wracking our entire messages structure now (as Node et al don't expect anything like that).
+                    // Also turn quiet on for all, server connection as well. This should go, leaving it till sure.
+
                     // // send destination first as if received from I2P
                     // std::string dest = m_Stream->GetRemoteIdentity()->ToBase64();
                     // dest += "\n";
@@ -441,10 +388,10 @@ namespace i2p
             //void Handle(ClientConnectedCallback clientConnected = nullptr);
             void Terminate();
 
-            void SetSendCallback(SendCallback sendCallback) { _sendCallback = sendCallback; }
-            SendCallback GetSendCallback() { return _sendCallback; }
-            void SetSendMoreCallback(SendMoreCallback sendMoreCallback) { _sendMoreCallback = sendMoreCallback; }
-            SendMoreCallback GetSendMoreCallback() { return _sendMoreCallback; }
+            // void SetSendCallback(SendCallback sendCallback) { _sendCallback = sendCallback; }
+            // SendCallback GetSendCallback() { return _sendCallback; }
+            // void SetSendMoreCallback(SendMoreCallback sendMoreCallback) { _sendMoreCallback = sendMoreCallback; }
+            // SendMoreCallback GetSendMoreCallback() { return _sendMoreCallback; }
 
         private:
             void HandleStreamRequestComplete(std::shared_ptr<i2p::stream::Stream> stream);
@@ -513,10 +460,10 @@ namespace i2p
                 // don't send any test messages as it'd break the server side parsing, just stick to what is normal headers, buffers etc.
                 connection->I2PConnect();
 
-                // this or shared_from_this()
-                // or just set our own callbacks and let tunnel handle us when sending
-                clientTunnel->SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, connection, _1, _2));
-                clientTunnel->SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReadyRawSigned, connection, _1, _2, _3, _4));
+                // no longer used by node, node uses connection directly instead to send
+                // clientTunnel->SetSendCallback(std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, connection, _1, _2));
+                // clientTunnel->SetSendMoreCallback(std::bind(&I2PPureTunnelConnection::HandleSendReadyRawSigned, connection, _1, _2, _3, _4));
+
                 if (connectedCallback) //_connectedCallback)
                 {
                     connectedCallback(connection);
@@ -775,6 +722,9 @@ namespace i2p
                 // new connection, we only need received inside
                 auto conn = CreateI2PConnection(stream, receivedCallback);
                 AddHandler(conn);
+                // TODO: we should add some callback when the handler is removed - as that happens regularly for connection,
+                // connection gets terminated from inside and we're neve notified seems.
+                // For now we're just making check from the Node whether connection->IsStreamAlive()
 
                 if (connectionCreatedCallback)
                     connectionCreatedCallback(serverTunnel, conn);
@@ -798,9 +748,9 @@ namespace i2p
 
         std::shared_ptr<I2PPureTunnelConnection> I2PPureServerTunnel::CreateI2PConnection(std::shared_ptr<i2p::stream::Stream> stream, ReceivedCallback receivedCallback)
         {
-            //std::make_shared<boost::asio::ip::tcp::socket>(GetService()), 
-            return std::make_shared<I2PPureTunnelConnection>(this, stream, GetEndpoint(), receivedCallback, false);
-
+            // return std::make_shared<I2PPureTunnelConnection>(this, stream, GetEndpoint(), receivedCallback, false);
+            // turn quiet on as it was producing errors (turned in code as well)
+            return std::make_shared<I2PPureTunnelConnection>(this, stream, GetEndpoint(), receivedCallback); //, false);
         }
 
 

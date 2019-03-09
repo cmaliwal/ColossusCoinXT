@@ -899,6 +899,11 @@ void TunnelSendData(CI2pdNode* pnode)
 
         LogPrintf("net: tunnel sending some data... %s\n", identity);
 
+        if(!pnode->_connection->IsStreamAlive()){
+            LogPrintf("net: tunnel's connection is killed, stream is null? what should we do?... %s\n", identity);
+            return;
+        }
+
         //auto readyCallback = std::bind(&CI2pdNode::HandleReadyToSend, pnode);
         //auto errorCallback = std::bind(&CI2pdNode::HandleErrorSend, pnode, _1);
         //_sendMoreCallback("", nullptr, errorCallback);
@@ -913,11 +918,16 @@ void TunnelSendData(CI2pdNode* pnode)
 
         // I2PDK: there's an issue here, we're (seems) only made to serve one client at the time?
         // not sure how this was translated from what was sockets, or maybe not? 
-        pnode->_connection->HandleSendReadyRawSigned(
+        auto success = pnode->_connection->HandleSendReadyRawSigned(
             &data[pnode->nSendOffset], 
             data.size() - pnode->nSendOffset, 
             (ReadyToSendCallback)nullptr, 
             (ErrorSendCallback)pnode->_errorCallback);
+
+        if (!success){
+            LogPrintf("net: tunnel's send failed, what should we do?... %s\n", identity);
+            return;
+        }
 
         // we have no way of doing what 'send' does, our send is always async, and no actual bytes returned.
         // on the other side actual send and errors if any are returned async (in a callback we registered), i.e. node
