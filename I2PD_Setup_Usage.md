@@ -4,6 +4,10 @@ I2PD Setup & Usage
 [![Build Status](https://travis-ci.org/COLX-Project/COLX.svg?branch=i2pd)](https://travis-ci.org/COLX-Project/COLX) [![GitHub version](https://badge.fury.io/gh/COLX-Project%2FCOLX.svg)](https://badge.fury.io/gh/COLX-Project%2FCOLX)
 
 
+# Important 
+- **Note: you do need the new binaries (for this i2pd branch) for any of this to work!**.
+- run as `colx-qt -testnet -datadir=<path-to-.ColossusXT-folder>` - **datadir folder is important (to specify)** as it sets up things for both COLX and I2PD. If unspecified COLX goes into one place, and I2PD uses its own location for files.
+
 
 # I2P Relevant Files, Dirs (in order of importance) - Testnet
 
@@ -121,7 +125,7 @@ addnode=ker57lgh3hl5jqfflpwuuhmopqe54f3x23hggd2prwovfo3byw3q.b32.i2p:6667
 
 **Note: this is the least tested option, but working ok so far.**  
 This is a 'middle-way' variant. Basically just fill in the `bind` parameter (and possibly `externalip`) in the ColossusXT.conf - and leave out all the MN specifics. That way we should have a 'server' tunnel set up (with a visible public destination) w/o all the MN extra work.  
-- do everything as for the 'Server (MN)' above.
+- do everything as for the 'Server (MN)' above (i.e. you need the new keys generated as described).
 - change the ColossusXT.conf, remove all the mn specific attributes (private key, address, all w/ 'mn' in front). To something like this
 ```
 listen=1
@@ -147,6 +151,16 @@ bind=xqt6q6kten5nkzdo6ojxs5sbthtp7wjlnewid2l3iit55venn5pq.b32.i2p:6667
 addnode=ker57lgh3hl5jqfflpwuuhmopqe54f3x23hggd2prwovfo3byw3q.b32.i2p:6667
 addnode=h722acegogbffjgwd52bydcycifugd5lmvdnsk7rtuk2vjpge5ea.b32.i2p:6667
 ```
+
+# Windows Setup
+
+Note: this is the latest and least tested.  
+Setup is similar to the above (either 'client' or 'server') but there're some differences.
+- unpack binaries into a folder, and best copy your .ColossusXT (made as per the above instructions) into that folder as well.  
+- run as `colx-qt -testnet -datadir=<path-to-.ColossusXT-folder>`
+- datadir folder is important as it sets up things for both COLX and I2PD.
+- you can enable firewall or not, both should run ok (tested before and works on either linux or win w/o any firewall or NAT setup), performance may vary only.
+- make sure that your i2pd logs and files are not being saved to (and picked up from) `c:\Users\<user>\AppData\Roaming\i2pd\` (or similarly check under AppData\Local) as that seems to be the default location on Win.
 
 
 # Firewalls, Other Setup  

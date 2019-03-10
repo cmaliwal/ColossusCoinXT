@@ -1,8 +1,7 @@
-I2PD Setup
+I2PD Status And Known Issues
 =====================================
 
 [![Build Status](https://travis-ci.org/COLX-Project/COLX.svg?branch=i2pd)](https://travis-ci.org/COLX-Project/COLX) [![GitHub version](https://badge.fury.io/gh/COLX-Project%2FCOLX.svg)](https://badge.fury.io/gh/COLX-Project%2FCOLX)
-
 
 # Latest Status / Summary
 - **Linux should be fully stable now, and Windows is also compiling and running fine** (though w/ very little to no testing).  
