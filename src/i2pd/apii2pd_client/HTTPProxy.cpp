@@ -5,7 +5,17 @@
 #include <memory>
 #include <set>
 #include <boost/asio.hpp>
+
+#if defined(WIN32)
+#include "../threads/mingw.mutex.h"
+// #include "../threads/mingw.thread.h"
+// #include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <mutex>
+#endif
+// #include <mutex>
 
 #include "I2PService.h"
 #include "Destination.h"

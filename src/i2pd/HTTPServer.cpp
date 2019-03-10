@@ -23,7 +23,7 @@
 #include "Daemon.h"
 #include "util.h"
 #ifdef WIN32_APP
-#include "Win32/Win32App.h"
+// #include "Win32/Win32App.h"
 #endif
 
 // For image and info
@@ -1049,7 +1049,7 @@ namespace http {
 #ifndef WIN32_APP
 			Daemon.running = false;
 #else
-			i2p::win32::StopWin32App ();
+			// i2p::win32::StopWin32App ();
 #endif
 		} else if (cmd == HTTP_COMMAND_LOGLEVEL){
 			std::string level = params["level"];

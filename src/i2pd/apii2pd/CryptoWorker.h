@@ -2,9 +2,21 @@
 #define CRYPTO_WORKER_H_
 
 #include <condition_variable>
+
+#if defined(WIN32)
+#include "../threads/mingw.thread.h"
+#include "../threads/mingw.mutex.h"
+// #include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <mutex>
-#include <deque>
 #include <thread>
+#endif
+// #include <mutex>
+#include <deque>
+// #include <thread>
+
 #include <vector>
 #include <memory>
 

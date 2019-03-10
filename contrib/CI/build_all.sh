@@ -43,7 +43,8 @@ echo "Building sources..."
 ./autogen.sh
 export HOSTS=$arch
 export BASEPREFIX=`pwd`/depends
-CONFIG_SITE=${BASEPREFIX}/`echo "${HOSTS}" | awk '{print $1;}'`/share/config.site ./configure --prefix=/ --enable-debug --with-utils --with-libs --with-daemon --with-gui=qt5 --enable-tests
+#CONFIG_SITE=${BASEPREFIX}/`echo "${HOSTS}" | awk '{print $1;}'`/share/config.site ./configure --prefix=/ --enable-debug --with-utils --with-libs --with-daemon --with-gui=qt5 --enable-tests
+CONFIG_SITE=${BASEPREFIX}/`echo "${HOSTS}" | awk '{print $1;}'`/share/config.site ./configure --prefix=/ --enable-debug --with-utils --with-daemon --with-gui=qt5 --enable-tests
 make
 
 # test if binaries are here

@@ -3,9 +3,25 @@
 
 #include <queue>
 #include <vector>
+
+
+#if defined(WIN32)
+#include "../threads/mingw.mutex.h"
+#include "../threads/mingw.thread.h"
+#include "../threads/mingw.condition_variable.h"
+// namespace std
+// {
+// typedef windows7::mutex mutex;
+// }
+#else
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#endif
+
+// #include <mutex>
+// #include <thread>
+// #include <condition_variable>
 #include <functional>
 #include <utility>
 

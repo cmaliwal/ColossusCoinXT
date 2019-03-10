@@ -5,7 +5,18 @@
 #include <set>
 #include <vector>
 #include <utility>
+
+#if defined(WIN32)
+// #include "../threads/mingw.thread.h"
+#include "../threads/mingw.mutex.h"
+// #include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <mutex>
+#endif
+// #include <mutex>
+
 #include <memory>
 #include "Identity.h"
 #include "LeaseSet.h"

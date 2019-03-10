@@ -8,7 +8,18 @@
 #include <queue>
 #include <functional>
 #include <memory>
+
+#if defined(WIN32)
+// #include "../threads/mingw.thread.h"
+#include "../threads/mingw.mutex.h"
+// #include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <mutex>
+#endif
+// #include <mutex>
+
 #include <boost/asio.hpp>
 #include "Base.h"
 #include "I2PEndian.h"

@@ -6,7 +6,18 @@
 #include <map>
 #include <vector>
 #include <iostream>
+
+#if defined(WIN32)
+#include "../threads/mingw.mutex.h"
+// #include "../threads/mingw.thread.h"
+// #include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <mutex>
+#endif
+// #include <mutex>
+
 #include <memory>
 #include <boost/asio.hpp>
 #include "Base.h"

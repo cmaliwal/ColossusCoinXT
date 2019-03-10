@@ -6,8 +6,19 @@
 #include <map>
 #include <list>
 #include <string>
+
+#if defined(WIN32)
+#include "../threads/mingw.thread.h"
+#include "../threads/mingw.mutex.h"
+// #include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <thread>
 #include <mutex>
+#endif
+// #include <thread>
+// #include <mutex>
 
 #include "Base.h"
 #include "Gzip.h"

@@ -1,16 +1,34 @@
 #ifndef DESTINATION_H__
 #define DESTINATION_H__
 
+#if defined(WIN32)
+#include "../threads/mingw.thread.h"
+#include "../threads/mingw.mutex.h"
+// #include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <thread>
 #include <mutex>
+#endif
+// #include <thread>
+// #include <mutex>
+
 #include <memory>
 #include <map>
 #include <set>
 #include <string>
 #include <functional>
+
 #ifdef I2LUA
+#if defined(WIN32)
+#include "../threads/mingw.future.h"
+#else
 #include <future>
 #endif
+// #include <future>
+#endif
+
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"

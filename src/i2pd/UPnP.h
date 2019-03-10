@@ -3,9 +3,22 @@
 
 #ifdef USE_UPNP
 #include <string>
+
+#if defined(WIN32)
+#include "../threads/mingw.thread.h"
+#include "../threads/mingw.mutex.h"
+#include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <thread>
 #include <condition_variable>
 #include <mutex>
+#endif
+// #include <thread>
+// #include <condition_variable>
+// #include <mutex>
+
 #include <memory>
 
 #include <miniupnpc/miniwget.h>

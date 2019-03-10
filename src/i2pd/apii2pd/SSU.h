@@ -6,8 +6,20 @@
 #include <map>
 #include <list>
 #include <set>
+
+#if defined(WIN32)
+#include "../threads/mingw.thread.h"
+#include "../threads/mingw.mutex.h"
+// #include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <thread>
 #include <mutex>
+#endif
+// #include <thread>
+// #include <mutex>
+
 #include <boost/asio.hpp>
 #include "Crypto.h"
 #include "I2PEndian.h"

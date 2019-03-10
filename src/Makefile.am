@@ -58,6 +58,9 @@ I2PD_CPPFLAGS += -I$(srcdir)/i2pd
 LIBI2PD += $(builddir)/i2pd/libi2pd.a
 LIBI2PDCLIENT += $(builddir)/i2pd/libi2pdclient.a
 LIBI2PDDAEMON += $(builddir)/i2pd/libi2pddaemon.a
+#SHLIBI2PD = $(builddir)/i2pd/libi2pd.so
+#SHLIBI2PDCLIENT = $(builddir)/i2pd/libi2pdclient.so
+#SHLIBI2PDDAEMON = $(builddir)/i2pd/libi2pddaemon.so
 
 # add mkdir here?	@$(MKDIR_P) $(builddir)/obj
 # NOTE: The dependency in case that's an issue
@@ -610,7 +613,19 @@ colx_tx_LDADD = \
 $(info top_builddir="$(top_builddir)")
 $(info top_srcdir="$(top_srcdir)")
 $(info CURDIR="$(CURDIR)")
-ZLIBDIR := $(CURDIR)/../depends/$(MAKE_HOST)/lib
+#ZLIBDIR := $(CURDIR)/../depends/$(MAKE_HOST)/lib
+ZLIBDIR := $(CURDIR)/../depends/$(HOSTS)/lib
+#if TARGET_WINDOWS
+#ZLIBDIR := $(CURDIR)/../depends/$(HOSTS)/lib
+#endif
+$(info MAKE_HOST="$(MAKE_HOST)")
+$(info HOSTS="$(HOSTS)")
+$(info ZLIBDIR="$(ZLIBDIR)")
+
+#$(info ZLIBDIR="$(ZLIBDIR)")
+#$(info MAKE_HOST="$(MAKE_HOST)")
+#$(info HOSTS="$(HOSTS)")
+#$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
 
 #colx_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(CURL_LIBS)
 colx_tx_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CURL_LIBS)
@@ -688,6 +703,7 @@ libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj $(I2PD_CPPF
 # libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
 if TARGET_WINDOWS
 libbitcoinconsensus_la_CPPFLAGS +=  -I$(srcdir)/secp256k1/include
+#libbitcoinconsensus_la_LIBADD += $(builddir)/i2pd/libi2pd.so $(builddir)/i2pd/libi2pdclient.so $(builddir)/i2pd/libi2pddaemon.so
 endif
 
 if USE_LIBSECP256K1
@@ -724,6 +740,7 @@ clean-local:
 .rc.o:
 	@test -f $(WINDRES)
 	## FIXME: How to get the appropriate modulename_CPPFLAGS in here?
+  ## $(info RC_WINDRES_LINE="$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@")
 	$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@
 
 

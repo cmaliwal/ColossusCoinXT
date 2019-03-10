@@ -5,7 +5,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-$(info BOOST_LIBS="$(BOOST_LIBS)")
+# $(info BOOST_LIBS="$(BOOST_LIBS)")
 
 bin_PROGRAMS += qt/test/test_colx-qt
 TESTS += qt/test/test_colx-qt

@@ -1,9 +1,21 @@
 #ifndef TRANSPORTS_H__
 #define TRANSPORTS_H__
 
+#if defined(WIN32)
+#include "../threads/mingw.thread.h"
+#include "../threads/mingw.mutex.h"
+#include "../threads/mingw.condition_variable.h"
+// #include "../threads/mingw.shared_mutex.h"
+// #include "../threads/mingw.future.h"
+#else
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#endif
+// #include <thread>
+// #include <mutex>
+// #include <condition_variable>
+
 #include <functional>
 #include <map>
 #include <vector>
