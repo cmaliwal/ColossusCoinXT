@@ -1,18 +1,13 @@
 #ifndef DESTINATION_H__
 #define DESTINATION_H__
 
-#if defined(WIN32)
+#if defined(WIN32) && defined(USE_3RD_STD_THREADS)
 #include "../threads/mingw.thread.h"
 #include "../threads/mingw.mutex.h"
-// #include "../threads/mingw.condition_variable.h"
-// #include "../threads/mingw.shared_mutex.h"
-// #include "../threads/mingw.future.h"
 #else
 #include <thread>
 #include <mutex>
 #endif
-// #include <thread>
-// #include <mutex>
 
 #include <memory>
 #include <map>
@@ -21,12 +16,11 @@
 #include <functional>
 
 #ifdef I2LUA
-#if defined(WIN32)
+#if defined(WIN32) && defined(USE_3RD_STD_THREADS)
 #include "../threads/mingw.future.h"
 #else
 #include <future>
 #endif
-// #include <future>
 #endif
 
 #include <boost/asio.hpp>

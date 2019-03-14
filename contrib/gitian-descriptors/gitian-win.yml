@@ -21,6 +21,7 @@ packages:
 - "zip"
 - "ca-certificates"
 - "python"
+- "gettext"
 remotes:
 - "url": "https://github.com/ColossusCoinXT/ColossusCoinXT.git"
   "dir": "ColossusCoinXT"

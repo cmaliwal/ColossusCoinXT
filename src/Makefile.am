@@ -312,7 +312,8 @@ libbitcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)  
 # libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS) -DBUILD_BIG_OBJ -Wa,-mbig-obj
 if TARGET_WINDOWS
-libbitcoin_server_a_CPPFLAGS +=  -DBUILD_BIG_OBJ -Wa,-mbig-obj
+#libbitcoin_server_a_CPPFLAGS +=  -DBUILD_BIG_OBJ -Wa
+#libbitcoin_server_a_CPPFLAGS +=  -DBUILD_BIG_OBJ -Wa,-mbig-obj
 endif
 
 libbitcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -365,7 +366,7 @@ endif
 libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)  
 # libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) -DBUILD_BIG_OBJ -Wa,-mbig-obj
 if TARGET_WINDOWS
-libbitcoin_wallet_a_CPPFLAGS +=  -DBUILD_BIG_OBJ -Wa,-mbig-obj
+#libbitcoin_wallet_a_CPPFLAGS +=  -DBUILD_BIG_OBJ -Wa,-mbig-obj
 endif
 
 libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -536,11 +537,13 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 
 # colxd binary #
 colxd_SOURCES = colxd.cpp
+colxd_SOURCES += $(BITCOIN_CORE_H)
 colxd_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 colxd_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 colxd_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
+colxd_CXXFLAGS += $(BITCOIN_INCLUDES)
 colxd_SOURCES += colxd-res.rc
 endif
 colxd_LDADD = \
@@ -615,21 +618,43 @@ $(info top_srcdir="$(top_srcdir)")
 $(info CURDIR="$(CURDIR)")
 #ZLIBDIR := $(CURDIR)/../depends/$(MAKE_HOST)/lib
 ZLIBDIR := $(CURDIR)/../depends/$(HOSTS)/lib
-#if TARGET_WINDOWS
-#ZLIBDIR := $(CURDIR)/../depends/$(HOSTS)/lib
+ZLIBDIR := $(QT_TRANSLATION_DIR)/../lib
+
+#NEWZLIBDIR = $(subst -L, '', $(LDFLAGS))
+NEWZLIBDIR=$(subst -L,,$(LDFLAGS))
+space:=
+space+=
+STRIPPED_NEWZLIBDIR=$(subst $(space),,$(NEWZLIBDIR))
+
+if TARGET_WINDOWS
+ZLIBDIR= $(QT_TRANSLATION_DIR)/../lib/
+endif
+
+#if NO_HOSTS
+#ZLIBDIR := /home/ubuntu/build/ColossusCoinXT/depends/x86_64-w64-mingw32/lib
+##ZLIBDIR := $(DEFAULT_INCDIRS)/../lib
 #endif
+
+#if HAS_DEFAULT_INCDIRS
+#ZLIBDIR := $(DEFAULT_INCDIRS)/../lib
+#endif
+
+#HOST_LIB_DIR
+#QT_TRANSLATION_DIR
+#CCACHE
+#LDFLAGS
 $(info MAKE_HOST="$(MAKE_HOST)")
 $(info HOSTS="$(HOSTS)")
+$(info DEFAULT_INCDIRS="$(DEFAULT_INCDIRS)")
 $(info ZLIBDIR="$(ZLIBDIR)")
+$(info STRIPPED_NEWZLIBDIR="$(STRIPPED_NEWZLIBDIR)")
 
-#$(info ZLIBDIR="$(ZLIBDIR)")
-#$(info MAKE_HOST="$(MAKE_HOST)")
-#$(info HOSTS="$(HOSTS)")
 #$(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
 
 #colx_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(CURL_LIBS)
 colx_tx_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CURL_LIBS)
 colx_tx_LDADD += $(ZLIBDIR)/libz.a
+#colx_tx_LDADD += $(STRIPPED_NEWZLIBDIR)/libz.a
 #
 
 # bitcoinconsensus library #
@@ -659,7 +684,7 @@ if GLIBC_BACK_COMPAT
 endif
 
 if TARGET_WINDOWS
-libbitcoinconsensus_la_SOURCES += \  
+libbitcoinconsensus_la_SOURCES += \
   libzerocoin/Accumulator.cpp \
   libzerocoin/AccumulatorProofOfKnowledge.cpp \
   libzerocoin/Coin.cpp \
@@ -725,9 +750,40 @@ CLEANFILES += obj/build.h
 CLEANFILES += i2pd/apii2pd/libi2pd.a i2pd/apii2pd_client/libi2pdclient.a i2pd/libi2pd.a i2pd/libi2pdclient.a i2pd/libi2pddaemon.a
 
 
-EXTRA_DIST = leveldb i2pd
+EXTRA_DIST = \
+  leveldb \
+  i2pd \
+  i2pd/obj/apii2pd/mustexist.txt \
+  i2pd/obj/apii2pd_client/mustexist.txt \
+  *.h \
+  primitives/*.h \
+  compat/*.cpp \
+  compat/*.h \
+  crypto/*.c \
+  crypto/*.h \
+  json/*.cpp \
+  libzerocoin/*.cpp \
+  libzerocoin/*.h \
+  libzerocoin/zerocoin.pc.in \
+  minizip/*.c \
+  minizip/*.h \
+  script/*.h \
+  secp256k1/src/java/*.c \
+  test/*.cpp \
+  test/*.h \
+  zmq/*.h \
+  zmq/*.h \
+  *.cpp \
+  qt/res/icons/*.png \
+  qt/res/images/*.png \
+  qt/colxstrings.cpp
+
 #EXTRA_DIST = leveldb i2pd/*
 #EXTRA_DIST = leveldb i2pd/Makefile
+#  qt/*.cpp 
+#  qt/*.qrc 
+#  qt/res/icons/*.png 
+#  qt/res/images/*.png 
 
 clean-local:
 	-$(MAKE) -C leveldb clean
@@ -737,11 +793,15 @@ clean-local:
 	rm -f leveldb/*/*.gcno leveldb/helpers/memenv/*.gcno
 	-rm -f config.h
 
-.rc.o:
+.rc.o: 
 	@test -f $(WINDRES)
+	## RC_WINDRES_LINE="$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(CURDIR) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@"
+	## $(info RC_WINDRES_LINE="$(RC_WINDRES_LINE)")
+	## $(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
 	## FIXME: How to get the appropriate modulename_CPPFLAGS in here?
-  ## $(info RC_WINDRES_LINE="$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@")
-	$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@
+	## $(info RC_WINDRES_LINE="$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@")
+	## $(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@
+	$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) -I$(CURDIR) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@
 
 
 %.pb.cc %.pb.h: %.proto

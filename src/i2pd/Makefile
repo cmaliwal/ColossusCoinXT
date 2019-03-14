@@ -173,6 +173,8 @@ $(DAEMON_LIBRARY) : $(DAEMON_LIBOBJECTS)
 
 
 obj/%.o: %.cpp
+	@mkdir -p obj/$(APII2PD_SRC_DIR)
+	@mkdir -p obj/$(LIB_SRC_DIR)
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(OPT) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 mk_obj_dir: FORCE

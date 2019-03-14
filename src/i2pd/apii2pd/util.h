@@ -5,16 +5,11 @@
 #include <functional>
 #include <memory>
 
-#if defined(WIN32)
-// #include "../threads/mingw.thread.h"
+#if defined(WIN32) && defined(USE_3RD_STD_THREADS)
 #include "../threads/mingw.mutex.h"
-// #include "../threads/mingw.condition_variable.h"
-// #include "../threads/mingw.shared_mutex.h"
-// #include "../threads/mingw.future.h"
 #else
 #include <mutex>
 #endif
-// #include <mutex>
 
 #include <utility>
 #include <boost/asio.hpp>

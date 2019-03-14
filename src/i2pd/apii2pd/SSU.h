@@ -7,18 +7,13 @@
 #include <list>
 #include <set>
 
-#if defined(WIN32)
+#if defined(WIN32) && defined(USE_3RD_STD_THREADS)
 #include "../threads/mingw.thread.h"
 #include "../threads/mingw.mutex.h"
-// #include "../threads/mingw.condition_variable.h"
-// #include "../threads/mingw.shared_mutex.h"
-// #include "../threads/mingw.future.h"
 #else
 #include <thread>
 #include <mutex>
 #endif
-// #include <thread>
-// #include <mutex>
 
 #include <boost/asio.hpp>
 #include "Crypto.h"

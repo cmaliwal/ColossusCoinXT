@@ -3,16 +3,11 @@
 
 #include <atomic>
 
-#if defined(WIN32)
+#if defined(WIN32) && defined(USE_3RD_STD_THREADS)
 #include "../threads/mingw.mutex.h"
-// #include "../threads/mingw.thread.h"
-// #include "../threads/mingw.condition_variable.h"
-// #include "../threads/mingw.shared_mutex.h"
-// #include "../threads/mingw.future.h"
 #else
 #include <mutex>
 #endif
-// #include <mutex>
 
 #include <unordered_set>
 #include <memory>
