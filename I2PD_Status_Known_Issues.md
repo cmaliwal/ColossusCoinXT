@@ -1,32 +1,36 @@
-I2PD Status And Known Issues
+I2PD Compiling And Known Issues
 =====================================
 
 [![Build Status](https://travis-ci.org/COLX-Project/COLX.svg?branch=i2pd)](https://travis-ci.org/COLX-Project/COLX) [![GitHub version](https://badge.fury.io/gh/COLX-Project%2FCOLX.svg)](https://badge.fury.io/gh/COLX-Project%2FCOLX)
 
-# Latest Status / Summary
-- **Linux should be fully stable now, and Windows is also compiling and running fine** (though w/ very little to no testing).  
-- **all known crashes are resolved and it's running fully stable** within a small network (many client/private and server/public nodes). Though I am expecting occasional crashes till we filter it all out.
+# Latest Status Summary
+- **Gitian building/releases are now working** (fully I hope).
+- 'server' nodes are still running w/o any manual intervention (I didn't check the logs if any issues but it seems stable). 
+- no known crashes (doesn't include shutdown, see below) - though I am expecting occasional crashes till we filter it all out.
 - Performance is the biggest issue that I'm seeing (mostly during the syncing) + some reconnecting issues (after hours and under specific circumstances), see below for more. 
 - testnet is running on some old and maybe even forked data so not very good for testing and it's just to showcase connecting the nodes, exchanging messages. We need full old testnet moved over I guess and set up properly. 
+- there is a new setup section - `Small Local Testnet Setup`.
+
+# Gitian Compiling
+- tag: **v0.1.1-i2pd-alpha** 
+- tested with 'amd64 trusty' target (on a Debian host). 
+- both Linux and Win descriptors and hosts are tested and should be fully compiling (and running as I could see).
+- arm linux is failing with i2pd custom script somewhere (I probably won't be able look into that any time soon).
 
 # Known Issues 
 
 ## Compiling Issues
 
-Generally all should compile and run ok, but there're still some issues to keep in mind:  
-- ~~Only Linux is supported (or tested), Windows is mostly there, was working at some point but isn't working right now (Linux testing only for the moment). It should be next thing to come I hope if no major issues~~.  
-- make is not picking up changes in the src/i2pd folder (I'll investigate this when time). For now just remove *.a, *.o from it (i2pd subfolder) and recompile.  
-- in certain cases after a while build will fail with libminzip related errors. Something due to make clean or make install. Fix is to do a clean clone and build.  
+**mostly resolved now** - and with Gitian compiling working.  
+
 - **i2pd branch is a bit behind the master, it's based on the pre-NY master**, all the changes afterwards (including the major GUI/qt changes) are not yet merged in.  
+- make is (still) not picking up changes in the src/i2pd folder. For now just remove *.a, *.o from it (i2pd subfolder) and recompile.  
+- in certain cases after a while build will fail with libminzip related errors. Something due to make clean or make install. Fix is to do a clean clone and build.  
 
-Note: **I'll make it work with gitian the first next thing**, this follows `make` (on depends or `make HOST=...`, and then `build_all`, `make dist` should also work but wasn't checked w/ recent builds.)
+### Windows (mingw) Compiling  (non-Gitian)
 
-### Windows (mingw) Compiling
-
-It should generally compile ok now (`make HOST=x86_64-w64-mingw32`), but it still is a bit raw:  
-- I've **removed the `--with-libs` (e.g. from `CONFIG_SITE` build_all.sh or you need to do the same for any equivalent command line)**, because the `libbitcoinconsensus` doesn't compile for Windows (as it's not really needed at this point, and always a bit of a pain, it's removed for both).
-
-Note: if it fails to even start, with an `error: provided command 'x86_64-w64-mingw32-g++' not found`, you need the following: `sudo apt-get install g++-mingw-w64-i686 mingw-w64-i686-dev g++-mingw-w64-x86-64 mingw-w64-x86-64-dev`
+- If manually building, I've **removed the `--with-libs` (e.g. from `CONFIG_SITE` build_all.sh, gitian is not affected)**, because the `libbitcoinconsensus` doesn't compile for Windows (as it's not really needed at this point).
+- Note: if it fails to even start, with an `error: provided command 'x86_64-w64-mingw32-g++' not found`, you need the following: `sudo apt-get install g++-mingw-w64-i686 mingw-w64-i686-dev g++-mingw-w64-x86-64 mingw-w64-x86-64-dev`
 
 ## Setup Issues (different environments, clean setup, libs etc.)
 - I've had an issue on an empty Ubuntu 16.04 box (remote vm, nothing on it, no desktop).  

@@ -5,8 +5,8 @@ I2PD Notes
 
 
 # Other files:   
-[Setup, Usage](I2PD_Setup_Usage.md) - **important / new**  
-[Known Issues](I2PD_Status_Known_Issues.md) - **important / new**  
+[Known Issues, Compiling](I2PD_Status_Known_Issues.md) - **new**  
+[Setup, Usage](I2PD_Setup_Usage.md) - **new**  
 
 # I2P / I2PD integration
 I2PD is now part of the COLX networking layer and it's where bulk of the changes are. Old sockets-based networking is (fully) replaced and it's now using I2P network for messages and communication in between the nodes.  

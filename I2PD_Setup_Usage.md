@@ -7,7 +7,7 @@ I2PD Setup & Usage
 # Important 
 - **Note: you do need the new binaries (for this i2pd branch) for any of this to work!**.
 - run as `colx-qt -testnet -datadir=<path-to-.ColossusXT-folder>` - **datadir folder is important (to specify)** as it sets up things for both COLX and I2PD. If unspecified COLX goes into one place, and I2PD uses its own location for files.
-
+- if you're copying (most likely) an old testnet4 subdir with wallet and other info - **make sure you first delete the old peers.dat and mncache.dat**, as otherwise app will fail on startup due to the incompatible formats (old IP addresses vs new i2p ones).
 
 # I2P Relevant Files, Dirs (in order of importance) - Testnet
 
@@ -28,7 +28,8 @@ router.info | predefined or generated | data directory | client, server |  |
 testnet4 | custom user data (supplied by user) | data directory | client, server | | yes
 i2pd.log | i2pd log file (generated, appended) | bin / colxd directory | client, server | | 
 debug.log | COLX log file (generated, appended) | testnet4 sub directory | client, server | | 
-mncache.dat | MN cache file (regenerated) | testnet4 sub directory | client, server | | 
+mncache.dat | MN cache file (regenerated) * | testnet4 sub directory | client, server | | 
+peers.dat | addresses (regenerated) * | testnet4 sub directory | client, server | | 
   
 ## Additional Explanations     
 - i2pd.log path can also be setup in the i2pd.conf file - default is bin directory (colxd/colx-qt dir)
@@ -162,6 +163,14 @@ Setup is similar to the above (either 'client' or 'server') but there're some di
 - you can enable firewall or not, both should run ok (tested before and works on either linux or win w/o any firewall or NAT setup), performance may vary only.
 - make sure that your i2pd logs and files are not being saved to (and picked up from) `c:\Users\<user>\AppData\Roaming\i2pd\` (or similarly check under AppData\Local) as that seems to be the default location on Win.
 
+# Small Local Testnet Setup  
+For quick testing (and testing purposes only) you can connect couple of nodes of your own (this is now getting to be slightly easier than before, as you don't need any public IP-s etc.):
+- use only 'testnet'.
+- you need couple public/server nodes. They don't have to be MN-s (see above on how to set up a server-non-MN), but they should have a full blockchain of data. You can set them up on your local machines or LAN, shouldn't matter, some online if you have some VM-s ready.
+- install couple client/private nodes. Fill them (ColossusXT.conf) with `addnode=` pointing to the above server nodes (again see above on how to create unique i2p addresses and how to get, copy them).
+- start server nodes first, give them 5, 10 mins at least.  
+- then start client nodes and again give them some time to connect (2 to 5 mins on a good connection).
+- you could equally use just 2 nodes (of which one is a server).
 
 # Firewalls, Other Setup  
 
