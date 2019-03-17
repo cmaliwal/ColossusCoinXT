@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
-// Copyright (c) 2015-2017 The PIVX developers
+// Copyright (c) 2015-2018 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -30,6 +30,8 @@
 #include "uint256.h"
 #include "undo.h"
 #include "libzerocoin/CoinSpend.h"
+//#include "lightzpivthread.h"
+
 
 #include <algorithm>
 #include <exception>
@@ -106,6 +108,7 @@ static const unsigned int MAX_REJECT_MESSAGE_LENGTH = 111;
 
 /** Enable bloom filter */
 static const bool DEFAULT_PEERBLOOMFILTERS = true;
+static const bool DEFAULT_PEERBLOOMFILTERS_ZC = false;
 
 /** Default for -blockspamfilter, use header spam filter */
 static const bool DEFAULT_BLOCK_SPAM_FILTER = true;
@@ -156,6 +159,7 @@ extern bool fVerifyingBlocks;
 extern bool fLargeWorkForkFound;
 extern bool fLargeWorkInvalidChainFound;
 
+extern unsigned int nStakeMinAge;
 extern int64_t nLastCoinStakeSearchInterval;
 extern int64_t nLastCoinStakeSearchTime;
 extern int64_t nReserveBalance;
@@ -169,6 +173,9 @@ extern std::map<COutPoint, COutPoint> mapInvalidOutPoints;
 
 /** Best header we've seen so far (used for getheaders queries' starting points). */
 extern CBlockIndex* pindexBestHeader;
+
+/**  */
+//extern CLightWorker lightWorker;
 
 /** Minimum disk space required - used in CheckDiskSpace() */
 static const uint64_t nMinDiskSpace = 52428800;
@@ -239,7 +246,7 @@ bool IsInitialBlockDownload();
 /** Format a string that describes several potential problems detected by the core */
 std::string GetWarnings(std::string strFor);
 /** Retrieve a transaction (from memory pool, or from disk, if possible) */
-bool GetTransaction(const uint256& hash, CTransaction& tx, uint256& hashBlock, bool fAllowSlow = false);
+bool GetTransaction(const uint256& hash, CTransaction& tx, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
 /** Find the best known block, and make it the tip of the block chain */
 
 bool DisconnectBlocksAndReprocess(int blocks);
@@ -364,6 +371,25 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 
 /** Apply the effects of this transaction on the UTXO set represented by view */
 void UpdateCoins(const CTransaction& tx, CValidationState& state, CCoinsViewCache& inputs, CTxUndo& txundo, int nHeight);
+
+/** Context-independent validity checks */
+bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fRejectBadUTXO, CValidationState& state, bool fFakeSerialAttack = false);
+bool CheckZerocoinMint(const uint256& txHash, const CTxOut& txout, CValidationState& state, bool fCheckOnly = false);
+bool CheckZerocoinSpend(const CTransaction& tx, bool fVerifySignature, CValidationState& state, bool fFakeSerialAttack = false);
+bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& hashBlock);
+bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& hashBlock);
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransaction& tx);
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx);
+bool IsBlockHashInChain(const uint256& hashBlock);
+bool ValidOutPoint(const COutPoint out, int nHeight);
+void RecalculateZPIVSpent();
+void RecalculateZPIVMinted();
+bool RecalculatePIVSupply(int nHeightStart);
+bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError);
+
+// Fake Serial attack Range
+bool isBlockBetweenFakeSerialAttackRange(int nHeight);
+
 
 /**
  * Check if transaction will be final in the next block to be created.
@@ -661,10 +687,14 @@ protected:
 */
 
 /** Context-independent validity checks */
-bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, CValidationState& state);
-bool CheckZerocoinMint(const uint256& txHash, const CTxOut& txout, CValidationState& state, bool fCheckOnly = false);
-bool CheckZerocoinSpend(const CTransaction tx, bool fVerifySignature, CValidationState& state);
-bool ContextualCheckCoinSpend(const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& txid, bool fSkipSerialCheck = false);
+// bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, CValidationState& state);
+// bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fRejectBadUTXO, CValidationState& state, bool fFakeSerialAttack = false);
+// bool CheckZerocoinMint(const uint256& txHash, const CTxOut& txout, CValidationState& state, bool fCheckOnly = false);
+// bool CheckZerocoinSpend(const CTransaction tx, bool fVerifySignature, CValidationState& state);
+// bool CheckZerocoinSpend(const CTransaction& tx, bool fVerifySignature, CValidationState& state, bool fFakeSerialAttack = false);
+// bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& hashBlock);
+// bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& hashBlock);
+// bool ContextualCheckCoinSpend(const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& txid, bool fSkipSerialCheck = false);
 libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin);
 bool TxOutToPublicCoin(const CTxOut txout, libzerocoin::PublicCoin& pubCoin, CValidationState& state);
 bool BlockToPubcoinList(const CBlock& block, list<libzerocoin::PublicCoin>& listPubcoins, bool fFilterInvalid);
@@ -677,14 +707,19 @@ bool IsSerialKnown(const CBigNum& bnSerial);
 bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx);
 bool RemoveSerialFromDB(const CBigNum& bnSerial);
 int GetZerocoinStartHeight();
-bool IsTransactionInChain(uint256 txId, int& nHeightTx);
-bool IsBlockHashInChain(const uint256& hashBlock);
+// bool IsTransactionInChain(uint256 txId, int& nHeightTx);
+// bool IsBlockHashInChain(const uint256& hashBlock);
 void PopulateInvalidOutPointMap();
-bool ValidOutPoint(const COutPoint out, int nHeight);
-void RecalculateZPIVSpent();
-void RecalculateZPIVMinted();
-bool RecalculatePIVSupply(int nHeightStart);
-bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError);
+// bool ValidOutPoint(const COutPoint out, int nHeight);
+// void RecalculateZPIVSpent();
+// void RecalculateZPIVMinted();
+// bool RecalculatePIVSupply(int nHeightStart);
+// bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError);
+
+// Fake Serial attack Range
+bool isBlockBetweenFakeSerialAttackRange(int nHeight);
+
+
 bool RecordMintToDB(libzerocoin::PublicCoin publicZerocoin, const uint256& txHash);
 void AddInvalidSpendsToMap(const CBlock& block);
 

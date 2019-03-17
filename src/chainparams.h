@@ -118,6 +118,8 @@ public:
     /** Zerocoin **/
     std::string Zerocoin_Modulus() const { return zerocoinModulus; }
     libzerocoin::ZerocoinParams* Zerocoin_Params() const;
+    libzerocoin::ZerocoinParams* Zerocoin_Params(bool useModulusV1) const;
+
     int Zerocoin_MaxSpendsPerTransaction() const { return nMaxZerocoinSpendsPerTransaction; }
     CAmount Zerocoin_MintFee() const { return nMinZerocoinMintFee; }
     int Zerocoin_MintRequiredConfirmations() const { return nMintRequiredConfirmations; }
@@ -131,6 +133,10 @@ public:
     int Zerocoin_Block_FirstFraudulent() const { return nBlockFirstFraudulent; }
     int Zerocoin_Block_LastGoodCheckpoint() const { return nBlockLastGoodCheckpoint; }
     int Block_Enforce_Invalid() const { return nBlockEnforceInvalidUTXO; }
+    int Zerocoin_Block_V2_Start() const { return nBlockZerocoinV2; }
+
+    // fake serial attack
+    int Zerocoin_Block_EndFakeSerial() const { return nFakeSerialBlockheightEnd; }
 
     int GetMasternodePaymentSigTotal() const { return nMasternodePaymentSigTotal; }
     int GetMasternodePaymentSigRequired() const { return nMasternodePaymentSigRequired; }
@@ -198,6 +204,10 @@ protected:
     int nMintRequiredConfirmations;
     int nRequiredAccumulation;
     int nDefaultSecurityLevel;
+
+    // fake serial attack
+    int nFakeSerialBlockheightEnd = 0;
+        
     int64_t nBudget_Fee_Confirmations;
 
     int nBlockEnforceSerialRange;
@@ -205,6 +215,7 @@ protected:
     int nBlockFirstFraudulent;
     int nBlockLastGoodCheckpoint;
     int nBlockEnforceInvalidUTXO;
+    int nBlockZerocoinV2;
 
     int nMasternodePaymentSigTotal;
     int nMasternodePaymentSigRequired;

@@ -6,6 +6,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "libzerocoin/Params.h"
 #include "chainparams.h"
 
 #include "random.h"
@@ -91,6 +92,7 @@ static const Checkpoints::CCheckpointData dataRegtest = {
     0,
     100};
 
+// ZCFIXTODO: turn this off when cleaned up
 libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
 {
     assert(this);
@@ -99,6 +101,28 @@ libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
 
     return &ZCParams;
 }
+libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params(bool useModulusV1) const
+{
+    // ZCFIXTODO: for now just to be safe...
+    return Zerocoin_Params();
+
+    assert(this);
+    static CBigNum bnHexModulus = 0;
+    if (!bnHexModulus)
+        bnHexModulus.SetHex(zerocoinModulus);
+    static libzerocoin::ZerocoinParams ZCParamsHex = libzerocoin::ZerocoinParams(bnHexModulus);
+    static CBigNum bnDecModulus = 0;
+    if (!bnDecModulus)
+        bnDecModulus.SetDec(zerocoinModulus);
+    static libzerocoin::ZerocoinParams ZCParamsDec = libzerocoin::ZerocoinParams(bnDecModulus);
+
+    // ZCFIXTODO: this is the old Zerocoin_Params() (i.e. SetHex, new post V2 uses SetDec)
+    if (useModulusV1)
+        return &ZCParamsHex;
+
+    return &ZCParamsDec;
+}
+
 
 class CMainParams : public CChainParams
 {
@@ -142,6 +166,9 @@ public:
         nMasternodePaymentSigTotal = 10;
         nMasternodePaymentSigRequired = 6;
         nRequiredMasternodeCollateral = 10000000 * COIN; //10,000,000
+
+        // Fake Serial Attack
+        nFakeSerialBlockheightEnd = 1686215; // ZCFIXTODO: what's our height, latest one after we've turned ZC-s off I guess
 
         /**
          * Build the genesis block. Note that the output of the genesis coinbase cannot
@@ -220,6 +247,12 @@ public:
         nBlockFirstFraudulent = std::numeric_limits<int>::max(); //First block that bad serials emerged
         nBlockLastGoodCheckpoint = std::numeric_limits<int>::max(); //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
+
+        // ZCFIXTODO: we should set this to some height when ready to switch, zerocoin params depend on this
+        // also PrivateCoin::CURRENT_VERSION CZerocoinMint::CURRENT_VERSION
+        nBlockZerocoinV2 = std::numeric_limits<int>::max(); //!> The block that zerocoin v2 becomes active - roughly Tuesday, May 8, 2018 4:00:00 AM GMT
+        // ZCFIXTODO: recheck this, not sure?
+        nZerocoinHeaderVersion = 4; //Block headers must be this version once zerocoin is active
 
         strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/main";
         //strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";
@@ -382,6 +415,7 @@ public:
 
         // similar to the bad-tx above, we should set this when we notice issues (w/ outputs)
         nBlockEnforceInvalidUTXO = std::numeric_limits<int>::max(); //Start enforcing the invalid UTXO's
+        nBlockZerocoinV2 = std::numeric_limits<int>::max(); //!> The block that zerocoin v2 becomes active - roughly Tuesday, May 8, 2018 4:00:00 AM GMT
 
         strSporkKey = "026ee678f254a97675a90ebea1e7593fdb53047321f3cb0560966d4202b32c48e2";
         strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/test";
@@ -473,6 +507,8 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = true;
         fTestnetToBeDeprecatedFieldRPC = false;
+
+        nBlockZerocoinV2 = std::numeric_limits<int>::max(); //!> The block that zerocoin v2 becomes active - roughly Tuesday, May 8, 2018 4:00:00 AM GMT
     }
 
     const Checkpoints::CCheckpointData& Checkpoints() const

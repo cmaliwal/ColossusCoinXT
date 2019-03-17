@@ -10,7 +10,7 @@ $(package)_config_opts=--prefix=$(host_prefix) --openssldir=$(host_prefix)/etc/o
 $(package)_config_opts+=no-camellia
 $(package)_config_opts+=no-capieng
 $(package)_config_opts+=no-cast
-$(package)_config_opts+=no-comp
+#$(package)_config_opts+=no-comp
 $(package)_config_opts+=no-dso
 $(package)_config_opts+=no-dtls1
 $(package)_config_opts+=no-ec_nistp_64_gcc_128

@@ -1,6 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin developers
-// Copyright (c) 2015-2017 The PIVX developers
+// Copyright (c) 2015-2018 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,6 +8,7 @@
 #define BITCOIN_RPCSERVER_H
 
 #include "amount.h"
+#include "primitives/zerocoin.h"
 #include "rpcprotocol.h"
 #include "uint256.h"
 
@@ -175,7 +176,8 @@ extern std::string HelpRequiringPassphrase();
 extern std::string HelpExampleCli(std::string methodname, std::string args);
 extern std::string HelpExampleRpc(std::string methodname, std::string args);
 
-extern void EnsureWalletIsUnlocked();
+extern void EnsureWalletIsUnlocked(bool fAllowAnonOnly = false);
+extern UniValue DoZpivSpend(const CAmount nAmount, bool fMintChange, bool fMinimizeChange, const int nSecurityLevel, vector<CZerocoinMint>& vMintsSelected, std::string address_str);
 
 extern UniValue getconnectioncount(const UniValue& params, bool fHelp); // in rpcnet.cpp
 extern UniValue getpeerinfo(const UniValue& params, bool fHelp);
@@ -198,6 +200,7 @@ extern UniValue bip38decrypt(const UniValue& params, bool fHelp);
 
 extern UniValue getgenerate(const UniValue& params, bool fHelp); // in rpcmining.cpp
 extern UniValue setgenerate(const UniValue& params, bool fHelp);
+extern UniValue generate(const UniValue& params, bool fHelp);
 extern UniValue getnetworkhashps(const UniValue& params, bool fHelp);
 extern UniValue gethashespersec(const UniValue& params, bool fHelp);
 extern UniValue getmininginfo(const UniValue& params, bool fHelp);
@@ -251,6 +254,7 @@ extern UniValue listspentzerocoins(const UniValue& params, bool fHelp);
 extern UniValue listzerocoinamounts(const UniValue& params, bool fHelp);
 extern UniValue mintzerocoin(const UniValue& params, bool fHelp);
 extern UniValue spendzerocoin(const UniValue& params, bool fHelp);
+extern UniValue spendzerocoinmints(const UniValue& params, bool fHelp);
 extern UniValue resetmintzerocoin(const UniValue& params, bool fHelp);
 extern UniValue resetspentzerocoin(const UniValue& params, bool fHelp);
 extern UniValue getarchivedzerocoin(const UniValue& params, bool fHelp);
@@ -258,6 +262,13 @@ extern UniValue importzerocoins(const UniValue& params, bool fHelp);
 extern UniValue exportzerocoins(const UniValue& params, bool fHelp);
 extern UniValue reconsiderzerocoins(const UniValue& params, bool fHelp);
 extern UniValue getspentzerocoinamount(const UniValue& params, bool fHelp);
+extern UniValue setzpivseed(const UniValue& params, bool fHelp);
+extern UniValue getzpivseed(const UniValue& params, bool fHelp);
+extern UniValue generatemintlist(const UniValue& params, bool fHelp);
+extern UniValue searchdzpiv(const UniValue& params, bool fHelp);
+extern UniValue dzpivstate(const UniValue& params, bool fHelp);
+extern UniValue enableautomintaddress(const UniValue& params, bool fHelp);
+extern UniValue createautomintaddress(const UniValue& params, bool fHelp);
 
 extern UniValue getrawtransaction(const UniValue& params, bool fHelp); // in rcprawtransaction.cpp
 extern UniValue listunspent(const UniValue& params, bool fHelp);
@@ -268,10 +279,14 @@ extern UniValue decoderawtransaction(const UniValue& params, bool fHelp);
 extern UniValue decodescript(const UniValue& params, bool fHelp);
 extern UniValue signrawtransaction(const UniValue& params, bool fHelp);
 extern UniValue sendrawtransaction(const UniValue& params, bool fHelp);
+extern UniValue createrawzerocoinstake(const UniValue& params, bool fHelp);
 
 extern UniValue findserial(const UniValue& params, bool fHelp); // in rpcblockchain.cpp
 extern UniValue getblockcount(const UniValue& params, bool fHelp);
 extern UniValue getbestblockhash(const UniValue& params, bool fHelp);
+extern UniValue waitfornewblock(const UniValue& params, bool fHelp);
+extern UniValue waitforblock(const UniValue& params, bool fHelp);
+extern UniValue waitforblockheight(const UniValue& params, bool fHelp);
 extern UniValue getdifficulty(const UniValue& params, bool fHelp);
 extern UniValue settxfee(const UniValue& params, bool fHelp);
 extern UniValue getmempoolinfo(const UniValue& params, bool fHelp);
@@ -287,12 +302,20 @@ extern UniValue getchaintips(const UniValue& params, bool fHelp);
 extern UniValue invalidateblock(const UniValue& params, bool fHelp);
 extern UniValue reconsiderblock(const UniValue& params, bool fHelp);
 extern UniValue getinvalid(const UniValue& params, bool fHelp);
+extern UniValue getaccumulatorvalues(const UniValue& params, bool fHelp);
+extern UniValue getaccumulatorwitness(const UniValue& params, bool fHelp);
+extern UniValue getmintsinblocks(const UniValue& params, bool fHelp);
+extern UniValue getserials(const UniValue& params, bool fHelp);
+extern UniValue getchecksumblock(const UniValue& params, bool fHelp);
 
 extern UniValue obfuscation(const UniValue& params, bool fHelp); // in rpcmasternode.cpp
 extern UniValue getpoolinfo(const UniValue& params, bool fHelp);
 extern UniValue masternode(const UniValue& params, bool fHelp);
 extern UniValue listmasternodes(const UniValue& params, bool fHelp);
 extern UniValue getmasternodecount(const UniValue& params, bool fHelp);
+extern UniValue createmasternodebroadcast(const UniValue& params, bool fHelp);
+extern UniValue decodemasternodebroadcast(const UniValue& params, bool fHelp);
+extern UniValue relaymasternodebroadcast(const UniValue& params, bool fHelp);
 extern UniValue masternodeconnect(const UniValue& params, bool fHelp);
 extern UniValue masternodecurrent(const UniValue& params, bool fHelp);
 extern UniValue masternodedebug(const UniValue& params, bool fHelp);
@@ -332,5 +355,6 @@ bool StartRPC();
 void InterruptRPC();
 void StopRPC();
 std::string JSONRPCExecBatch(const UniValue& vReq);
+void RPCNotifyBlockChange(const uint256 nHeight);
 
 #endif // BITCOIN_RPCSERVER_H

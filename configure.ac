@@ -177,6 +177,13 @@ AC_ARG_WITH([system-univalue],
   [system_univalue=no]
 )
 
+dnl not sure where and if we're specifying libgmp so just keep the openssl as default for now (as it was before)
+AC_ARG_WITH([zerocoin-bignum],
+  [AS_HELP_STRING([--with-zerocoin-bignum=gmp|openssl|auto],
+  [Specify Bignum Implementation. Default is auto])],
+  [req_bignum=$withval],
+  [req_bignum=auto])
+
 AC_ARG_WITH([protoc-bindir],[AS_HELP_STRING([--with-protoc-bindir=BIN_DIR],[specify protoc bin path])], [protoc_bin_path=$withval], [])
 
 # Enable debug
@@ -1098,6 +1105,36 @@ if test "x$use_ccache" = "xyes"; then
 	AX_CHECK_PREPROC_FLAG([-Qunused-arguments],[CPPFLAGS="-Qunused-arguments $CPPFLAGS"])
 fi
 
+dnl bignum value
+set_bignum=$req_bignum
+case $req_bignum in
+auto)
+  GMP_CHECK
+  if test x"$has_gmp" != x"yes"; then
+    dnl AC_MSG_ERROR
+    AC_MSG_WARN([gmp bignum automatically selected but libgmp is not available. Use depends,
+    install libgmp or select an other bignum implementation (ONLY gmp is fully SUPPORTED)])
+    set_bignum=openssl
+  else
+    set_bignum=gmp
+  fi
+  ;;
+gmp)
+  GMP_CHECK
+  if test x"$has_gmp" != x"yes"; then
+    dnl AC_MSG_ERROR
+    AC_MSG_WARN([gmp bignum explicitly requested but libgmp is not available])
+    set_bignum=openssl
+  fi
+  ;;
+openssl)
+    AC_MSG_WARN([openssl bignum explicitly requested. This is DEPRECATED.])
+  ;;
+*)
+  AC_MSG_ERROR([invalid bignum implementation selection])
+  ;;
+esac
+
 dnl enable wallet
 AC_MSG_CHECKING([if wallet should be enabled])
 if test x$enable_wallet != xno; then
@@ -1176,6 +1213,25 @@ if test x$bitcoin_enable_qt != xno; then
 fi
 
 AM_CONDITIONAL([ENABLE_ZMQ], [test "x$use_zmq" = "xyes"])
+
+dnl ZCFIXTODO: USE_NUM_OPENSSL is now the opposite of USE_NUM_GMP - 
+dnl also USE_NUM_OPENSSL is the old default, it's what was the only choice before, but GMP is the new default (we need pivx config)
+dnl new pivx implementation has either USE_NUM_GMP, USE_NUM_OPENSSL or error 
+dnl still not sure how this translates but this seems close enough?
+dnl   AC_DEFINE(USE_NUM_OPENSSL, 1, [Define this symbol to use openssl implementation])
+
+# select bignum implementation
+case $set_bignum in
+gmp)
+  AC_DEFINE(USE_NUM_GMP, 1, [Define this symbol to use the gmp implementation])
+  ;;
+openssl)
+  AC_DEFINE(USE_NUM_OPENSSL, 1, [Define this symbol to use openssl implementation])
+  ;;
+*)
+  AC_MSG_ERROR([invalid bignum implementation])
+  ;;
+esac
 
 AC_MSG_CHECKING([whether to build test_colx])
 if test x$use_tests = xyes; then
@@ -1299,6 +1355,9 @@ if test x$system_univalue = xno; then
   AC_CONFIG_SUBDIRS([src/univalue])
 fi
 
+dnl ZCFIXTODO: these are pivx settings
+dnl ac_configure_args="${ac_configure_args} --disable-shared --with-pic --with-bignum=no --enable-module-recovery --disable-jni"
+
 ac_configure_args="${ac_configure_args} --disable-shared --with-pic"
 AC_CONFIG_SUBDIRS([src/secp256k1])
 
@@ -1334,6 +1393,7 @@ if test x$bitcoin_enable_qt != xno; then
 	echo "    with qr     = $use_qr"
 fi
 echo "  with zmq      = $use_zmq"
+echo "  with bignum   = $set_bignum"
 echo "  with test     = $use_tests"
 dnl echo "  with bench    = $use_bench"
 echo "  with upnp     = $use_upnp"

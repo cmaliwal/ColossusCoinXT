@@ -1,7 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
-// Copyright (c) 2015-2017 The PIVX developers
+// Copyright (c) 2015-2018 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -113,6 +113,9 @@ static inline int64_t roundint64(double d)
 
 CAmount AmountFromValue(const UniValue& value)
 {
+    if (!value.isNum())
+        throw JSONRPCError(RPC_TYPE_ERROR, "Amount is not a number");
+
     double dAmount = value.get_real();
     if (dAmount <= 0.0 || dAmount > Params().MaxMoneyOut())
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
@@ -139,6 +142,8 @@ uint256 ParseHashV(const UniValue& v, string strName)
         strHex = v.get_str();
     if (!IsHex(strHex)) // Note: IsHex("") is false
         throw JSONRPCError(RPC_INVALID_PARAMETER, strName + " must be hexadecimal string (not '" + strHex + "')");
+    if (64 != strHex.length())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must be of length %d (not %d)", strName, 64, strHex.length()));
     uint256 result;
     result.SetHex(strHex);
     return result;
@@ -298,6 +303,10 @@ static const CRPCCommand vRPCCommands[] =
 
         /* Block chain and UTXO */
         {"blockchain", "findserial", &findserial, true, false, false},
+        {"blockchain", "getaccumulatorvalues", &getaccumulatorvalues, true, false, false},
+        {"blockchain", "getaccumulatorwitness", &getaccumulatorwitness, true, false, false},
+        {"blockchain", "getmintsinblocks", &getmintsinblocks, true, false, false},
+        {"blockchain", "getserials", &getserials, true, false, false},
         {"blockchain", "getblockchaininfo", &getblockchaininfo, true, false, false},
         {"blockchain", "getbestblockhash", &getbestblockhash, true, false, false},
         {"blockchain", "getblockcount", &getblockcount, true, false, false},
@@ -305,6 +314,7 @@ static const CRPCCommand vRPCCommands[] =
         {"blockchain", "getblockhash", &getblockhash, true, false, false},
         {"blockchain", "getblockheader", &getblockheader, false, false, false},
         {"blockchain", "getchaintips", &getchaintips, true, false, false},
+        {"blockchain", "getchecksumblock", &getchecksumblock, false, false, false},
         {"blockchain", "getdifficulty", &getdifficulty, true, false, false},
         {"blockchain", "getfeeinfo", &getfeeinfo, true, false, false},
         {"blockchain", "getinvalid", &getinvalid, true, true, false},
@@ -329,6 +339,7 @@ static const CRPCCommand vRPCCommands[] =
         {"generating", "getgenerate", &getgenerate, true, false, false},
         {"generating", "gethashespersec", &gethashespersec, true, false, false},
         {"generating", "setgenerate", &setgenerate, true, true, false},
+        {"generating", "generate", &generate, true, true, false},
 #endif
 
         /* Raw transactions */
@@ -351,6 +362,9 @@ static const CRPCCommand vRPCCommands[] =
         {"hidden", "reconsiderblock", &reconsiderblock, true, true, false},
         {"hidden", "setmocktime", &setmocktime, true, false, false},
         {"hidden", "clearbanned", &clearbanned, true, true, false},
+        { "hidden",             "waitfornewblock",        &waitfornewblock,        true,  true,  false  },
+        { "hidden",             "waitforblock",           &waitforblock,           true,  true,  false  },
+        { "hidden",             "waitforblockheight",     &waitforblockheight,     true,  true,  false  },
 
         /* COLX features */
         {"colx", "masternode", &masternode, true, true, false},
@@ -383,6 +397,40 @@ static const CRPCCommand vRPCCommands[] =
         {"colx", "mnsync", &mnsync, true, true, false},
         {"colx", "spork", &spork, true, true, false},
         {"colx", "getpoolinfo", &getpoolinfo, true, true, false},
+
+        // /* PIVX features */
+        // {"pivx", "masternode", &masternode, true, true, false},
+        // {"pivx", "listmasternodes", &listmasternodes, true, true, false},
+        // {"pivx", "getmasternodecount", &getmasternodecount, true, true, false},
+        // {"pivx", "masternodeconnect", &masternodeconnect, true, true, false},
+        // {"pivx", "createmasternodebroadcast", &createmasternodebroadcast, true, true, false},
+        // {"pivx", "decodemasternodebroadcast", &decodemasternodebroadcast, true, true, false},
+        // {"pivx", "relaymasternodebroadcast", &relaymasternodebroadcast, true, true, false},
+        // {"pivx", "masternodecurrent", &masternodecurrent, true, true, false},
+        // {"pivx", "masternodedebug", &masternodedebug, true, true, false},
+        // {"pivx", "startmasternode", &startmasternode, true, true, false},
+        // {"pivx", "createmasternodekey", &createmasternodekey, true, true, false},
+        // {"pivx", "getmasternodeoutputs", &getmasternodeoutputs, true, true, false},
+        // {"pivx", "listmasternodeconf", &listmasternodeconf, true, true, false},
+        // {"pivx", "getmasternodestatus", &getmasternodestatus, true, true, false},
+        // {"pivx", "getmasternodewinners", &getmasternodewinners, true, true, false},
+        // {"pivx", "getmasternodescores", &getmasternodescores, true, true, false},
+        // {"pivx", "mnbudget", &mnbudget, true, true, false},
+        // {"pivx", "preparebudget", &preparebudget, true, true, false},
+        // {"pivx", "submitbudget", &submitbudget, true, true, false},
+        // {"pivx", "mnbudgetvote", &mnbudgetvote, true, true, false},
+        // {"pivx", "getbudgetvotes", &getbudgetvotes, true, true, false},
+        // {"pivx", "getnextsuperblock", &getnextsuperblock, true, true, false},
+        // {"pivx", "getbudgetprojection", &getbudgetprojection, true, true, false},
+        // {"pivx", "getbudgetinfo", &getbudgetinfo, true, true, false},
+        // {"pivx", "mnbudgetrawvote", &mnbudgetrawvote, true, true, false},
+        // {"pivx", "mnfinalbudget", &mnfinalbudget, true, true, false},
+        // {"pivx", "checkbudgets", &checkbudgets, true, true, false},
+        // {"pivx", "mnsync", &mnsync, true, true, false},
+        // {"pivx", "spork", &spork, true, true, false},
+        // {"pivx", "getpoolinfo", &getpoolinfo, true, true, false},
+
+
 #ifdef ENABLE_WALLET
         {"colx", "obfuscation", &obfuscation, false, false, true}, /* not threadSafe because of SendMoney */
 
@@ -390,6 +438,8 @@ static const CRPCCommand vRPCCommands[] =
         {"wallet", "addmultisigaddress", &addmultisigaddress, true, false, true},
         {"wallet", "autocombinerewards", &autocombinerewards, false, false, true},
         {"wallet", "backupwallet", &backupwallet, true, false, true},
+        {"wallet", "enableautomintaddress", &enableautomintaddress, true, false, true},
+        {"wallet", "createautomintaddress", &createautomintaddress, true, false, true},
         {"wallet", "dumpprivkey", &dumpprivkey, true, false, true},
         {"wallet", "dumpwallet", &dumpwallet, true, false, true},
         {"wallet", "bip38encrypt", &bip38encrypt, true, false, true},
@@ -435,19 +485,26 @@ static const CRPCCommand vRPCCommands[] =
         {"wallet", "walletpassphrasechange", &walletpassphrasechange, true, false, true},
         {"wallet", "walletpassphrase", &walletpassphrase, true, false, true},
 
+        {"zerocoin", "createrawzerocoinstake", &createrawzerocoinstake, false, false, true},
         {"zerocoin", "getzerocoinbalance", &getzerocoinbalance, false, false, true},
         {"zerocoin", "listmintedzerocoins", &listmintedzerocoins, false, false, true},
         {"zerocoin", "listspentzerocoins", &listspentzerocoins, false, false, true},
         {"zerocoin", "listzerocoinamounts", &listzerocoinamounts, false, false, true},
         {"zerocoin", "mintzerocoin", &mintzerocoin, false, false, true},
         {"zerocoin", "spendzerocoin", &spendzerocoin, false, false, true},
+        {"zerocoin", "spendzerocoinmints", &spendzerocoinmints, false, false, true},
         {"zerocoin", "resetmintzerocoin", &resetmintzerocoin, false, false, true},
         {"zerocoin", "resetspentzerocoin", &resetspentzerocoin, false, false, true},
         {"zerocoin", "getarchivedzerocoin", &getarchivedzerocoin, false, false, true},
         {"zerocoin", "importzerocoins", &importzerocoins, false, false, true},
         {"zerocoin", "exportzerocoins", &exportzerocoins, false, false, true},
         {"zerocoin", "reconsiderzerocoins", &reconsiderzerocoins, false, false, true},
-        {"zerocoin", "getspentzerocoinamount", &getspentzerocoinamount, false, false, false}
+        {"zerocoin", "getspentzerocoinamount", &getspentzerocoinamount, false, false, false},
+        {"zerocoin", "getzpivseed", &getzpivseed, false, false, true},
+        {"zerocoin", "setzpivseed", &setzpivseed, false, false, true},
+        {"zerocoin", "generatemintlist", &generatemintlist, false, false, true},
+        {"zerocoin", "searchdzpiv", &searchdzpiv, false, false, true},
+        {"zerocoin", "dzpivstate", &dzpivstate, false, false, true}
 
 #endif // ENABLE_WALLET
 };
