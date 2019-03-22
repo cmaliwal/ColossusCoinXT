@@ -70,11 +70,18 @@ enum
     // executed, e.g.  within an unexecuted IF ENDIF block, are *not* rejected.
     SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS  = (1U << 7),
 
+    // ZCFIXTODO: changed/added, but order/values changed for SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY, won't that be an issue?
+    // Require that only a single stack element remains after evaluation. This changes the success criterion from
+    // "At least one stack element must remain, and when interpreted as a boolean, it must be true" to
+    // "Exactly one stack element must remain, and when interpreted as a boolean, it must be true".
+    // (softfork safe, BIP62 rule 6)
+    // Note: CLEANSTACK should never be used without P2SH.
+    SCRIPT_VERIFY_CLEANSTACK = (1U << 8),
+
     // Verify CHECKLOCKTIMEVERIFY
     //
     // See BIP65 for details.
-    SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY = (1U << 8)
-
+    SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY = (1U << 9)
 };
 
 uint256 SignatureHash(const CScript &scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType);

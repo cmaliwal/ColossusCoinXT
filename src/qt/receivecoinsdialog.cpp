@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2014 The Bitcoin developers
+// Copyright (c) 2017 The PIVX developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,6 +21,7 @@
 #include <QMessageBox>
 #include <QScrollBar>
 #include <QTextDocument>
+#include <QSettings>
 
 ReceiveCoinsDialog::ReceiveCoinsDialog(QWidget* parent) : QDialog(parent),
                                                           ui(new Ui::ReceiveCoinsDialog),
@@ -30,6 +32,7 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(QWidget* parent) : QDialog(parent),
 #ifdef Q_OS_MAC // Icons on push buttons are very uncommon on Mac
     ui->clearButton->setIcon(QIcon());
     ui->receiveButton->setIcon(QIcon());
+    ui->receivingAddressesButton->setIcon(QIcon());
     ui->showRequestButton->setIcon(QIcon());
     ui->removeRequestButton->setIcon(QIcon());
 #endif
@@ -38,18 +41,21 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(QWidget* parent) : QDialog(parent),
     QAction* copyLabelAction = new QAction(tr("Copy label"), this);
     QAction* copyMessageAction = new QAction(tr("Copy message"), this);
     QAction* copyAmountAction = new QAction(tr("Copy amount"), this);
+    QAction* copyAddressAction = new QAction(tr("Copy address"), this);
 
     // context menu
     contextMenu = new QMenu();
     contextMenu->addAction(copyLabelAction);
     contextMenu->addAction(copyMessageAction);
     contextMenu->addAction(copyAmountAction);
+    contextMenu->addAction(copyAddressAction);
 
     // context menu signals
     connect(ui->recentRequestsView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showMenu(QPoint)));
     connect(copyLabelAction, SIGNAL(triggered()), this, SLOT(copyLabel()));
     connect(copyMessageAction, SIGNAL(triggered()), this, SLOT(copyMessage()));
     connect(copyAmountAction, SIGNAL(triggered()), this, SLOT(copyAmount()));
+    connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(copyAddress()));
 
     connect(ui->clearButton, SIGNAL(clicked()), this, SLOT(clear()));
 }
@@ -79,17 +85,33 @@ void ReceiveCoinsDialog::setModel(WalletModel* model)
             SLOT(recentRequestsView_selectionChanged(QItemSelection, QItemSelection)));
         // Last 2 columns are set by the columnResizingFixer, when the table geometry is ready.
         columnResizingFixer = new GUIUtil::TableViewLastColumnResizingFixer(tableView, AMOUNT_MINIMUM_COLUMN_WIDTH, DATE_COLUMN_WIDTH);
+
+        // Init address field
+        QSettings settings;
+        address = settings.value("current_receive_address").toString();
+        if (address.isEmpty())
+            address = getAddress();
+
+        // ZCFIXTODO: turned off to compile, qt needs more syncing, this doesn't exist (main ui)
+        // ui->reqAddress->setText(address);
+
+        // ZCFIXTODO: new, quite a few things in qt should be synced still, just something I've noticed
+        connect(model, SIGNAL(notifyReceiveAddressChanged()), this, SLOT(receiveAddressUsed()));
     }
 }
 
 ReceiveCoinsDialog::~ReceiveCoinsDialog()
 {
+    QSettings settings;
+    settings.setValue("current_receive_address", address);
     delete ui;
 }
 
 void ReceiveCoinsDialog::clear()
 {
     ui->reqAmount->clear();
+    // ZCFIXTODO: turned off to compile, qt needs more syncing, this doesn't exist (main ui)
+    // ui->reqAddress->setText(address);
     ui->reqLabel->setText("");
     ui->reqMessage->setText("");
     ui->reuseAddress->setChecked(false);
@@ -113,11 +135,29 @@ void ReceiveCoinsDialog::updateDisplayUnit()
     }
 }
 
+QString ReceiveCoinsDialog::getAddress(QString label)
+{
+    if (ui->reuseAddress->isChecked()) {
+        /* Choose existing receiving address */
+        AddressBookPage dlg(AddressBookPage::ForSelection, AddressBookPage::ReceivingTab, this);
+        dlg.setModel(model->getAddressTableModel());
+        if (dlg.exec()) {
+            return dlg.getReturnValue();
+        } else {
+            return "";
+        }
+    } else {
+        /* Generate new receiving address */
+        return model->getAddressTableModel()->addRow(AddressTableModel::Receive, label, "");
+    }
+}
+
 void ReceiveCoinsDialog::on_receiveButton_clicked()
 {
     if (!model || !model->getOptionsModel() || !model->getAddressTableModel() || !model->getRecentRequestsTableModel())
         return;
 
+    // ZCFIXTODO: this needs to be merged (this is old code), quite a change, not sure
     QString address;
     QString label = ui->reqLabel->text();
     if (ui->reuseAddress->isChecked()) {
@@ -148,6 +188,15 @@ void ReceiveCoinsDialog::on_receiveButton_clicked()
 
     /* Store request for later reference */
     model->getRecentRequestsTableModel()->addNewRequest(info);
+}
+
+void ReceiveCoinsDialog::on_receivingAddressesButton_clicked()
+{
+    if (!model)
+        return;
+    AddressBookPage dlg(AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
+    dlg.setModel(model->getAddressTableModel());
+    dlg.exec();
 }
 
 void ReceiveCoinsDialog::on_recentRequestsView_doubleClicked(const QModelIndex& index)
@@ -254,3 +303,19 @@ void ReceiveCoinsDialog::copyAmount()
 {
     copyColumnToClipboard(RecentRequestsTableModel::Amount);
 }
+
+// context menu action: copy address
+void ReceiveCoinsDialog::copyAddress()
+{
+    // ZCFIXTODO: turned off to compile, qt needs more syncing, this doesn't exist
+    // copyColumnToClipboard(RecentRequestsTableModel::Address);
+}
+
+void ReceiveCoinsDialog::receiveAddressUsed()
+{
+    if ((!ui->reuseAddress->isChecked()) && model && model->isUsed(CBitcoinAddress(address.toStdString()))) {
+        address = getAddress();
+        clear();
+    }
+}
+
