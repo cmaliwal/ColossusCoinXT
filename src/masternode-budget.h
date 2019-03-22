@@ -31,6 +31,11 @@ class CTxBudgetPayment;
 #define VOTE_YES 1
 #define VOTE_NO 2
 
+// ZCFIXTODO: this needs to change according to our denoms (used in the new budget methods in wallet)
+static const CAmount PROPOSAL_FEE_TX = (50 * COIN);
+static const CAmount BUDGET_FEE_TX_OLD = (50 * COIN);
+static const CAmount BUDGET_FEE_TX = (5 * COIN);
+
 static const int64_t BUDGET_VOTE_UPDATE_MIN = 60 * 60;
 
 extern std::vector<CBudgetProposalBroadcast> vecImmatureBudgetProposals;

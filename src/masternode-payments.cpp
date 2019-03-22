@@ -360,6 +360,37 @@ void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStak
         txNew.vout.push_back(CTxOut(nFees, GetScriptForDestination(Params().GetTxFeeAddress().Get())));
 }
 
+// ZCFIXTODO: new overload (pivx), old one contains custom code, so not sure, we should probably extend this one similarly
+void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, bool fZPIVStake)
+{
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    if (!pindexPrev) return;
+
+    if (IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS) && budget.IsBudgetPaymentBlock(pindexPrev->nHeight + 1)) {
+        // ZCFIXTODO: recheck how this works (we're not using the param pindexPrev + our old method)
+        budget.FillBlockPayee(txNew, nFees, fProofOfStake, pindexPrev);
+    } else {
+        // ZCFIXTODO: recheck, using new method (requires implementation in main.cpp, follow the calls)
+        masternodePayments.FillBlockPayee(txNew, nFees, fProofOfStake, fZPIVStake);
+    }
+
+    // ZCFIXTODO: copying the above def reward code to be included here as well, recheck?
+    const int nStakeOut = txNew.vout.size() > 2 ? 2 : 1;
+    const int nTargetHeight = pindexPrev->nHeight + 1;
+    //Append an additional output as the dev fund payment to the official Developer Fund Address
+    const CAmount nDevfundPayment = GetBlockValueDevFund(nTargetHeight);
+    if (nDevfundPayment > 0) {
+        string msg;
+        if (SubtractFromStakeReward(txNew, nStakeOut, nDevfundPayment, msg))
+            txNew.vout.push_back(CTxOut(nDevfundPayment, GetScriptForDestination(Params().GetDevFundAddress().Get())));
+        else
+            error("%s: %s", __func__, msg);
+    }
+
+    if (nFees > 0) //Append an additional output as the tx fee payment to the official Developer Fund Address
+        txNew.vout.push_back(CTxOut(nFees, GetScriptForDestination(Params().GetTxFeeAddress().Get())));
+}
+
 std::string GetRequiredPaymentsString(int nBlockHeight)
 {
     if (budget.IsBudgetPaymentBlock(nBlockHeight)) {
@@ -425,6 +456,66 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFe
     CBitcoinAddress address2(address1);
 
     LogPrint("masternode", "Masternode payment of %s to %s\n", FormatMoney(nMasternodePayment).c_str(), address2.ToString().c_str());
+}
+
+// ZCFIXTODO: new variant
+void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake, bool fZPIVStake)
+{
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    if (!pindexPrev) return;
+
+    bool hasPayment = true;
+    const int nTargetHeight = pindexPrev->nHeight + 1;
+    CScript payee;
+
+    //spork
+    if (!masternodePayments.GetBlockPayee(pindexPrev->nHeight + 1, payee)) {
+        //no masternode detected
+        CMasternode* winningNode = mnodeman.GetCurrentMasterNode(1);
+        if (winningNode) {
+            payee = GetScriptForDestination(winningNode->pubKeyCollateralAddress.GetID());
+        } else {
+            LogPrint("masternode","CreateNewBlock: Failed to detect masternode to pay\n");
+            hasPayment = false;
+        }
+    }
+
+    CAmount blockValue = GetBlockValue(pindexPrev->nHeight);
+    // CAmount masternodePayment = GetMasternodePayment(pindexPrev->nHeight, blockValue, 0, fZPIVStake);
+    // ZCFIXTODO: pindexPrev->nHeight vs pindexPrev->nHeight + 1 ?
+    const int nMasternodeCount = mnodeman.stable_size();
+    const CAmount nBlockValue = GetBlockValueReward(nTargetHeight);
+    const CAmount masternodePayment = GetMasternodePayment(nTargetHeight, nMasternodeCount, pindexPrev->nMoneySupply, fZPIVStake);
+
+    if (hasPayment) {
+        if (fProofOfStake) {
+            /**For Proof Of Stake vout[0] must be null
+             * Stake reward can be split into many different outputs, so we must
+             * use vout.size() to align with several different cases.
+             * An additional output is appended as the masternode payment
+             */
+            unsigned int i = txNew.vout.size();
+            txNew.vout.resize(i + 1);
+            txNew.vout[i].scriptPubKey = payee;
+            txNew.vout[i].nValue = masternodePayment;
+
+            //subtract mn payment from the stake reward
+            if (!txNew.vout[1].IsZerocoinMint())
+                txNew.vout[i - 1].nValue -= masternodePayment;
+        } else {
+            txNew.vout.resize(2);
+            txNew.vout[1].scriptPubKey = payee;
+            txNew.vout[1].nValue = masternodePayment;
+            // ZCFIXTODO: GetBlockValueReward vs GetBlockValue 
+            txNew.vout[0].nValue = blockValue - masternodePayment;
+        }
+
+        CTxDestination address1;
+        ExtractDestination(payee, address1);
+        CBitcoinAddress address2(address1);
+
+        LogPrint("masternode","Masternode payment of %s to %s\n", FormatMoney(masternodePayment).c_str(), address2.ToString().c_str());
+    }
 }
 
 int CMasternodePayments::GetMinMasternodePaymentsProto()

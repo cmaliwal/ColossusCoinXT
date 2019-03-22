@@ -96,7 +96,11 @@ static const Checkpoints::CCheckpointData dataRegtest = {
 libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
 {
     assert(this);
-    static CBigNum bnTrustedModulus(zerocoinModulus);
+    // static CBigNum bnTrustedModulus(zerocoinModulus);
+    static CBigNum bnTrustedModulus = 0;
+    if (!bnTrustedModulus)
+        bnTrustedModulus.SetHex(zerocoinModulus);
+
     static libzerocoin::ZerocoinParams ZCParams = libzerocoin::ZerocoinParams(bnTrustedModulus);
 
     return &ZCParams;
@@ -253,6 +257,7 @@ public:
         nBlockZerocoinV2 = std::numeric_limits<int>::max(); //!> The block that zerocoin v2 becomes active - roughly Tuesday, May 8, 2018 4:00:00 AM GMT
         // ZCFIXTODO: recheck this, not sure?
         nZerocoinHeaderVersion = 4; //Block headers must be this version once zerocoin is active
+        nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zpiv to be stakable
 
         strBootstrapUrl = "https://colossusxt.io/bootstrap/v1/main";
         //strBootstrapUrl = "https://bootstrap.colossusxt.io/COLX_Bootstrap.zip";

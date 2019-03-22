@@ -19,7 +19,7 @@
 #include "wallet.h"
 #include "libzerocoin/bignum.h"
 #include "libzerocoin/Coin.h"
-// #include "zpivchain.h"
+#include "zpivchain.h"
 
 #include <stdint.h>
 #include <fstream>

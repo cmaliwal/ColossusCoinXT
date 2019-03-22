@@ -265,6 +265,7 @@ CAmount GetBlockValueBudget(int nHeight);
 CAmount GetBlockValueDevFund(int nHeight);
 // masternode part of the block reward using see-saw algorithm
 CAmount GetMasternodePayment(int nHeight, int nMasternodeCount, CAmount nMoneySupply);
+CAmount GetMasternodePayment(int nHeight, int nMasternodeCount, CAmount nMoneySupply, bool isZPIVStake);
 
 /** Create a new block index entry for a given block hash */
 CBlockIndex* InsertBlockIndex(uint256 hash);
@@ -687,40 +688,40 @@ protected:
 */
 
 /** Context-independent validity checks */
-// bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, CValidationState& state);
-// bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fRejectBadUTXO, CValidationState& state, bool fFakeSerialAttack = false);
-// bool CheckZerocoinMint(const uint256& txHash, const CTxOut& txout, CValidationState& state, bool fCheckOnly = false);
-// bool CheckZerocoinSpend(const CTransaction tx, bool fVerifySignature, CValidationState& state);
-// bool CheckZerocoinSpend(const CTransaction& tx, bool fVerifySignature, CValidationState& state, bool fFakeSerialAttack = false);
-// bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& hashBlock);
-// bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& hashBlock);
-// bool ContextualCheckCoinSpend(const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& txid, bool fSkipSerialCheck = false);
-libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin);
-bool TxOutToPublicCoin(const CTxOut txout, libzerocoin::PublicCoin& pubCoin, CValidationState& state);
-bool BlockToPubcoinList(const CBlock& block, list<libzerocoin::PublicCoin>& listPubcoins, bool fFilterInvalid);
-bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMints, bool fFilterInvalid);
-bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, std::vector<CBigNum>& vValues);
-std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock& block, bool fFilterInvalid);
+    // bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, CValidationState& state);
+    // bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fRejectBadUTXO, CValidationState& state, bool fFakeSerialAttack = false);
+    // bool CheckZerocoinMint(const uint256& txHash, const CTxOut& txout, CValidationState& state, bool fCheckOnly = false);
+    // bool CheckZerocoinSpend(const CTransaction tx, bool fVerifySignature, CValidationState& state);
+    // bool CheckZerocoinSpend(const CTransaction& tx, bool fVerifySignature, CValidationState& state, bool fFakeSerialAttack = false);
+    // bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& hashBlock);
+    // bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& hashBlock);
+    // bool ContextualCheckCoinSpend(const libzerocoin::CoinSpend& spend, CBlockIndex* pindex, const uint256& txid, bool fSkipSerialCheck = false);
+// libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin);
+// bool TxOutToPublicCoin(const CTxOut txout, libzerocoin::PublicCoin& pubCoin, CValidationState& state);
+// bool BlockToPubcoinList(const CBlock& block, list<libzerocoin::PublicCoin>& listPubcoins, bool fFilterInvalid);
+// bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMints, bool fFilterInvalid);
+// bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, std::vector<CBigNum>& vValues);
+// std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock& block, bool fFilterInvalid);
 void FindMints(vector<CZerocoinMint> vMintsToFind, vector<CZerocoinMint>& vMintsToUpdate, vector<CZerocoinMint>& vMissingMints, bool fExtendedSearch);
-bool GetZerocoinMint(const CBigNum& bnPubcoin, uint256& txHash);
-bool IsSerialKnown(const CBigNum& bnSerial);
-bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx);
-bool RemoveSerialFromDB(const CBigNum& bnSerial);
-int GetZerocoinStartHeight();
-// bool IsTransactionInChain(uint256 txId, int& nHeightTx);
-// bool IsBlockHashInChain(const uint256& hashBlock);
+// bool GetZerocoinMint(const CBigNum& bnPubcoin, uint256& txHash);
+// bool IsSerialKnown(const CBigNum& bnSerial);
+// bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx);
+// bool RemoveSerialFromDB(const CBigNum& bnSerial);
+// int GetZerocoinStartHeight();
+    // bool IsTransactionInChain(uint256 txId, int& nHeightTx);
+    // bool IsBlockHashInChain(const uint256& hashBlock);
 void PopulateInvalidOutPointMap();
-// bool ValidOutPoint(const COutPoint out, int nHeight);
-// void RecalculateZPIVSpent();
-// void RecalculateZPIVMinted();
-// bool RecalculatePIVSupply(int nHeightStart);
-// bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError);
+    // bool ValidOutPoint(const COutPoint out, int nHeight);
+    // void RecalculateZPIVSpent();
+    // void RecalculateZPIVMinted();
+    // bool RecalculatePIVSupply(int nHeightStart);
+    // bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError);
 
 // Fake Serial attack Range
 bool isBlockBetweenFakeSerialAttackRange(int nHeight);
 
 
-bool RecordMintToDB(libzerocoin::PublicCoin publicZerocoin, const uint256& txHash);
+// bool RecordMintToDB(libzerocoin::PublicCoin publicZerocoin, const uint256& txHash);
 void AddInvalidSpendsToMap(const CBlock& block);
 
 #endif // BITCOIN_MAIN_H

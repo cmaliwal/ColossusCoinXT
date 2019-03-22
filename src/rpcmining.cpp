@@ -92,7 +92,7 @@ UniValue getnetworkhashps(const UniValue& params, bool fHelp)
     return GetNetworkHashPS(params.size() > 0 ? params[0].get_int() : 120, params.size() > 1 ? params[1].get_int() : -1);
 }
 
-//#ifdef ENABLE_WALLET
+#ifdef ENABLE_WALLET
 UniValue getgenerate(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 0)
@@ -110,6 +110,71 @@ UniValue getgenerate(const UniValue& params, bool fHelp)
     return GetBoolArg("-gen", false);
 }
 
+UniValue generate(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 1)
+        throw runtime_error(
+            "generate numblocks\n"
+            "\nMine blocks immediately (before the RPC call returns)\n"
+            "\nNote: this function can only be used on the regtest network\n"
+
+            "\nArguments:\n"
+            "1. numblocks    (numeric, required) How many blocks to generate.\n"
+
+            "\nResult\n"
+            "[ blockhashes ]     (array) hashes of blocks generated\n"
+
+            "\nExamples:\n"
+            "\nGenerate 11 blocks\n"
+            + HelpExampleCli("generate", "11")
+        );
+
+    if (!Params().MineBlocksOnDemand())
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
+
+    int nHeightStart = 0;
+    int nHeightEnd = 0;
+    int nHeight = 0;
+    int nGenerate = params[0].get_int();
+    CReserveKey reservekey(pwalletMain);
+
+    {   // Don't keep cs_main locked
+        LOCK(cs_main);
+        nHeightStart = chainActive.Height();
+        nHeight = nHeightStart;
+        nHeightEnd = nHeightStart+nGenerate;
+    }
+    unsigned int nExtraNonce = 0;
+    UniValue blockHashes(UniValue::VARR);
+    bool fPoS = nHeight >= Params().LAST_POW_BLOCK();
+    while (nHeight < nHeightEnd)
+    {
+
+        auto_ptr<CBlockTemplate> pblocktemplate(CreateNewBlockWithKey(reservekey, pwalletMain, fPoS));
+        if (!pblocktemplate.get())
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
+        CBlock *pblock = &pblocktemplate->block;
+
+        if(!fPoS){
+            {
+                LOCK(cs_main);
+                IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
+            }
+        }
+        while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits)) {
+            // Yes, there is a chance every nonce could fail to satisfy the -regtest
+            // target -- 1 in 2^(2^32). That ain't gonna happen.
+            ++pblock->nNonce;
+        }
+        CValidationState state;
+        if (!ProcessNewBlock(state, NULL, pblock))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+        ++nHeight;
+        fPoS = nHeight >= Params().LAST_POW_BLOCK();
+        blockHashes.push_back(pblock->GetHash().GetHex());
+    }
+    return blockHashes;
+}
 
 UniValue setgenerate(const UniValue& params, bool fHelp)
 {
@@ -134,6 +199,9 @@ UniValue setgenerate(const UniValue& params, bool fHelp)
 
     if (pwalletMain == NULL)
         throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found (disabled)");
+
+    if (Params().MineBlocksOnDemand())
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Use the generate method instead of setgenerate on this network");
 
     bool fGenerate = true;
     if (params.size() > 0)
@@ -169,7 +237,7 @@ UniValue gethashespersec(const UniValue& params, bool fHelp)
         return (int64_t)0;
     return (int64_t)dHashesPerSec;
 }
-
+#endif
 
 
 UniValue getmininginfo(const UniValue& params, bool fHelp)
@@ -405,7 +473,8 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
             hashWatchedChain = chainActive.Tip()->GetBlockHash();
             nTransactionsUpdatedLastLP = nTransactionsUpdatedLast;
         }
-
+	
+        // ZCFIXTODO: mostly locks here, skip for now
 // Release the wallet and main lock while waiting
 #ifdef ENABLE_WALLET
         if (pwalletMain)
@@ -593,6 +662,11 @@ UniValue submitblock(const UniValue& params, bool fHelp)
     CBlock block;
     if (!DecodeHexBlk(block, params[0].get_str()))
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block decode failed");
+
+    // ZCFIXTODO: are we upgraded and ready for this?
+    if (block.vtx.empty() || !block.vtx[0].IsCoinBase()) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block does not start with a coinbase");
+    }
 
     uint256 hash = block.GetHash();
     bool fBlockPresent = false;

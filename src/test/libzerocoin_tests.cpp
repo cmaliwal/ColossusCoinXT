@@ -9,6 +9,7 @@
 * @copyright  Copyright 2013 Ian Miers, Christina Garman and Matthew Green
 * @license    This project is released under the MIT license.
 **/
+// Copyright (c) 2017-2018 The PIVX developers
 
 #include <boost/test/unit_test.hpp>
 #include <string>
@@ -32,16 +33,16 @@ using namespace libzerocoin;
 #define COLOR_STR_RED     "\033[31m"
 
 #define TESTS_COINS_TO_ACCUMULATE   10
-#define NON_PRIME_TESTS				100
+#define NON_PRIME_TESTS             100
 
 // Global test counters
 uint32_t    gNumTests        = 0;
 uint32_t    gSuccessfulTests = 0;
 
 // Proof size
-uint32_t    gProofSize			= 0;
-uint32_t    gCoinSize			= 0;
-uint32_t	gSerialNumberSize	= 0;
+uint32_t    gProofSize          = 0;
+uint32_t    gCoinSize           = 0;
+uint32_t    gSerialNumberSize   = 0;
 
 // Global coin array
 PrivateCoin    *gCoins[TESTS_COINS_TO_ACCUMULATE];
@@ -356,7 +357,7 @@ bool Test_InvalidCoin()
         if (pubCoin.validate()) {
             // A blank coin should not be valid!
             return false;
-        }		
+        }       
         
         PublicCoin pubCoin2(g_Params, coinValue, ZQ_ONE);
         if (pubCoin2.validate()) {
@@ -418,13 +419,14 @@ Test_MintAndSpend()
         cc << *gCoins[0];
         PrivateCoin myCoin(g_Params,cc);
 
-        CoinSpend spend(g_Params, myCoin, acc, 0, wAcc, 0);
+        CoinSpend spend(g_Params, g_Params, myCoin, acc, 0, wAcc, 0, SpendType::SPEND);
+        spend.Verify(acc);
 
         // Serialize the proof and deserialize into newSpend
         CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
         ss << spend;
         gProofSize = ss.size();
-        CoinSpend newSpend(g_Params, ss);
+        CoinSpend newSpend(g_Params, g_Params, ss);
 
         // See if we can verify the deserialized proof (return our result)
         bool ret =  newSpend.Verify(acc);

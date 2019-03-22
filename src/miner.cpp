@@ -26,6 +26,7 @@
 #include "masternode-payments.h"
 #include "accumulators.h"
 #include "spork.h"
+#include "zpivchain.h"
 
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -451,7 +452,8 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
         pblock->nNonce = 0;
         uint256 nCheckpoint = 0;
-        AccumulatorMap mapAccumulators;
+        AccumulatorMap mapAccumulators(Params().Zerocoin_Params(false));
+        // AccumulatorMap mapAccumulators;
         if (!CalculateAccumulatorCheckpoint(nHeight, nCheckpoint, mapAccumulators))
             LogPrintf("%s: failed to get accumulator checkpoint\n", __func__);
 
@@ -568,7 +570,8 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
                 // 5 minute check time
                 if (GetTime() - nMintableLastCheck > 5 * 60) {
                     nMintableLastCheck = GetTime();
-                    fMintableCoins = pwallet->MintableCoins(chainActive.Height() + 1);
+                    fMintableCoins = pwallet->MintableCoins();
+                    // fMintableCoins = pwallet->MintableCoins(chainActive.Height() + 1);
                 }
 
                 LogPrint("miner", "COLXMiner wait 5 seconds (%u, %d, %d, %d)\n", vNodes.size(), pwallet->IsLocked(), fMintableCoins, masternodeSync.IsBlockchainSynced());

@@ -26,6 +26,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBl
 std::string GetRequiredPaymentsString(int nBlockHeight);
 bool IsBlockValueValid(const CBlock& block, int nBlockHeight, CAmount nExpectedValue, CAmount nMinted, CBlockIndex* pindexPrev);
 void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
+void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, bool fZPIVStake);
 CAmount FindPayment(const CTransaction& tx, const string& address);
 void DumpMasternodePayments();
 
@@ -279,6 +280,7 @@ public:
     void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     std::string GetRequiredPaymentsString(int nBlockHeight);
     void FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
+    void FillBlockPayee(CMutableTransaction& txNew, int64_t nFees, bool fProofOfStake, bool fZPIVStake);
     std::string ToString() const;
     int GetOldestBlock();
     int GetNewestBlock();

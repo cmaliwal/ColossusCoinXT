@@ -125,6 +125,8 @@ public:
     int Zerocoin_MintRequiredConfirmations() const { return nMintRequiredConfirmations; }
     int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
+    int Zerocoin_HeaderVersion() const { return nZerocoinHeaderVersion; }
+    int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
 
     /** Height or Time Based Activations **/
     int Zerocoin_StartHeight() const { return GetChainHeight(ChainHeight::H5); }
@@ -204,11 +206,9 @@ protected:
     int nMintRequiredConfirmations;
     int nRequiredAccumulation;
     int nDefaultSecurityLevel;
-
-    // fake serial attack
-    int nFakeSerialBlockheightEnd = 0;
-        
+    int nZerocoinHeaderVersion;
     int64_t nBudget_Fee_Confirmations;
+    int nZerocoinRequiredStakeDepth;
 
     int nBlockEnforceSerialRange;
     int nBlockRecalculateAccumulators;
@@ -217,6 +217,9 @@ protected:
     int nBlockEnforceInvalidUTXO;
     int nBlockZerocoinV2;
 
+    // fake serial attack
+    int nFakeSerialBlockheightEnd = 0;
+        
     int nMasternodePaymentSigTotal;
     int nMasternodePaymentSigRequired;
     int64_t nBudgetPercent;
