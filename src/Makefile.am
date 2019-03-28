@@ -99,6 +99,7 @@ BITCOIN_CORE_H = \
   base58.h \
   bip38.h \
   bloom.h \
+  blocksignature.h \
   bootstrapmodel.h \
   chain.h \
   chainparams.h \
@@ -229,6 +230,7 @@ libbitcoin_server_a_SOURCES = \
   addrman.cpp \
   alert.cpp \
   bloom.cpp \
+  blocksignature.cpp \
   chain.cpp \
   checkpoints.cpp \
   httprpc.cpp \

@@ -1714,6 +1714,10 @@ CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
         CAmount nBalance = 0;
         vector<CMintMeta> vMints = zpivTracker->GetMints(true);
         for (auto meta : vMints) {
+            if (meta.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+                error("GetZerocoinBalance() : invalid denomination!? Probably versioning.");
+                continue;
+            }
             if (meta.nHeight >= mapMintMaturity.at(meta.denom) || meta.nHeight >= chainActive.Height() || meta.nHeight == 0)
                 continue;
             nBalance += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
@@ -1790,8 +1794,13 @@ std::map<libzerocoin::CoinDenomination, CAmount> CWallet::GetMyZerocoinDistribut
         LOCK2(cs_main, cs_wallet);
         // LOCK(cs_wallet);
         set<CMintMeta> setMints = zpivTracker->ListMints(true, true, true);
-        for (auto& mint : setMints)
+        for (auto& mint : setMints) {
+            if (mint.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+                error("GetMyZerocoinDistribution() : invalid denomination!? Probably versioning.");
+                continue;
+            }
             spread.at(mint.denom)++;
+        }
         // // ZCFIXTODO: recheck, it's looking ok, this is old code, just LOCK2 above should stay
         // list<CZerocoinMint> listPubCoin = CWalletDB(strWalletFile).ListMintedCoins(true, true, true);
         // for (auto& mint : listPubCoin) {

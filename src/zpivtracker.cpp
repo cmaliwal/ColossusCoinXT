@@ -146,6 +146,11 @@ CAmount CzPIVTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) con
             if (fUnconfirmedOnly && fConfirmed)
                 continue;
 
+            if (meta.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+                error("CzPIVTracker::GetBalance(...) : invalid denomination!? Probably versioning.");
+                continue;
+            }
+
             nTotal += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
             myZerocoinSupply.at(meta.denom)++;
         }
@@ -168,6 +173,10 @@ std::vector<CMintMeta> CzPIVTracker::GetMints(bool fConfirmedOnly) const
         CMintMeta mint = it.second;
         if (mint.isArchived || mint.isUsed)
             continue;
+        if (mint.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+            error("GetZerocoinBalance() : invalid denomination!? Probably versioning.");
+            continue;
+        }
         bool fConfirmed = (mint.nHeight < chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations());
         if (fConfirmedOnly && !fConfirmed)
             continue;
@@ -227,6 +236,12 @@ bool CzPIVTracker::UpdateZerocoinMint(const CZerocoinMint& mint)
     CMintMeta meta = Get(hashSerial);
     meta.isUsed = mint.IsUsed();
     meta.denom = mint.GetDenomination();
+
+    if (meta.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+        error("CzPIVTracker::UpdateZerocoinMint(...) : invalid denomination!? Probably versioning.");
+        // continue;
+    }
+
     meta.nHeight = mint.GetHeight();
     mapSerialHashes.at(hashSerial) = meta;
 
@@ -250,6 +265,11 @@ bool CzPIVTracker::UpdateState(const CMintMeta& meta)
                 return error("%s: failed to unarchive deterministic mint from database", __func__);
         }
 
+        if (meta.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+            error("CzPIVTracker::UpdateState(...) : invalid denomination!? Probably versioning.");
+            // continue;
+        }
+
         dMint.SetTxHash(meta.txid);
         dMint.SetHeight(meta.nHeight);
         dMint.SetUsed(meta.isUsed);
@@ -262,6 +282,11 @@ bool CzPIVTracker::UpdateState(const CMintMeta& meta)
         CZerocoinMint mint;
         if (!walletdb.ReadZerocoinMint(meta.hashPubcoin, mint))
             return error("%s: failed to read mint from database", __func__);
+
+        if (meta.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+            error("CzPIVTracker::UpdateState(...) : invalid denomination!? Probably versioning.");
+            // continue;
+        }
 
         mint.SetTxHash(meta.txid);
         mint.SetHeight(meta.nHeight);
@@ -289,6 +314,12 @@ void CzPIVTracker::Add(const CDeterministicMint& dMint, bool isNew, bool isArchi
     meta.hashSerial = dMint.GetSerialHash();
     meta.hashStake = dMint.GetStakeHash();
     meta.denom = dMint.GetDenomination();
+
+    if (meta.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+        error("CzPIVTracker::Add() : invalid denomination!? Probably versioning.");
+        // continue;
+    }
+
     meta.isArchived = isArchived;
     meta.isDeterministic = true;
     if (! iszPIVWalletInitialized)
@@ -314,6 +345,12 @@ void CzPIVTracker::Add(const CZerocoinMint& mint, bool isNew, bool isArchived)
     uint256 nSerial = mint.GetSerialNumber().getuint256();
     meta.hashStake = Hash(nSerial.begin(), nSerial.end());
     meta.denom = mint.GetDenomination();
+
+    if (meta.denom == libzerocoin::CoinDenomination::ZQ_ERROR) {
+        error("CzPIVTracker::Add(small) : invalid denomination!? Probably versioning.");
+        // continue;
+    }
+
     meta.isArchived = isArchived;
     meta.isDeterministic = false;
     meta.isSeedCorrect = true;

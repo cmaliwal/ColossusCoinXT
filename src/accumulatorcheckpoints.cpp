@@ -4,6 +4,7 @@
 
 #include "accumulatorcheckpoints.h"
 #include "accumulatorcheckpoints.json.h"
+#include "util.h"
 
 namespace AccumulatorCheckpoints
 {
@@ -51,7 +52,10 @@ namespace AccumulatorCheckpoints
             for (auto denom : libzerocoin::zerocoinDenomList) {
                 const UniValue& vDenomValue = find_value(o, std::to_string(denom));
                 if (!vDenomValue.isStr()) {
-                    return false;
+                    error("LoadCheckpoints() : invalid denomination!? Ignoring till we fix it");
+                    return true;
+                    // continue;
+                    // return false;
                 }
                 CBigNum bn = 0;
                 bn.SetHex(vDenomValue.get_str());

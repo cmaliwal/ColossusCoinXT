@@ -15,6 +15,7 @@
 
 uint256 CBlockHeader::GetHash() const
 {
+    // ZCFIXTODO: get our versions straight // if(nVersion < 4) // pivx != colx
     if (nVersion < VERSION5)
         return HashQuark(BEGIN(nVersion), END(nNonce));
     else
@@ -261,4 +262,9 @@ bool CBlock::CheckBlockSignature() const
     }
 
     return false;
+}
+
+bool CBlock::IsZerocoinStake() const
+{
+    return IsProofOfStake() && vtx[1].IsZerocoinSpend();
 }

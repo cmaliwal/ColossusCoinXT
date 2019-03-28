@@ -58,6 +58,7 @@ public:
         READWRITE(nBits);
         READWRITE(nNonce);
 
+        //zerocoin active, header changes to include accumulator checksum
         if (nVersion > CBlockHeader::VERSION4)
             READWRITE(nAccumulatorCheckpoint);
     }
@@ -122,8 +123,8 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CBlockHeader*)this);
         READWRITE(vtx);
-    if(vtx.size() > 1 && vtx[1].IsCoinStake())
-        READWRITE(vchBlockSig);
+        if(vtx.size() > 1 && vtx[1].IsCoinStake())
+            READWRITE(vchBlockSig);
     }
 
     void SetNull()
@@ -161,6 +162,7 @@ public:
 
     bool SignBlock(const CKeyStore& keystore);
     bool CheckBlockSignature() const;
+    bool IsZerocoinStake() const;
 
     std::pair<COutPoint, unsigned int> GetProofOfStake() const
     {
