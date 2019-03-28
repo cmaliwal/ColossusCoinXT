@@ -108,7 +108,7 @@ libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
 libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params(bool useModulusV1) const
 {
     // ZCFIXTODO: for now just to be safe...
-    return Zerocoin_Params();
+    // return Zerocoin_Params();
 
     assert(this);
     static CBigNum bnHexModulus = 0;
