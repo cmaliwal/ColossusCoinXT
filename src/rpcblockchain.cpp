@@ -20,6 +20,7 @@
 #include "libzerocoin/bignum.h"
 #include "libzerocoin/Coin.h"
 #include "zpivchain.h"
+#include "accumulatorcheckpoints.h"
 
 #include <stdint.h>
 #include <fstream>
@@ -1353,6 +1354,121 @@ UniValue findserial(const UniValue& params, bool fHelp)
     UniValue ret(UniValue::VOBJ);
     ret.push_back(Pair("success", fSuccess));
     ret.push_back(Pair("txid", txid.GetHex()));
+    return ret;
+}
+
+UniValue generateaccumulatorvalues(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "generateaccumulatorvalues \"height\"\n"
+                    "\nReturns the accumulator values associated with a block height\n"
+
+                    "\nArguments:\n"
+                    "1. height   (numeric, required) the height of the checkpoint.\n"
+
+                    "\nExamples:\n" +
+            HelpExampleCli("generateaccumulatorvalues", "\"height\"") + HelpExampleRpc("generateaccumulatorvalues", "\"height\""));
+
+    int nHeight = params[0].get_int();
+
+    CBlockIndex* pindex = chainActive[nHeight];
+    if (!pindex)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid block height");
+
+    std::map<libzerocoin::CoinDenomination, int> mapCheckpoints;
+    for (libzerocoin::CoinDenomination denom : libzerocoin::zerocoinDenomList) {
+        mapCheckpoints.insert(make_pair(denom, std::numeric_limits<int>::max()));
+    }
+
+    UniValue ret(UniValue::VARR);
+
+    while (true) {
+        libzerocoin::CoinDenomination testDenom = libzerocoin::CoinDenomination::ZQ_ONE;
+        uint256 nCheckpoint = pindex->nAccumulatorCheckpoint;
+        uint32_t nChecksum = ParseChecksum(nCheckpoint, testDenom);
+        int checkHeight = GetChecksumHeight(nChecksum, testDenom);
+        CBlockIndex* pindexCheck = chainActive[checkHeight];
+
+        bool allSame = true;
+        for (libzerocoin::CoinDenomination denom : libzerocoin::zerocoinDenomList) {
+            uint256 nCheckpointDenom = pindex->nAccumulatorCheckpoint;
+            uint32_t nChecksumDenom = ParseChecksum(nCheckpointDenom, denom);
+            int checkHeightDenom = GetChecksumHeight(nChecksumDenom, denom);
+            CBlockIndex* pindexCheckDenom = chainActive[checkHeightDenom];
+
+            int oldHeight = mapCheckpoints.at(denom);
+            if (checkHeightDenom < oldHeight){
+                allSame = false;
+                mapCheckpoints.erase(denom);
+                mapCheckpoints.insert(make_pair(denom, checkHeightDenom));
+            }
+            // if (checkHeightDenom > checkHeight) {
+            if (checkHeightDenom < checkHeight) {
+                testDenom = denom;
+                nCheckpoint = nCheckpointDenom;
+                nChecksum = nChecksumDenom;
+                checkHeight = checkHeightDenom;
+                pindexCheck = pindexCheckDenom;
+            }
+        }
+
+        // take just every 10,000
+        pindexCheck = pindex;
+        checkHeight = pindexCheck->nHeight;
+
+        int nHeightCheckpoint = 0;
+        auto checkpoint = AccumulatorCheckpoints::GetClosestCheckpoint(checkHeight, nHeightCheckpoint);
+
+        UniValue obj(UniValue::VOBJ);
+        obj.push_back(Pair("", checkHeight));
+
+        for (libzerocoin::CoinDenomination denom : libzerocoin::zerocoinDenomList) {
+            CBigNum bnValue;
+
+            // uint256 nCheckpointDenom = pindex->nAccumulatorCheckpoint;
+            // uint32_t nChecksumDenom = ParseChecksum(nCheckpointDenom, denom);
+            // int checkHeightDenom = GetChecksumHeight(nChecksumDenom, denom);
+            // CBlockIndex* pindexCheckDenom = chainActive[checkHeightDenom];
+            // if (nCheckpointDenom != nCheckpoint || 
+            //     nChecksumDenom != nChecksum ||
+            //     checkHeightDenom != checkHeight) {
+            //     throw JSONRPCError(RPC_INTERNAL_ERROR, "these should be the same?");
+            // }
+
+            // if(!GetAccumulatorValueFromDB(pindexCheck->nAccumulatorCheckpoint, denom, bnValue))
+            if(!GetAccumulatorValueFromDB(pindexCheck->nHeight, denom, bnValue))
+                throw JSONRPCError(RPC_DATABASE_ERROR, "failed to find value in database");
+
+            // if(!GetAccumulatorValueFromDB(pindex->nAccumulatorCheckpoint, denom, bnValue))
+            //     throw JSONRPCError(RPC_DATABASE_ERROR, "failed to find value in database");
+
+            // mapCheckpoints.insert(make_pair(denom, bnValue));
+
+            obj.push_back(Pair(std::to_string(denom), bnValue.GetHex()));
+        }
+
+        // ret.push_back(obj);
+
+        pindex = chainActive[pindexCheck->nHeight - 1];
+
+        // take just every 10,000
+        pindex = chainActive[pindexCheck->nHeight - 10000];
+
+        if (allSame) continue;
+
+        ret.push_back(obj);
+
+        if (pindex->nHeight < Params().Zerocoin_StartHeight()) {
+            break;
+        }
+        if (pindex->nAccumulatorCheckpoint == 0) {
+            // before zerocoins
+            break;
+        }
+    }
+
+
     return ret;
 }
 

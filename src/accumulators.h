@@ -70,6 +70,10 @@ int GetChecksumHeight(uint32_t nChecksum, libzerocoin::CoinDenomination denomina
 bool InvalidCheckpointRange(int nHeight);
 bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, AccumulatorMap& mapAccumulators);
 
+// ZCV2PARAMS: reindexing support (for V1 => V2 checkpoints generation)
+bool CacheCheckpoint(int nHeight, uint256& nCheckpoint);
+// ZCV2PARAMS: reindexing support (for V1 => V2 checkpoints generation) (only used from rpc)
+bool GetAccumulatorValueFromDB(int nHeight, libzerocoin::CoinDenomination denom, CBigNum& bnAccValue);
 
 // Exceptions
 

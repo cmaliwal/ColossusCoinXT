@@ -303,6 +303,7 @@ extern UniValue invalidateblock(const UniValue& params, bool fHelp);
 extern UniValue reconsiderblock(const UniValue& params, bool fHelp);
 extern UniValue getinvalid(const UniValue& params, bool fHelp);
 extern UniValue getaccumulatorvalues(const UniValue& params, bool fHelp);
+extern UniValue generateaccumulatorvalues(const UniValue& params, bool fHelp);
 extern UniValue getaccumulatorwitness(const UniValue& params, bool fHelp);
 extern UniValue getmintsinblocks(const UniValue& params, bool fHelp);
 extern UniValue getserials(const UniValue& params, bool fHelp);

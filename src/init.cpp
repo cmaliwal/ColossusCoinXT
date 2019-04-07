@@ -1647,7 +1647,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 // Force recalculation of accumulators.
                 if (GetBoolArg("-reindexaccumulators", false)) {
                     if (chainActive.Height() > Params().Zerocoin_Block_V2_Start()) {
+                        // ZCV2PARAMS: quick temp fix to reinitialize the db, otherwise things're not working
                         CBlockIndex *pindex = chainActive[Params().Zerocoin_Block_V2_Start()];
+                        // CBlockIndex* pindex = chainActive[Params().Zerocoin_StartHeight()];
                         while (pindex->nHeight < chainActive.Height()) {
                             if (!count(listAccCheckpointsNoDB.begin(), listAccCheckpointsNoDB.end(),
                                        pindex->nAccumulatorCheckpoint))

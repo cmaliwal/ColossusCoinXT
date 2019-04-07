@@ -17,6 +17,9 @@ using namespace libzerocoin;
 std::map<uint32_t, CBigNum> mapAccumulatorValues;
 std::list<uint256> listAccCheckpointsNoDB;
 
+// ZCV2PARAMS: reindexing support (for V1 => V2 checkpoints generation)
+std::map<int, uint256> mapCheckpointsCache;
+
 uint32_t ParseChecksum(uint256 nChecksum, CoinDenomination denomination)
 {
     //shift to the beginning bit of this denomination and trim any remaining bits by returning 32 bits only
@@ -75,6 +78,20 @@ bool GetAccumulatorValueFromChecksum(uint32_t nChecksum, bool fMemoryOnly, CBigN
     }
 
     return true;
+}
+
+// ZCV2PARAMS: reindexing support (for V1 => V2 checkpoints generation) (only used from rpc)
+bool GetAccumulatorValueFromDB(int nHeight, CoinDenomination denom, CBigNum& bnAccValue)
+{
+    CBlockIndex* pindex = chainActive[nHeight];
+    uint256 nCheckpoint = pindex->nAccumulatorCheckpoint;
+
+    if (mapCheckpointsCache.count(nHeight)) {
+        nCheckpoint = mapCheckpointsCache.at(nHeight);
+    }
+
+    uint32_t nChecksum = ParseChecksum(nCheckpoint, denom);
+    return GetAccumulatorValueFromChecksum(nChecksum, false, bnAccValue);
 }
 
 bool GetAccumulatorValueFromDB(uint256 nCheckpoint, CoinDenomination denom, CBigNum& bnAccValue)
@@ -226,6 +243,12 @@ bool InitializeAccumulators(const int nHeight, int& nHeightCheckpoint, Accumulat
 
     //Use the previous block's checkpoint to initialize the accumulator's state
     uint256 nCheckpointPrev = chainActive[nHeight - 1]->nAccumulatorCheckpoint;
+
+    // ZCV2PARAMS: using cache, temp fix (the cache would normally be empty so it can stay)
+    if (mapCheckpointsCache.count(nHeight - 1)) {
+        nCheckpointPrev = mapCheckpointsCache.at(nHeight - 1);
+    }
+
     if (nCheckpointPrev == 0)
         mapAccumulators.Reset();
     else if (!mapAccumulators.Load(nCheckpointPrev))
@@ -235,10 +258,31 @@ bool InitializeAccumulators(const int nHeight, int& nHeightCheckpoint, Accumulat
     return true;
 }
 
+// ZCV2PARAMS: 
+// bool CalculateAccumulatorCheckpointNCache(int nHeight, uint256& nCheckpoint, AccumulatorMap& mapAccumulators)
+// {
+//     auto result = CalculateAccumulatorCheckpoint(nHeight, nCheckpoint, mapAccumulators);
+//     if (nCheckpoint > 0)
+//         mapCheckpointsCache.insert(make_pair(nHeight, nCheckpoint));
+//     return result;
+// }
+bool CacheCheckpoint(int nHeight, uint256& nCheckpoint)
+{
+    if (mapCheckpointsCache.count(nHeight)) {
+        // nCheckpointPrev = mapCheckpointsCache.at(nHeight - 1);
+        return true;
+    }
+    if (nCheckpoint > 0)
+        mapCheckpointsCache.insert(make_pair(nHeight, nCheckpoint));
+    return true;
+}
+
 //Get checkpoint value for a specific block height
-// ZCFIXTODO: merge from this point on (not done yet)
 bool CalculateAccumulatorCheckpoint(int nHeight, uint256& nCheckpoint, AccumulatorMap& mapAccumulators)
 {
+    // only called from reindexing (main), CreateNewBlock (miner) & ValidateAccumulatorCheckpoint/ConnectBlock (main)
+    // ZCV2PARAMS: this (v2 start check) is important, it renders checkpoints to zero for anything pre-V2, 
+    // so it shouldn't be called for anything older than that basically, just turning this off temporarily
     // if (nHeight < Params().Zerocoin_StartHeight()) {
     if (nHeight < Params().Zerocoin_Block_V2_Start()) {
         nCheckpoint = 0;
@@ -312,6 +356,9 @@ bool InvalidCheckpointRange(int nHeight)
 
 bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, AccumulatorMap& mapAccumulators)
 {
+    // ZCV2PARAMS: this (v2 start check) is important, calculating/validation is off pre-V2, as the calc results in 0
+    // and CalculateAccumulatorCheckpoint is only called during manual reindex (ReindexAccumulators) or in miner/newblock 
+
     // ZCFIXTODO: 
     // if (!fVerifyingBlocks && pindex->nHeight >= Params().Zerocoin_StartHeight() && pindex->nHeight % 10 == 0) {
     //V1 accumulators are completely phased out by the time this code hits the public and begins generating new checkpoints
@@ -433,6 +480,7 @@ int AddBlockMintsToAccumulator(const libzerocoin::PublicCoin& coin, const int nH
     return nMintsAdded;
 }
 
+// only used for new tx-s
 bool GetAccumulatorValue(int& nHeight, const libzerocoin::CoinDenomination denom, CBigNum& bnAccValue)
 {
     if (nHeight > chainActive.Height())
@@ -444,6 +492,10 @@ bool GetAccumulatorValue(int& nHeight, const libzerocoin::CoinDenomination denom
         return GetAccumulatorValueFromDB(nCheckpointBeforeMint, denom, bnAccValue);
     }
 
+    // ZCV2PARAMS: this is important to sync the accumulators from old modulus (wrong hex) to new modulus (decimal->hex).
+    // for the time being, till we accumulate enough, don't rely on the prevous blocks' nAccumulatorCheckpoint-s,
+    // as those would be wrong (old-style, 617 in length, as opposed to the new 512 ones).
+    
     int nHeightCheckpoint = 0;
     AccumulatorCheckpoints::Checkpoint checkpoint = AccumulatorCheckpoints::GetClosestCheckpoint(nHeight, nHeightCheckpoint);
     if (nHeightCheckpoint < 0) {
@@ -533,6 +585,7 @@ std::list<CBlockIndex*> calculateAccumulatedBlocksFor(
     return blocksToInclude;
 }
 
+// used in lightzpivthread.cpp, we don't have that yet
 bool CalculateAccumulatorWitnessFor(
         const ZerocoinParams* params,
         int startHeight,
@@ -644,7 +697,7 @@ int SearchMintHeightOf(CBigNum value){
     return mapBlockIndex[hashBlock]->nHeight;
 }
 
-
+// only used for new tx-s
 bool GenerateAccumulatorWitness(
         const PublicCoin &coin,
         Accumulator& accumulator,

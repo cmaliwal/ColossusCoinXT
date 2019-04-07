@@ -3378,10 +3378,13 @@ bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError
         LogPrintf("%s : finding missing checkpoints\n", __func__);
 
         //search the chain to see when zerocoin started
-        // ZCFIXTODO: when we're ready turn this on
-        // int nZerocoinStart = Params().Zerocoin_Block_V2_Start();
-        int nZerocoinStart = Params().Zerocoin_StartHeight();
+        // ZCV2PARAMS: turn this on/off for pre-V2 reindexing
+        int nZerocoinStart = Params().Zerocoin_Block_V2_Start();
+        // int nZerocoinStart = Params().Zerocoin_StartHeight();
 
+        // ZCV2PARAMS: 
+        uint256 nCheckpointCalculated = 0;
+        
         // find each checkpoint that is missing
         CBlockIndex* pindex = chainActive[nZerocoinStart];
         while (!listMissingCheckpoints.empty()) {
@@ -3393,9 +3396,13 @@ bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError
 
                 //double dPercent = (pindex->nHeight - nZerocoinStart) / (double) (chainActive.Height() - nZerocoinStart);
                 //uiInterface.ShowProgress(_("Calculating missing accumulators..."), (int) (dPercent * 100));
+                // if (true) {
                 if (find(listMissingCheckpoints.begin(), listMissingCheckpoints.end(), pindex->nAccumulatorCheckpoint) != listMissingCheckpoints.end()) {
-                    uint256 nCheckpointCalculated = 0;
+                    nCheckpointCalculated = 0;
+
                     // ZCFIXTODO: // AccumulatorMap mapAccumulators;
+                    // auto params = Params().Zerocoin_Params(false);
+                    // AccumulatorMap mapAccumulators(params);
                     AccumulatorMap mapAccumulators(Params().Zerocoin_Params(false));
                     if (!CalculateAccumulatorCheckpoint(pindex->nHeight, nCheckpointCalculated, mapAccumulators)) {
                         // GetCheckpoint could have terminated due to a shutdown request. Check this here.
@@ -3407,6 +3414,9 @@ bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError
 
                     //check that the calculated checkpoint is what is in the index.
                     if (nCheckpointCalculated != pindex->nAccumulatorCheckpoint) {
+                        // ZCV2PARAMS: off just to reindex with new modulus (decimal based, smaller 512)
+                        // checksums are different cause of it, otherwise coins and everything is the same actually
+                        
                         LogPrintf("%s : height=%d calculated_checkpoint=%s actual=%s\n", __func__, pindex->nHeight, nCheckpointCalculated.GetHex(), pindex->nAccumulatorCheckpoint.GetHex());
                         strError = _("Calculated accumulator checkpoint is not what is recorded by block index");
                         return false;
@@ -3418,6 +3428,9 @@ bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError
                 }
             }
 
+            // ZCV2PARAMS: temp caching for reindexing/rpc to work (doesn't hurt to stay here I guess, safe to turn off)
+            CacheCheckpoint(pindex->nHeight, nCheckpointCalculated);
+            
             // if we have iterated to the end of the blockchain, then checkpoints should be in sync
             if (pindex->nHeight + 1 <= chainActive.Height())
                 pindex = chainActive.Next(pindex);

@@ -69,19 +69,28 @@ namespace AccumulatorCheckpoints
 
     Checkpoint GetClosestCheckpoint(const int& nHeight, int& nHeightCheckpoint)
     {
+        int lastLowerHeight = 0;
         nHeightCheckpoint = -1;
         for (auto it : mapCheckpoints) {
             //only checkpoints that are less than the height requested (unless height is less than the first checkpoint)
             if (it.first < nHeight) {
+                if (it.first > lastLowerHeight)
+                    lastLowerHeight = it.first;
                 if (nHeightCheckpoint == -1)
                     nHeightCheckpoint = it.first;
+                // ZCV2PARAMS: this doesn't work (what was the purpose?), all checks will be fore >V2 so might work mostly
+                // but unless we have new checkpoints for larger diffs after V2 it won't.
                 if (nHeight - it.first < nHeightCheckpoint)
                     nHeightCheckpoint = it.first;
             }
         }
 
-        if (nHeightCheckpoint != -1)
+        if (nHeightCheckpoint != -1) {
+            if (lastLowerHeight > nHeightCheckpoint){
+                nHeightCheckpoint = lastLowerHeight;
+            }
             return mapCheckpoints.at(nHeightCheckpoint);
+        }
 
         return Checkpoint();
     }
