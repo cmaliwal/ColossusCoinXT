@@ -1357,6 +1357,7 @@ UniValue findserial(const UniValue& params, bool fHelp)
     return ret;
 }
 
+// turn on pre-V2 reindexing and ReindexAccumulators (main) for this to work.
 UniValue generateaccumulatorvalues(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
@@ -1467,7 +1468,6 @@ UniValue generateaccumulatorvalues(const UniValue& params, bool fHelp)
             break;
         }
     }
-
 
     return ret;
 }

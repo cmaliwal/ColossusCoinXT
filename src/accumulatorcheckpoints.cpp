@@ -9,6 +9,8 @@
 namespace AccumulatorCheckpoints
 {
     std::map<int, Checkpoint> mapCheckpoints;
+    int nHeightOldPreV2;
+    Checkpoint checkpointOldPreV2;
 
     UniValue read_json(const std::string& jsondata)
     {
@@ -21,48 +23,98 @@ namespace AccumulatorCheckpoints
         return v.get_array();
     }
 
+    bool GetCheckpointFromUniValueIndex(const UniValue &v, int idx, int& nHeight, Checkpoint& checkpoint)
+    {
+        const UniValue &val = v[idx];
+        const UniValue &o = val.get_obj();
+
+        const UniValue &vHeight = find_value(o, "height");
+        if (!vHeight.isNum())
+            return false;
+
+        nHeight = vHeight.get_int();
+        if (nHeight < 0)
+            return false;
+
+        //Checkpoint checkpoint;
+        for (auto denom : libzerocoin::zerocoinDenomList) {
+            const UniValue& vDenomValue = find_value(o, std::to_string(denom));
+            if (!vDenomValue.isStr()) {
+                error("LoadCheckpoints() : invalid denomination!? Ignoring till we fix it");
+                // return true;
+                // continue;
+                return false;
+            }
+            CBigNum bn = 0;
+            bn.SetHex(vDenomValue.get_str());
+            checkpoint.insert(std::make_pair(denom, bn));
+        }
+
+        return true;
+    }
+
     bool LoadCheckpoints(const std::string& strNetwork)
     {
         UniValue v;
+        UniValue vold;
         if (strNetwork == "main")
             v = read_json(GetMainCheckpoints());
-        else if (strNetwork == "test")
+        else if (strNetwork == "test") {
             v = read_json(GetTestCheckpoints());
+            vold = read_json(GetOldTestCheckpoints());
+        }
         else if (strNetwork == "regtest")
             v = read_json(GetRegTestCheckpoints());
         else
             return false;
 
-        if (v.empty())
+        if (v.empty() || vold.empty())
             return false;
 
-        for (unsigned int idx = 0; idx < v.size(); idx++) {
-            const UniValue &val = v[idx];
-            const UniValue &o = val.get_obj();
-
-            const UniValue &vHeight = find_value(o, "height");
-            if (!vHeight.isNum())
+        {
+            // const UniValue &valOldLast = vold[vold.size() - 1];
+            if(!GetCheckpointFromUniValueIndex(vold, vold.size() - 1, nHeightOldPreV2, checkpointOldPreV2)){
+                error("LoadCheckpoints() : (old) invalid json, height, denomination!?");
                 return false;
-
-            int nHeight = vHeight.get_int();
-            if (nHeight < 0)
-                return false;
-
-            Checkpoint checkpoint;
-            for (auto denom : libzerocoin::zerocoinDenomList) {
-                const UniValue& vDenomValue = find_value(o, std::to_string(denom));
-                if (!vDenomValue.isStr()) {
-                    error("LoadCheckpoints() : invalid denomination!? Ignoring till we fix it");
-                    return true;
-                    // continue;
-                    // return false;
-                }
-                CBigNum bn = 0;
-                bn.SetHex(vDenomValue.get_str());
-                checkpoint.insert(std::make_pair(denom, bn));
             }
+        }
 
+        for (unsigned int idx = 0; idx < v.size(); idx++) {
+            int nHeight;
+            Checkpoint checkpoint;
+            if(!GetCheckpointFromUniValueIndex(v, idx, nHeight, checkpoint)){
+                error("LoadCheckpoints() : invalid json, height, denomination!?");
+                return false;
+            }
             mapCheckpoints.insert(make_pair(nHeight, checkpoint));
+
+
+            // const UniValue &val = v[idx];
+            // const UniValue &o = val.get_obj();
+
+            // const UniValue &vHeight = find_value(o, "height");
+            // if (!vHeight.isNum())
+            //     return false;
+
+            // int nHeight = vHeight.get_int();
+            // if (nHeight < 0)
+            //     return false;
+
+            // Checkpoint checkpoint;
+            // for (auto denom : libzerocoin::zerocoinDenomList) {
+            //     const UniValue& vDenomValue = find_value(o, std::to_string(denom));
+            //     if (!vDenomValue.isStr()) {
+            //         error("LoadCheckpoints() : invalid denomination!? Ignoring till we fix it");
+            //         return true;
+            //         // continue;
+            //         // return false;
+            //     }
+            //     CBigNum bn = 0;
+            //     bn.SetHex(vDenomValue.get_str());
+            //     checkpoint.insert(std::make_pair(denom, bn));
+            // }
+
+            // mapCheckpoints.insert(make_pair(nHeight, checkpoint));
         }
         return true;
     }
@@ -93,6 +145,17 @@ namespace AccumulatorCheckpoints
         }
 
         return Checkpoint();
+    }
+
+    Checkpoint GetOldLatestPreV2Checkpoint(int& nHeightCheckpoint)
+    {
+        return GetOldLatestPreV2Checkpoint(nHeightOldPreV2 + 10, nHeightCheckpoint);
+    }
+    Checkpoint GetOldLatestPreV2Checkpoint(int nHeight, int& nHeightCheckpoint)
+    {
+        // nHeight is only to recheck the heights if we'd want to (i.e. whether it matches the latest-pre-V2)
+        nHeightCheckpoint = nHeightOldPreV2;
+        return checkpointOldPreV2;
     }
 }
 

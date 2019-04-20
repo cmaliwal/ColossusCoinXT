@@ -18,7 +18,7 @@ std::map<uint32_t, CBigNum> mapAccumulatorValues;
 std::list<uint256> listAccCheckpointsNoDB;
 
 // ZCV2PARAMS: reindexing support (for V1 => V2 checkpoints generation)
-std::map<int, uint256> mapCheckpointsCache;
+// std::map<int, uint256> mapCheckpointsCache;
 
 uint32_t ParseChecksum(uint256 nChecksum, CoinDenomination denomination)
 {
@@ -86,9 +86,9 @@ bool GetAccumulatorValueFromDB(int nHeight, CoinDenomination denom, CBigNum& bnA
     CBlockIndex* pindex = chainActive[nHeight];
     uint256 nCheckpoint = pindex->nAccumulatorCheckpoint;
 
-    if (mapCheckpointsCache.count(nHeight)) {
-        nCheckpoint = mapCheckpointsCache.at(nHeight);
-    }
+    // if (mapCheckpointsCache.count(nHeight)) {
+    //     nCheckpoint = mapCheckpointsCache.at(nHeight);
+    // }
 
     uint32_t nChecksum = ParseChecksum(nCheckpoint, denom);
     return GetAccumulatorValueFromChecksum(nChecksum, false, bnAccValue);
@@ -205,6 +205,38 @@ bool EraseCheckpoints(int nStartHeight, int nEndHeight)
     return true;
 }
 
+// ZCV2CHECKS: quick fix, we need to somehow recognize last old checkpoint (already written into blocks) and 'match' it
+// to the 'new' (based on the new big-num) last checkpoint (as loaded from json). Once blocks (post-V2) get going we won't
+// need this (but will be needed for anyone syncing from the start).
+uint256 GetFlattenCheckpoint(AccumulatorCheckpoints::Checkpoint checkpoint)
+{
+    uint256 nCheckpoint = 0;
+    for (auto it : checkpoint) {
+        libzerocoin::CoinDenomination denom = it.first;
+        CBigNum bnValue = it.second;
+        uint32_t nCheckSum = GetChecksum(bnValue);
+        nCheckpoint = nCheckpoint << 32 | nCheckSum;
+    }
+    return nCheckpoint;
+    // for (auto& denom : zerocoinDenomList) {
+    //     CBigNum bnValue = mapAccumulators.GetValue(denom);
+    //     uint32_t nCheckSum = GetChecksum(bnValue);
+    //     AddAccumulatorChecksum(nCheckSum, bnValue);
+    //     nCheckpoint = nCheckpoint << 32 | nCheckSum;
+    // }
+    // return nCheckpoint;
+}
+
+// ZCV2CHECKS: quick fix
+bool IsLatestPreV2Checkpoint(uint256 nCheckpoint)
+{
+    int nHeightCheckpoint;
+    AccumulatorCheckpoints::Checkpoint checkpoint = 
+        AccumulatorCheckpoints::GetOldLatestPreV2Checkpoint(nHeightCheckpoint);
+    uint256 nCheckpointLatest = GetFlattenCheckpoint(checkpoint);
+    return nCheckpointLatest == nCheckpoint;
+}
+
 bool InitializeAccumulators(const int nHeight, int& nHeightCheckpoint, AccumulatorMap& mapAccumulators)
 {
     if (nHeight < Params().Zerocoin_StartHeight())
@@ -213,7 +245,7 @@ bool InitializeAccumulators(const int nHeight, int& nHeightCheckpoint, Accumulat
     //On a specific block, a recalculation of the accumulators will be forced
     if (nHeight == Params().Zerocoin_Block_RecalculateAccumulators() && Params().NetworkID() != CBaseChainParams::REGTEST) {
         mapAccumulators.Reset();
-        if (!mapAccumulators.Load(chainActive[Params().Zerocoin_Block_LastGoodCheckpoint()]->nAccumulatorCheckpoint))
+        if (!mapAccumulators.LoadFlat(chainActive[Params().Zerocoin_Block_LastGoodCheckpoint()]->nAccumulatorCheckpoint))
             return error("%s: failed to reset to previous checkpoint when recalculating accumulators", __func__);
 
         // Erase the checkpoints from the period of time that bad mints were being made
@@ -245,14 +277,23 @@ bool InitializeAccumulators(const int nHeight, int& nHeightCheckpoint, Accumulat
     uint256 nCheckpointPrev = chainActive[nHeight - 1]->nAccumulatorCheckpoint;
 
     // ZCV2PARAMS: using cache, temp fix (the cache would normally be empty so it can stay)
-    if (mapCheckpointsCache.count(nHeight - 1)) {
-        nCheckpointPrev = mapCheckpointsCache.at(nHeight - 1);
-    }
+    // if (mapCheckpointsCache.count(nHeight - 1)) {
+    //     nCheckpointPrev = mapCheckpointsCache.at(nHeight - 1);
+    // }
 
     if (nCheckpointPrev == 0)
         mapAccumulators.Reset();
-    else if (!mapAccumulators.Load(nCheckpointPrev))
-        return error("%s: failed to reset to previous checkpoint", __func__);
+    else if (!mapAccumulators.LoadFlat(nCheckpointPrev)) {
+        // ZCV2CHECKS: quick fix
+        if (IsLatestPreV2Checkpoint(nCheckpointPrev)) {
+            auto checkpoint = AccumulatorCheckpoints::GetClosestCheckpoint(nHeight, nHeightCheckpoint);
+            if (nHeightCheckpoint < 0)
+                return error("%s: failed to load/match old hard-checkpoint for block %s", __func__, nHeight);
+            mapAccumulators.Load(checkpoint);
+        } else {
+            return error("%s: failed to reset to previous checkpoint", __func__);
+        }
+    }
 
     nHeightCheckpoint = nHeight;
     return true;
@@ -268,12 +309,12 @@ bool InitializeAccumulators(const int nHeight, int& nHeightCheckpoint, Accumulat
 // }
 bool CacheCheckpoint(int nHeight, uint256& nCheckpoint)
 {
-    if (mapCheckpointsCache.count(nHeight)) {
-        // nCheckpointPrev = mapCheckpointsCache.at(nHeight - 1);
-        return true;
-    }
-    if (nCheckpoint > 0)
-        mapCheckpointsCache.insert(make_pair(nHeight, nCheckpoint));
+    // if (mapCheckpointsCache.count(nHeight)) {
+    //     // nCheckpointPrev = mapCheckpointsCache.at(nHeight - 1);
+    //     return true;
+    // }
+    // if (nCheckpoint > 0)
+    //     mapCheckpointsCache.insert(make_pair(nHeight, nCheckpoint));
     return true;
 }
 

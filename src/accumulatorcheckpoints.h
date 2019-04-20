@@ -16,6 +16,8 @@ namespace AccumulatorCheckpoints
     UniValue read_json(const std::string& jsondata);
     bool LoadCheckpoints(const std::string& strNetwork);
     Checkpoint GetClosestCheckpoint(const int& nHeight, int& nHeightCheckpoint);
+    Checkpoint GetOldLatestPreV2Checkpoint(int& nHeightCheckpoint);
+    Checkpoint GetOldLatestPreV2Checkpoint(int nHeight, int& nHeightCheckpoint);
 }
 
 #endif //PIVX_ACCUMULATORCHECKPOINTS_H

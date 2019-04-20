@@ -38,7 +38,8 @@ void AccumulatorMap::Reset(libzerocoin::ZerocoinParams* params2)
 }
 
 //Load a checkpoint containing 8 32bit checksums of accumulator values.
-bool AccumulatorMap::Load(uint256 nCheckpoint)
+// bool AccumulatorMap::Load(uint256 nCheckpoint)
+bool AccumulatorMap::LoadFlat(uint256 nCheckpoint)
 {
     for (auto& denom : zerocoinDenomList) {
         uint32_t nChecksum = ParseChecksum(nCheckpoint, denom);
