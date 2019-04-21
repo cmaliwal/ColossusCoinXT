@@ -774,12 +774,12 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
                     LogPrintf("BitcoinMiner:\n");
                     LogPrintf("proof-of-work found  \n  hash: %s  \ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
                     
-                    // ZCFIXTODO: this seems to be a leftover? leaving it for now
-                    CValidationState state;
-                    if (!TestBlockValidity(state, *pblock, pindexPrev, false, false)) {
-                        LogPrintf("CreateNewBlock() : TestBlockValidity failed\n");
-                        break;
-                    }
+                    // // ZCFIXTODO: this seems to be a leftover? leaving it for now
+                    // CValidationState state;
+                    // if (!TestBlockValidity(state, *pblock, pindexPrev, false, false)) {
+                    //     LogPrintf("CreateNewBlock() : TestBlockValidity failed\n");
+                    //     break;
+                    // }
 
                     ProcessBlockFound(pblock, *pwallet, reservekey);
                     SetThreadPriority(THREAD_PRIORITY_LOWEST);

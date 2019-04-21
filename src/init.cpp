@@ -1646,6 +1646,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                 // ZCFIXTODO: this (till catch) changed somewhat, height check also 
                 // Force recalculation of accumulators.
                 if (GetBoolArg("-reindexaccumulators", false)) {
+                    // if (true) {
                     if (chainActive.Height() > Params().Zerocoin_Block_V2_Start()) {
                         // ZCV2PARAMS: quick temp fix to reinitialize the db, otherwise things're not working
                         CBlockIndex *pindex = chainActive[Params().Zerocoin_Block_V2_Start()];

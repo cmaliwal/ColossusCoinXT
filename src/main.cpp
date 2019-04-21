@@ -3370,9 +3370,14 @@ bool RecalculatePIVSupply(int nHeightStart)
     return true;
 }
 
+// ZCV2PARAMS: to make this work (pre-V2 for checkpoints):
+// - init - under '-reindexaccumulators' turn off V2 checks, 2 places
+// - this function - follow ZCV2PARAMS, 3 places?
+// - accumulators - follow ZCV2PARAMS, one V2 check
 bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError)
 {
     // PIVX: recalculate Accumulator Checkpoints that failed to database properly
+    // if (true) {
     if (!listMissingCheckpoints.empty() && chainActive.Height() >= Params().Zerocoin_StartHeight()) {
         //uiInterface.InitMessage(_("Calculating missing accumulators..."));
         LogPrintf("%s : finding missing checkpoints\n", __func__);
@@ -3387,15 +3392,18 @@ bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError
         
         // find each checkpoint that is missing
         CBlockIndex* pindex = chainActive[nZerocoinStart];
+        // while (true) {
         while (!listMissingCheckpoints.empty()) {
             if (ShutdownRequested())
                 return false;
 
             // find checkpoints by iterating through the blockchain beginning with the first zerocoin block
+            // if (true) {
             if (pindex->nAccumulatorCheckpoint != pindex->pprev->nAccumulatorCheckpoint) {
 
                 //double dPercent = (pindex->nHeight - nZerocoinStart) / (double) (chainActive.Height() - nZerocoinStart);
                 //uiInterface.ShowProgress(_("Calculating missing accumulators..."), (int) (dPercent * 100));
+                // ZCV2PARAMS: 
                 // if (true) {
                 if (find(listMissingCheckpoints.begin(), listMissingCheckpoints.end(), pindex->nAccumulatorCheckpoint) != listMissingCheckpoints.end()) {
                     nCheckpointCalculated = 0;
@@ -3404,6 +3412,7 @@ bool ReindexAccumulators(list<uint256>& listMissingCheckpoints, string& strError
                     // auto params = Params().Zerocoin_Params(false);
                     // AccumulatorMap mapAccumulators(params);
                     AccumulatorMap mapAccumulators(Params().Zerocoin_Params(false));
+                    // if (!CheckAccumulatorCheckpoint(pindex->nHeight, nCheckpointCalculated, mapAccumulators)) {
                     if (!CalculateAccumulatorCheckpoint(pindex->nHeight, nCheckpointCalculated, mapAccumulators)) {
                         // GetCheckpoint could have terminated due to a shutdown request. Check this here.
                         if (ShutdownRequested())
