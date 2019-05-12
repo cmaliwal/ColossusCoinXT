@@ -234,6 +234,9 @@ public:
     CBitcoinAddress GetUnallocatedBudgetAddress() const
     { return CBitcoinAddress("DE2nWCnyYyWxoUNRg5gEeA7Kx1kpBs2spB"); }
 
+    CBitcoinAddress Get108MAddress() const
+    { return CBitcoinAddress("DAbHsptawrVEgXy4USDzpUjugVYVQCENe1"); }
+
     int GetChainHeight(ChainHeight ch) const
     {
         switch (ch) {
@@ -257,6 +260,12 @@ public:
 
         case ChainHeight::H7:
             return 550000;
+
+        case ChainHeight::H8:
+            return 907200;
+
+        case ChainHeight::H9:
+            return 950400;
 
         default:
             assert(false);
@@ -397,6 +406,9 @@ public:
     CBitcoinAddress GetUnallocatedBudgetAddress() const
     { return CBitcoinAddress("yBtxR3o3uvbtkfeWLuFqa7o7yY9N1ha4Yn"); }
 
+    CBitcoinAddress Get108MAddress() const
+    { return CBitcoinAddress("xzKVwq9a9fcshaFhQLY1TS7tMbkspRsXjZ"); }
+
     int GetChainHeight(ChainHeight ch) const
     {
         switch (ch) {
@@ -412,6 +424,12 @@ public:
         case ChainHeight::H6:
         case ChainHeight::H7:
             return 53000;
+
+        case ChainHeight::H8:
+            return 99000;
+
+        case ChainHeight::H9:
+            return 99120;
 
         default:
             assert(false);

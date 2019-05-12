@@ -15,9 +15,15 @@ CAmount nMoneySupplyPoWEnd = 43199500 * COIN;
 
 BOOST_AUTO_TEST_CASE(block_value)
 {
-    std::vector<int> height = {-1, 0, 1, 2, 151201, 151202, 302400, 302401, 388799, 388800, 500000, 1000000, 10000000};
-    for (int h : height) {
+    std::vector<int> height1 = {-1, 0, 1, 2, 151201, 151202, 302400, 302401, 388799, 388800, 500000};
+    for (int h : height1) {
         BOOST_CHECK(GetBlockValue(h) == GetBlockValueReward(h) + GetBlockValueBudget(h));
+        BOOST_CHECK(GetBlockExpectedMint(h) == GetBlockValueReward(h));
+    }
+
+    std::vector<int> height2 = {1000000, 10000000};
+    for (int h : height2) {
+        BOOST_CHECK(GetBlockValue(h) == GetBlockValueReward(h) + GetBlockValueBudget(h) + GetBlockValueDevFund(h));
         BOOST_CHECK(GetBlockExpectedMint(h) == GetBlockValueReward(h));
     }
 
@@ -32,7 +38,7 @@ BOOST_AUTO_TEST_CASE(block_value)
     BOOST_CHECK(GetBlockValueReward(388799) == CAmount(1000) * COIN * 95 / 100);
     BOOST_CHECK(GetBlockValueReward(388800) == CAmount(1500) * COIN * 90 / 100);
     BOOST_CHECK(GetBlockValueReward(500000) == CAmount(1500) * COIN * 90 / 100);
-    BOOST_CHECK(GetBlockValueReward(1000000) == CAmount(1500) * COIN * 90 / 100);
+    BOOST_CHECK(GetBlockValueReward(1000000) == CAmount(1500) * COIN * 80 / 100);
 
     // dev fund
     BOOST_CHECK(GetBlockValueDevFund(388799) == CAmount(0));
@@ -45,6 +51,7 @@ BOOST_AUTO_TEST_CASE(block_value)
     BOOST_CHECK(budget.GetTotalBudget(302401) == CAmount(1000) * COIN * nBlocksPerMonth * 5 / 100);
     BOOST_CHECK(budget.GetTotalBudget(388799) == CAmount(1000) * COIN * nBlocksPerMonth * 5 / 100);
     BOOST_CHECK(budget.GetTotalBudget(388800) == CAmount(1500) * COIN * nBlocksPerMonth * 10 / 100);
+    BOOST_CHECK(budget.GetTotalDevFund(388800) == CAmount(1500) * COIN * nBlocksPerMonth * 10 / 100);
 
     // masternode reward fixed 60%
     BOOST_CHECK(GetMasternodePayment(388799, 0, 0) == GetBlockValueReward(388799) * 60 / 100);

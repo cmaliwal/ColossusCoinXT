@@ -196,18 +196,34 @@ bool IsBlockValueValid(const CBlock& block, int nHeight, CAmount nExpectedValue,
         (nHeight == 10800 || nHeight == 11040 || nHeight == 11041))
         return true; // these blocks on testnet breaking rules
 
-    if (!masternodeSync.IsSynced() || IsInitialBlockDownload()) {
-        //there is no budget data to use to check anything and there is no old final budget's data
-        //super blocks will always be on these blocks
-        if (nHeight % GetBudgetPaymentCycleBlocks() < Params().GetMaxSuperBlocksPerCycle())
+    if (nHeight > Params().GetChainHeight(ChainHeight::H9)) {
+        if (0 == nHeight % GetBudgetPaymentCycleBlocks())
+            return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight);
+        else
+            return nMinted <= nExpectedValue;
+    }
+    else if (nHeight == Params().GetChainHeight(ChainHeight::H9)) {
+        return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight) + 108000000;
+    }
+    else if (nHeight >= Params().GetChainHeight(ChainHeight::H8)) {
+        if (0 == nHeight % GetBudgetPaymentCycleBlocks())
             return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight);
         else
             return nMinted <= nExpectedValue;
-    } else { // we're synced and have data so check the budget schedule
-        if (budget.IsBudgetPaymentBlock(nHeight))
-            return nMinted <= nExpectedValue + budget.GetBudgetValue(nHeight, pindexPrev);
-        else
-            return nMinted <= nExpectedValue;
+    } else {
+        if (!masternodeSync.IsSynced() || IsInitialBlockDownload()) {
+            //there is no budget data to use to check anything and there is no old final budget's data
+            //super blocks will always be on these blocks
+            if (nHeight % GetBudgetPaymentCycleBlocks() < Params().GetMaxSuperBlocksPerCycle())
+                return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight);
+            else
+                return nMinted <= nExpectedValue;
+        } else { // we're synced and have data so check the budget schedule
+            if (budget.IsBudgetPaymentBlock(nHeight))
+                return nMinted <= nExpectedValue + budget.GetBudgetValue(nHeight, pindexPrev);
+            else
+                return nMinted <= nExpectedValue;
+        }
     }
 }
 
@@ -269,7 +285,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBl
     }
 
     bool fundValid = true;
-    if (nBlockHeight >= Params().GetChainHeight(ChainHeight::H4)) {
+    if (nBlockHeight >= Params().GetChainHeight(ChainHeight::H4) && nBlockHeight < Params().GetChainHeight(ChainHeight::H8)) {
         CAmount nAmount = FindPayment(txNew, Params().GetDevFundAddress().ToString());
         if (0 == nAmount) {
             fundValid = false;
@@ -346,14 +362,16 @@ void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStak
     else
         masternodePayments.FillBlockPayee(txNew, nFees, fProofOfStake, pindexPrev);
 
-    //Append an additional output as the dev fund payment to the official Developer Fund Address
-    const CAmount nDevfundPayment = GetBlockValueDevFund(nTargetHeight);
-    if (nDevfundPayment > 0) {
-        string msg;
-        if (SubtractFromStakeReward(txNew, nStakeOut, nDevfundPayment, msg))
-            txNew.vout.push_back(CTxOut(nDevfundPayment, GetScriptForDestination(Params().GetDevFundAddress().Get())));
-        else
-            error("%s: %s", __func__, msg);
+    if (nTargetHeight < Params().GetChainHeight(ChainHeight::H8)) {
+        //Append an additional output as the dev fund payment to the official Developer Fund Address
+        const CAmount nDevfundPayment = GetBlockValueDevFund(nTargetHeight);
+        if (nDevfundPayment > 0) {
+            string msg;
+            if (SubtractFromStakeReward(txNew, nStakeOut, nDevfundPayment, msg))
+                txNew.vout.push_back(CTxOut(nDevfundPayment, GetScriptForDestination(Params().GetDevFundAddress().Get())));
+            else
+                error("%s: %s", __func__, msg);
+        }
     }
 
     if (nFees > 0) //Append an additional output as the tx fee payment to the official Developer Fund Address

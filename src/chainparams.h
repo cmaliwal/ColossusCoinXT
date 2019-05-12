@@ -39,7 +39,9 @@ enum class ChainHeight
     H4, // 388800, Reward 1500 COLX, see-saw algorithm, new budget params and dev fund payments, only block version >= 4 is valid
     H5, // Zerocoin, only block version >= 5 is valid
     H6, // See-saw disabled, go back to 60% MN / 40% staker
-    H7  // New budget Fee 25'000 COLX
+    H7, // New budget Fee 25'000 COLX
+    H8, // Only block version >= 6 is valid, single super block, dev fund payment is not included in the block reward
+    H9  // Generate 108M COLX, single devfund payment in the super block instead of small piece in the each block
 };
 
 /**
@@ -146,6 +148,7 @@ public:
     virtual CBitcoinAddress GetDevFundAddress() const = 0;
     virtual CBitcoinAddress GetTxFeeAddress() const = 0;
     virtual CBitcoinAddress GetUnallocatedBudgetAddress() const = 0;
+    virtual CBitcoinAddress Get108MAddress() const = 0;
     virtual int GetChainHeight(ChainHeight ch) const = 0;
     virtual int64_t GetMinStakeAge(int nTargetHeight) const = 0;
     virtual const Checkpoints::CCheckpointData& Checkpoints() const = 0;

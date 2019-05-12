@@ -168,7 +168,6 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         CCoinsViewCache view(pcoinsTip);
 
         // Make sure to create the correct block version before zerocoin is enabled
-        // FIXME: remove in the next release (it is for backward compatibility only)
         if (nHeight < Params().Zerocoin_StartHeight())
             pblock->nVersion = CBlockHeader::VERSION4;
 
