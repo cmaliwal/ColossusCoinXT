@@ -596,7 +596,7 @@ bool SelectParamsFromCommandLine()
 uint64_t GetBlockChainSize()
 {
     const uint64_t GB_BYTES = 1000000000LL;
-    return 1LL * GB_BYTES;
+    return 2LL * GB_BYTES;
 }
 
 bool VerifyGenesisBlock(const std::string& datadir, const uint256& genesisHash, std::string& err)
