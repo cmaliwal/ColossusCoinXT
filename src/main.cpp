@@ -5088,10 +5088,10 @@ bool ProcessNewBlock(CValidationState& state, CI2pdNode* pfrom, CBlock* pblock, 
     if (lockMain) {
         TRY_LOCK(mempool.cs, lockMempool);
         if (!lockMempool) {
-            LogPrintf("%s : mempool.cs failed: %s\n", __func__, LocksHeld());
+            LogPrintf("%s : mempool.cs failed: %s\n", __func__, ""); //LocksHeld());
         }
     } else {
-        LogPrintf("%s : cs_main failed: %s\n", __func__, LocksHeld());
+        LogPrintf("%s : cs_main failed: %s\n", __func__, ""); // LocksHeld());
     }
 
     // DLOCKSFIX: TRY_LOCK is safer here, the only piece doing an unconditional lock
