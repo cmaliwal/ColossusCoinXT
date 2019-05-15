@@ -332,29 +332,54 @@ void CAddrMan::Attempt_(const CDestination& addr, int64_t nTime)
     info.nAttempts++;
 }
 
+static CAddrInfo GetRandInfo(std::map<int, CAddrInfo> mapInfo)
+{
+    if (mapInfo.size() == 0)
+        return CAddrInfo();
+    int nPos = GetRandInt(mapInfo.size());
+    int iPos = 0;
+    // for (std::map<int, CAddrInfo>::const_iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
+    for (std::map<int, CAddrInfo>::iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
+        if (iPos == nPos) {
+            CAddrInfo& info = (*it).second;
+            return info;
+        }
+    }
+    CAddrInfo& start = (*mapInfo.begin()).second;
+    return start;
+}
+
 CI2PAddress CAddrMan::Select_()
 {
     if (size() == 0)
         return CI2PAddress();
 
     // I2PDK: it seems that nobody asked this, and below the 'else' goes in everytime? even if empty
-    if (nTried <= 0 && nNew <= 0)
-        return CI2PAddress();
+    if (nTried <= 0 && nNew <= 0) {
+        LogPrintf("addrman: Select: all zeroes? ('%s')\n", "");
+        return CAddrInfo(); // CI2PAddress();
+    }
 
     // I2PDK: there's an issue here, especially when we have little addresses to start w/
     // sort of like the size() == 0 condition above - end result is that this loops for a very
     // long time
-    int64_t nStartTime = GetTimeMillis();
+    // int64_t nStartTime = GetTimeMillis();
 
     // Use a 50% chance for choosing between tried and new table entries.
     if (nTried > 0 && (nNew == 0 || GetRandInt(2) == 0)) {
         // use a tried node
         double fChanceFactor = 1.0;
+        int nLoops = 0;
         while (1) {
+            // I2PERF: this could be what's causing the slow downs, if we're hitting this often and
+            // waiting 200ms each time? just debug it to see what's going on and if still an issue
             // fix for an endless loop here on small amount of addresses
-            int64_t nTime = GetTimeMillis();
-            if (nTime - nStartTime > 200) {
-                return CI2PAddress();
+            // int64_t nTime = GetTimeMillis();
+            // if (nTime - nStartTime > 200) {
+            if (nLoops > 10) {
+                LogPrintf("addrman: Select: looping, taking any value to bail out... ('%s')\n", "");
+                fChanceFactor *= 1.2;
+                return GetRandInfo(mapInfo);
             }
 
             int nKBucket = GetRandInt(ADDRMAN_TRIED_BUCKET_COUNT);
@@ -367,15 +392,22 @@ CI2PAddress CAddrMan::Select_()
             if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
                 return info;
             fChanceFactor *= 1.2;
+            nLoops++;
         }
     } else {
         // use a new node
         double fChanceFactor = 1.0;
+        int nLoops = 0;
         while (1) {
+            // I2PERF: this could be what's causing the slow downs, if we're hitting this often...
             // fix for an endless loop here on small amount of addresses
-            int64_t nTime = GetTimeMillis();
-            if (nTime - nStartTime > 200) {
-                return CI2PAddress();
+            // int64_t nTime = GetTimeMillis();
+            // if (nTime - nStartTime > 200) {
+            if (nLoops > 10) {
+                LogPrintf("addrman: Select: looping, taking any value to bail out... ('%s')\n", "");
+                fChanceFactor *= 1.2;
+                return GetRandInfo(mapInfo);
+                // return CI2PAddress();
             }
 
             int nUBucket = GetRandInt(ADDRMAN_NEW_BUCKET_COUNT);
@@ -388,6 +420,7 @@ CI2PAddress CAddrMan::Select_()
             if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
                 return info;
             fChanceFactor *= 1.2;
+            nLoops++;
         }
     }
 }

@@ -47,7 +47,10 @@ WalletModel::WalletModel(CWallet* wallet, OptionsModel* optionsModel, QObject* p
     // This timer will be fired repeatedly to update the balance
     pollTimer = new QTimer(this);
     connect(pollTimer, SIGNAL(timeout()), this, SLOT(pollBalanceChanged()));
-    pollTimer->start(MODEL_UPDATE_DELAY);
+
+    // I2PERF: the delay is too small (it's slowing down initial blocks sync), temp test to see how this is working
+    pollTimer->start(10000);
+    // pollTimer->start(MODEL_UPDATE_DELAY);
 
     subscribeToCoreSignals();
 }
@@ -134,36 +137,59 @@ void WalletModel::updateStatus()
 
 void WalletModel::pollBalanceChanged()
 {
-    // Get required locks upfront. This avoids the GUI from getting stuck on
-    // periodical polls if the core is holding the locks for a longer time -
-    // for example, during a wallet rescan.
-    TRY_LOCK(cs_main, lockMain);
-    if (!lockMain)
-        return;
+    // I2PERF: scope the lock to min performance impact
+    {
+        // Get required locks upfront. This avoids the GUI from getting stuck on
+        // periodical polls if the core is holding the locks for a longer time -
+        // for example, during a wallet rescan.
+        TRY_LOCK(cs_main, lockMain);
+        if (!lockMain)
+            return;
 
-    // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
-    // mempool.cs <= checkBalanceChanged, getBalance... (every time pretty much), it makes
-    // sense to pull it out in here (and no obvious issues or downsides?)
-    TRY_LOCK(mempool.cs, lockMempool);
-    if (!lockMempool)
-        return;
+        // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
+        // mempool.cs <= checkBalanceChanged, getBalance... (every time pretty much), it makes
+        // sense to pull it out in here (and no obvious issues or downsides?)
+        TRY_LOCK(mempool.cs, lockMempool);
+        if (!lockMempool)
+            return;
 
-    TRY_LOCK(wallet->cs_wallet, lockWallet);
-    if (!lockWallet)
-        return;
+        TRY_LOCK(wallet->cs_wallet, lockWallet);
+        if (!lockWallet)
+            return;
 
-    if (fForceCheckBalanceChanged || chainActive.Height() != cachedNumBlocks || nZeromintPercentage != cachedZeromintPercentage || cachedTxLocks != nCompleteTXLocks) {
+        bool fCheckBalanceChanged = 
+            fForceCheckBalanceChanged || 
+            chainActive.Height() != cachedNumBlocks || 
+            nZeromintPercentage != cachedZeromintPercentage || 
+            cachedTxLocks != nCompleteTXLocks;
+
+        if (!fCheckBalanceChanged) return;
+
         fForceCheckBalanceChanged = false;
 
         // Balance and number of transactions might have changed
         cachedNumBlocks = chainActive.Height();
         cachedZeromintPercentage = nZeromintPercentage;
-
-        checkBalanceChanged();
-        if (transactionTableModel) {
-            transactionTableModel->updateConfirmations();
-        }
     }
+
+    checkBalanceChanged();
+
+    if (transactionTableModel) {
+        transactionTableModel->updateConfirmations();
+    }
+
+    // if (fForceCheckBalanceChanged || chainActive.Height() != cachedNumBlocks || nZeromintPercentage != cachedZeromintPercentage || cachedTxLocks != nCompleteTXLocks) {
+    //     fForceCheckBalanceChanged = false;
+
+    //     // Balance and number of transactions might have changed
+    //     cachedNumBlocks = chainActive.Height();
+    //     cachedZeromintPercentage = nZeromintPercentage;
+
+    //     checkBalanceChanged();
+    //     if (transactionTableModel) {
+    //         transactionTableModel->updateConfirmations();
+    //     }
+    // }
 }
 
 void WalletModel::emitBalanceChanged()
@@ -176,8 +202,9 @@ void WalletModel::emitBalanceChanged()
 
 void WalletModel::checkBalanceChanged()
 {
-    TRY_LOCK(cs_main, lockMain);
-    if (!lockMain) return;
+    // I2PERF: all (and proper 2,3-way locks) are done below, this is locking things too high for no need (see the above calls)
+    // TRY_LOCK(cs_main, lockMain);
+    // if (!lockMain) return;
 
     CAmount newBalance = getBalance();
     CAmount newUnconfirmedBalance = getUnconfirmedBalance();

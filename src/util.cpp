@@ -474,6 +474,7 @@ const boost::filesystem::path& GetDataDir(bool fNetSpecific)
 
     // LOCK(csPathCached);
     // I2PDK: just a test
+    // I2PERF: this could be the issue as well?
     TRY_LOCK(csPathCached, lockPathCached);
     if (!lockPathCached) {
         MilliSleep(50);

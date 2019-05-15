@@ -427,6 +427,7 @@ void CMasternodeMan::DsegUpdate(CI2pdNode* pnode)
     LOCK(cs);
 
     if (Params().NetworkID() == CBaseChainParams::MAIN) {
+        // I2PMERGE:
         if (!(pnode->addr.IsLocal())) { //pnode->addr.IsRFC1918() || 
             std::map<CI2pUrl, int64_t>::iterator it = mWeAskedForMasternodeList.find(pnode->addr);
             if (it != mWeAskedForMasternodeList.end()) {
@@ -811,6 +812,7 @@ void CMasternodeMan::ProcessMessage(CI2pdNode* pfrom, std::string& strCommand, C
 
         if (vin == CTxIn()) { //only should ask for this once
             //local network
+            // I2PMERGE:
             bool isLocal = (pfrom->addr.IsLocal()); // pfrom->addr.IsRFC1918() || 
 
             if (!isLocal && Params().NetworkID() == CBaseChainParams::MAIN) {
@@ -832,7 +834,7 @@ void CMasternodeMan::ProcessMessage(CI2pdNode* pfrom, std::string& strCommand, C
         int nInvCount = 0;
 
         BOOST_FOREACH (CMasternode& mn, vMasternodes) {
-            // TODO: how to have the 'IsLocal' for i2p-s? not sure if possible, not by the address
+            // I2PMERGE: // TODO: how to have the 'IsLocal' for i2p-s? not sure if possible, not by the address
             //if (mn.addr.IsRFC1918()) continue; //local network
 
             if (mn.IsEnabled()) {

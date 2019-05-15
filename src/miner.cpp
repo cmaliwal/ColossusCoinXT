@@ -533,6 +533,7 @@ bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
 
     // Process this block the same as if we had received it from another node
     CValidationState state;
+    LogPrintf("%s : %ld, (%s)\n", __func__, GetTimeMillis(), pblock->GetHash().ToString());
     if (!ProcessNewBlock(state, NULL, pblock))
         return error("COLXMiner : ProcessNewBlock, block not accepted");
 
@@ -572,7 +573,8 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
                 }
 
                 LogPrintf("COLXMiner wait 5 seconds (%u, %d, %d, %d)\n", vNodes.size(), pwallet->IsLocked(), fMintableCoins, masternodeSync.IsBlockchainSynced());
-                MilliSleep(5000);
+                MilliSleep(50);
+                // MilliSleep(5000);
             }
 
             //search our map of hashed blocks, see if bestblock has been hashed yet
@@ -612,6 +614,7 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
 
             LogPrintf("CPUMiner : proof-of-stake block was signed %s \n", pblock->GetHash().ToString().c_str());
             SetThreadPriority(THREAD_PRIORITY_NORMAL);
+            LogPrintf("%s (1): %ld, (%s)\n", __func__, GetTimeMillis(), pblock->GetHash().ToString());
             ProcessBlockFound(pblock, *pwallet, reservekey);
             SetThreadPriority(THREAD_PRIORITY_LOWEST);
 
@@ -642,6 +645,7 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
                         LogPrintf("CreateNewBlock() : TestBlockValidity failed\n");
                         break;
                     }
+                    LogPrintf("%s (2): %ld, (%s)\n", __func__, GetTimeMillis(), pblock->GetHash().ToString());
                     ProcessBlockFound(pblock, *pwallet, reservekey);
                     SetThreadPriority(THREAD_PRIORITY_LOWEST);
 

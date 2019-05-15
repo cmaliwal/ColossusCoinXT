@@ -1017,6 +1017,7 @@ void ThreadTunnelHandler()
                 if (pnode->GetRefCount() <= 0) {
                     bool fDelete = false;
                     {
+                        // order of locks is wrong (should be rcv, send), but this can't lock us out (all tries + one line) 
                         TRY_LOCK(pnode->cs_vSend, lockSend);
                         if (lockSend) {
                             TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
@@ -1065,12 +1066,12 @@ void ThreadTunnelHandler()
         // this isn't good enough as vNodes are not locked the entire time, so index could theoretically change?
         // FD_SETSIZE >> nMaxConnections
 
-        BOOST_FOREACH (const ListenTunnel& hListenTunnel, vhListenTunnel) {
-            // I2PDK: not sure what to do w this
-            //FD_SET(hListenTunnel.tunnel, &fdsetRecv);
-            //hSocketMax = max(hSocketMax, hListenTunnel.tunnel);
-            //have_fds = true;
-        }
+        // BOOST_FOREACH (const ListenTunnel& hListenTunnel, vhListenTunnel) {
+        //     // I2PDK: not sure what to do w this
+        //     //FD_SET(hListenTunnel.tunnel, &fdsetRecv);
+        //     //hSocketMax = max(hSocketMax, hListenTunnel.tunnel);
+        //     //have_fds = true;
+        // }
 
         {
             LOCK(cs_vNodes);
@@ -1098,6 +1099,9 @@ void ThreadTunnelHandler()
                 // * We send some data.
                 // * We wait for data to be received (and disconnect after timeout).
                 // * We process a message in the buffer (message handler thread).
+
+                // I2PERF:
+                MilliSleep(5);
 
                 // I2PDK: not sure how to emulate this, FD_SET will specify preference of send over receive (as per the
                 // above comments). Probably best is to store fdset equivalents (flags) within a vector on the stack
@@ -1149,13 +1153,13 @@ void ThreadTunnelHandler()
         //
         // Accept new connections
         //
-        BOOST_FOREACH (const ListenTunnel& hListenTunnel, vhListenTunnel) {
-            // I2PDK: if it has something to receive, new streams waiting to connect...
-            // this is now done in the HandleServerStreamAccepted, a callback called from the tunnel when something happens.
-            // i.e. there is no need for this any more - unless there're issues (thread wise if it isn't delegated),
-            // in which case we'd want to mark the tunnel (tunnel entry in vhListenTunnel) and do it here, also may
-            // be better for performance (I'm not sure if that was the reason doing it this way or was just due to the nature of the sockets.
-        }
+        // BOOST_FOREACH (const ListenTunnel& hListenTunnel, vhListenTunnel) {
+        //     // I2PDK: if it has something to receive, new streams waiting to connect...
+        //     // this is now done in the HandleServerStreamAccepted, a callback called from the tunnel when something happens.
+        //     // i.e. there is no need for this any more - unless there're issues (thread wise if it isn't delegated),
+        //     // in which case we'd want to mark the tunnel (tunnel entry in vhListenTunnel) and do it here, also may
+        //     // be better for performance (I'm not sure if that was the reason doing it this way or was just due to the nature of the sockets.
+        // }
 
         // increment ref count before doing things, i.e. we're processing it (and to be release when all is done at the end here)
         // Service each socket
@@ -1171,6 +1175,11 @@ void ThreadTunnelHandler()
         BOOST_FOREACH (CI2pdNode* pnode, vNodesCopy) {
             boost::this_thread::interruption_point();
 
+            // I2PDK: not sure about this or how much? due to the random looping forever issue
+            // I2PERF:
+            MilliSleep(50);
+            // MilliSleep(200);
+            
             //
             // Receive
             //
@@ -1546,7 +1555,9 @@ void ThreadOpenConnections()
                 break;
 
             // I2PDK: not sure about this or how much? due to the random looping forever issue
-            MilliSleep(50);
+            // I2PERF:
+            // MilliSleep(50);
+            MilliSleep(250);
 
             // if we selected an invalid address, restart
             if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
@@ -1709,9 +1720,21 @@ void ThreadMessageHandler()
 
         bool fSleep = true;
 
+        int64_t nStartTime = GetTimeMillis();
+        LogPrintf("%s : loop start %ld msecs \n", __func__, GetTimeMillis());
+
         BOOST_FOREACH (CI2pdNode* pnode, vNodesCopy) {
             if (pnode->fDisconnect)
                 continue;
+
+            std::string identity = pnode->addr.ToString();
+            if (pnode->fInbound)
+                identity = pnode->_connection->GetRemoteIdentity();
+
+            int64_t nNodeStartTime = GetTimeMillis();
+            LogPrintf("%s : node loop  %ld msecs (%s)\n", __func__, nNodeStartTime - nStartTime, identity);
+            // I2PERF:
+            // MilliSleep(100);
 
             // Receive messages
             {
@@ -1730,6 +1753,10 @@ void ThreadMessageHandler()
                     }
                 }
             }
+
+            int64_t nProcessMessages = GetTimeMillis();
+            LogPrintf("%s : ProcessMessages  %ld msecs (%s)\n", __func__, nProcessMessages - nNodeStartTime, identity);
+
             boost::this_thread::interruption_point();
 
             // Send messages
@@ -1740,7 +1767,11 @@ void ThreadMessageHandler()
                 // SendMessages acquires cs_main right after the call, just in wrong order
                 // (cs_main should go first, cs_vSend is always called from inside
                 TRY_LOCK(cs_main, lockMain);
+                // I2PERF: this is probably wrong the way it is, we have full blown messagging underneath this which could
+                // be quite heavy (and might in turn trigger receiving and so on), it was slim before w/ direct sockets
+                
                 if (lockMain) {
+                    LogPrintf("%s : SendMessages cs_main locked: %s\n", __func__, "");
                     // DLOCKSFIX: order of locks: cs_main, mempool.cs, ...
                     // I'm reluctantly doing this but almost always mempool goes along
                     TRY_LOCK(mempool.cs, lockMempool);
@@ -1751,16 +1782,32 @@ void ThreadMessageHandler()
                             TRY_LOCK(cs_vNodes, lockNodes);
                             if (lockNodes) {
                                 g_signals.AddressRefreshBroadcast();
+
+                                int64_t nBroadcast = GetTimeMillis();
+                                LogPrintf("%s : Broadcast  %ld msecs (%s)\n", __func__, nBroadcast - nProcessMessages, identity);
+                                nProcessMessages = nBroadcast;
                             }
                         }
-                        TRY_LOCK(pnode->cs_vSend, lockSend);
-                        if (lockSend) {
+                        // I2PERF: this isn't needed? cs_vSend should be the last called (after cs_vNodes or cs_vRecvMsg).
+                        // There's a good chance that cs_vNodes is required underneath SendMessages so either we lock it all here
+                        // or let cs_vSend for later
+                        // TRY_LOCK(pnode->cs_vSend, lockSend);
+                        // if (lockSend) 
+                        {
                             g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
+
+                            int64_t nSendMessages = GetTimeMillis();
+                            LogPrintf("%s : SendMessages  %ld msecs (%s)\n", __func__, nSendMessages - nProcessMessages, identity);
+                            nProcessMessages = nSendMessages;
                         }
                     }
                 }
             }
+
             boost::this_thread::interruption_point();
+
+            int64_t nNodeEndLoop = GetTimeMillis();
+            LogPrintf("%s : node loop end  %ld msecs (%s)\n", __func__, nNodeEndLoop - nProcessMessages, identity);
         }
 
 
@@ -1770,6 +1817,7 @@ void ThreadMessageHandler()
                 pnode->Release();
         }
 
+        // MilliSleep(200);
         if (fSleep)
             messageHandlerCondition.timed_wait(lock, boost::posix_time::microsec_clock::universal_time() + boost::posix_time::milliseconds(100));
     }
@@ -2581,6 +2629,9 @@ void CI2pdNode::HandleClientReceived(const uint8_t * buf, size_t len, ContinueTo
     _receivedBufferSize = len;
 
     _hasPushedMessages = true;
+
+    // I2PERF:
+    // MilliSleep(50);
 
     // _messageReceived = message;
 }

@@ -223,6 +223,7 @@ public:
      *   except for:
      *      fFileBacked (immutable after instantiation)
      *      strWalletFile (immutable after instantiation)
+     *      setLockedCoins has individual cs
      */
     mutable CCriticalSection cs_wallet;
 
@@ -348,8 +349,6 @@ public:
     std::map<CTxDestination, CAddressBookData> mapAddressBook;
 
     CPubKey vchDefaultKey;
-
-    std::set<COutPoint> setLockedCoins;
 
     int64_t nTimeFirstKey;
 
@@ -651,6 +650,10 @@ public:
 
     /** zCOLX reset */
     boost::signals2::signal<void()> NotifyzPIVReset;
+
+private:
+    std::set<COutPoint> setLockedCoins;
+    mutable CCriticalSection csLockedCoins;
 };
 
 

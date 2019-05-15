@@ -10,7 +10,7 @@
 /**
  * network protocol versioning
  */
-static const int PROTOCOL_VERSION = 70910;
+static const int PROTOCOL_VERSION = 70911;
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 209;
@@ -28,5 +28,8 @@ static const int CADDR_TIME_VERSION = 31402;
 
 //! BIP 0031, pong message, is enabled for all versions AFTER this one
 static const int BIP0031_VERSION = 60000;
+
+//! "sendheaders" command and announcing blocks with headers starts with this version
+static const int SENDHEADERS_VERSION = 70911;
 
 #endif // BITCOIN_VERSION_H

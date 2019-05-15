@@ -436,7 +436,8 @@ bool CMasternodeBroadcast::Create(CTxIn txin, CDestination service, CKey keyColl
         return false;
     }
 
-    mnbRet = CMasternodeBroadcast(service, txin, pubKeyCollateralAddressNew, pubKeyMasternodeNew, PROTOCOL_VERSION);
+    CMasternode* pmn = mnodeman.Find(txin);
+    mnbRet = CMasternodeBroadcast(service, txin, pubKeyCollateralAddressNew, pubKeyMasternodeNew, pmn ? pmn->protocolVersion : PROTOCOL_VERSION);
 
     if (!mnbRet.IsValidNetAddr()) {
         strErrorRet = strprintf("Invalid IP address %s, masternode=%s", mnbRet.addr.ToStringIP (), txin.prevout.hash.ToString());
@@ -639,10 +640,11 @@ bool CMasternodeBroadcast::CheckInputsAndAdd(int& nDoS)
     mnodeman.Add(mn);
 
     // if it matches our Masternode privkey, then we've been remotely activated
-    if (pubKeyMasternode == activeMasternode.pubKeyMasternode && protocolVersion == PROTOCOL_VERSION) {
+    if (pubKeyMasternode == activeMasternode.pubKeyMasternode && protocolVersion >= ActiveProtocol()) {
         activeMasternode.EnableHotColdMasterNode(vin, addr);
     }
 
+    // I2PMERGE: IsRFC1918 no longer exists ini2p?
     bool isLocal = addr.IsLocal(); // addr.IsRFC1918() || 
     if (Params().NetworkID() == CBaseChainParams::REGTEST) isLocal = false;
 

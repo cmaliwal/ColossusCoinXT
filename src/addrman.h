@@ -522,7 +522,9 @@ public:
     {
         while (true) {
             TRY_LOCK(cs, lockcs);
+            // I2PERF: this could be what's causing the slow downs, if we're hitting this often...
             if (!lockcs) {
+                LogPrintf("addrman: Attempt: try lock failed, looping? ('%ld')\n", nTime);
                 MilliSleep(50);
                 continue;
             }

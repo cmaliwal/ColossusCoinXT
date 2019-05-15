@@ -24,13 +24,11 @@ ColossusXT is an open source, peer-to-peer, energy-saving, community driven, dec
 
 https://bitcointalk.org/index.php?topic=2141880.0
 
-### Roadmap 2018: ![Roadmap 2018](https://i.imgur.com/geB6rVu.jpg) 
+### Roadmap 2019: ![Roadmap 2019](https://pbs.twimg.com/media/D01J-TnXcAABc23.jpg:large) 
 
 ### Blockchain Explorer:
 
 https://chainz.cryptoid.info/colx/#
-
-http://www.presstab.pw/phpexplorer/COLX/index.php
 
 ### Social media information: 
 
@@ -40,7 +38,7 @@ Facebook: https://www.facebook.com/Colossuscoin/
 
 Reddit: https://www.reddit.com/r/ColossuscoinX/
 
-Discord Community: https://discord.gg/pRbDzPd
+Discord Community: https://discord.colossusxt.io
 
 Telegram Community: https://t.me/colossuscoin
 

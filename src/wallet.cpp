@@ -1506,6 +1506,7 @@ bool CWalletTx::InMempool() const
 void CWalletTx::RelayWalletTransaction(std::string strCommand)
 {
     if (!IsCoinBase()) {
+        // AssertLockHeld(cs_main); // GetDepthInMainChain
         if (GetDepthInMainChain() == 0) {
             uint256 hash = GetHash();
             LogPrintf("Relaying wtx %s\n", hash.ToString());
@@ -1551,6 +1552,8 @@ void CWallet::ResendWalletTransactions()
     // Rebroadcast any of our txes that aren't in a block yet
     LogPrintf("ResendWalletTransactions()\n");
     {
+        // AssertLockHeld(cs_main); // RelayWalletTransaction => GetDepthInMainChain
+
         //LOCK(cs_wallet);
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs <= RelayWalletTransaction/GetDepthInMainChain and at each iteration, 
@@ -1617,7 +1620,9 @@ CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // LOCK3(cs_main, mempool.cs, cs_wallet);
+        // I2PERF: REVIEW!!: locks are too laxed here, I don't see a need for more than cs_main?
+        LOCK(cs_main);
 
         // Get Unused coins
         list<CZerocoinMint> listPubCoin = CWalletDB(strWalletFile).ListMintedCoins(true, fMatureOnly, true);
@@ -1660,7 +1665,10 @@ CAmount CWallet::GetUnconfirmedZerocoinBalance() const
     }
 
     {
-        LOCK2(cs_main, cs_wallet);
+        // LOCK2(cs_main, cs_wallet);
+        // I2PERF: REVIEW!!: locks are too laxed here, I don't see a need for more than cs_main?
+        LOCK(cs_main);
+
         for (auto& mint : listMints){
             if (!mint.GetHeight() || mint.GetHeight() > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) {
                 libzerocoin::CoinDenomination denom = mint.GetDenomination();
@@ -3862,25 +3870,25 @@ bool CWallet::UpdatedTransaction(const uint256& hashTx)
 
 void CWallet::LockCoin(COutPoint& output)
 {
-    AssertLockHeld(cs_wallet); // setLockedCoins
+    LOCK(csLockedCoins); // setLockedCoins
     setLockedCoins.insert(output);
 }
 
 void CWallet::UnlockCoin(COutPoint& output)
 {
-    AssertLockHeld(cs_wallet); // setLockedCoins
+    LOCK(csLockedCoins); // setLockedCoins
     setLockedCoins.erase(output);
 }
 
 void CWallet::UnlockAllCoins()
 {
-    AssertLockHeld(cs_wallet); // setLockedCoins
+    LOCK(csLockedCoins); // setLockedCoins
     setLockedCoins.clear();
 }
 
 bool CWallet::IsLockedCoin(uint256 hash, unsigned int n) const
 {
-    AssertLockHeld(cs_wallet); // setLockedCoins
+    LOCK(csLockedCoins); // setLockedCoins
     COutPoint outpt(hash, n);
 
     return (setLockedCoins.count(outpt) > 0);
@@ -3888,7 +3896,7 @@ bool CWallet::IsLockedCoin(uint256 hash, unsigned int n) const
 
 void CWallet::ListLockedCoins(std::vector<COutPoint>& vOutpts)
 {
-    AssertLockHeld(cs_wallet); // setLockedCoins
+    LOCK(csLockedCoins); // setLockedCoins
     for (std::set<COutPoint>::iterator it = setLockedCoins.begin();
          it != setLockedCoins.end(); it++) {
         COutPoint outpt = (*it);
@@ -4089,6 +4097,7 @@ void CWallet::AutoZeromint()
         return;
     }
 
+    // LogPrintf("AutoZeromint: GetZerocoinBalance (%ld)...\n", chainActive.Tip()->nHeight);
     CAmount nZerocoinBalance = GetZerocoinBalance(false); //false includes both pending and mature zerocoins. Need total balance for this so nothing is overminted.
     CAmount nBalance = GetUnlockedCoins(); // We only consider unlocked coins, this also excludes masternode-vins
                                            // from being accidentally minted

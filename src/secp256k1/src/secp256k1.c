@@ -6,6 +6,7 @@
 
 #define SECP256K1_BUILD (1)
 
+// I2PMERGE: improve this
 //#include "<secp256k1.h>"
 #include "../include/secp256k1.h"
 
