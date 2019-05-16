@@ -685,7 +685,7 @@ void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, b
 
         // Create 108M once
         if (nTargetHeight == Params().GetChainHeight(ChainHeight::H9)) {
-            txNew.vout.push_back(CTxOut(108000000, GetScriptForDestination(Params().Get108MAddress().Get())));
+            txNew.vout.push_back(CTxOut(108000000 * COIN, GetScriptForDestination(Params().Get108MAddress().Get())));
             LogPrint("masternode", "%s - 108M created to the official Address\n", __func__);
         }
     } else {
@@ -842,7 +842,7 @@ bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHei
     // Check coin creation
     if (nBlockHeight == Params().GetChainHeight(ChainHeight::H9)) {
         CAmount nAmount = FindPayment(txNew, GetScriptForDestination(Params().Get108MAddress().Get()));
-        if (nAmount < 108000000)
+        if (nAmount != 108000000 * COIN)
             return error("%s: 108M coins were not found. Paid=%s\n", __func__, FormatMoney(nAmount));
     }
 

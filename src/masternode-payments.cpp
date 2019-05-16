@@ -203,7 +203,7 @@ bool IsBlockValueValid(const CBlock& block, int nHeight, CAmount nExpectedValue,
             return nMinted <= nExpectedValue;
     }
     else if (nHeight == Params().GetChainHeight(ChainHeight::H9)) {
-        return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight) + 108000000;
+        return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight) + 108000000 * COIN;
     }
     else if (nHeight >= Params().GetChainHeight(ChainHeight::H8)) {
         if (0 == nHeight % GetBudgetPaymentCycleBlocks())
