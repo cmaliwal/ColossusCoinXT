@@ -894,11 +894,15 @@ void TunnelSendData(CI2pdNode* pnode)
         }
 
         std::string identity = pnode->addr.ToString();
-        if (pnode->fInbound)
+        if (pnode->fInbound && (pnode->_connection != nullptr))
             identity = pnode->_connection->GetRemoteIdentity();
 
         LogPrintf("net: tunnel sending some data... %s\n", identity);
 
+        if (pnode->_connection == nullptr) {
+            LogPrintf("net: tunnel's connection is null? what should we do?... %s\n", identity);
+            return;
+        }
         if(!pnode->_connection->IsStreamAlive()){
             LogPrintf("net: tunnel's connection is killed, stream is null? what should we do?... %s\n", identity);
             return;
@@ -1728,7 +1732,7 @@ void ThreadMessageHandler()
                 continue;
 
             std::string identity = pnode->addr.ToString();
-            if (pnode->fInbound)
+            if (pnode->fInbound && (pnode->_connection != nullptr))
                 identity = pnode->_connection->GetRemoteIdentity();
 
             int64_t nNodeStartTime = GetTimeMillis();
@@ -2668,7 +2672,10 @@ void CI2pdNode::HandleServerReceived(const uint8_t * buf, size_t len, ContinueTo
     // std::string message((const char*)buf, len);
     std::string message((const char*)buf, std::min((int)len, 30));
     
-    LogPrintf("HandleServerReceived: message received...'%s' (%d), from '%s' \n", message, len, _connection->GetRemoteIdentity());
+    if (_connection != nullptr)
+        LogPrintf("HandleServerReceived: message received...'%s' (%d), from '%s' \n", message, len, _connection->GetRemoteIdentity());
+    else 
+        LogPrintf("HandleServerReceived: message received...'%s' (%d), from 'null?' \n", message, len);
     // LogPrintf("HandleServerReceived: message received...'%s' (%d) \n", _connection->GetRemoteIdentity(), len);
 
     LOCK(cs_messageReceived);
@@ -2697,6 +2704,10 @@ size_t CI2pdNode::PopMessageReceived(std::unique_ptr<uint8_t[]>& buffer)
     size_t len = 0;
     bool hasPushedMessages;
 
+    if (_connection == nullptr) {
+        LogPrintf("PopMessageReceived: _connection is null? not sure what to do, we should abort... \n");
+    }
+
     {
         LOCK(cs_messageReceived);
 
@@ -2723,7 +2734,7 @@ size_t CI2pdNode::PopMessageReceived(std::unique_ptr<uint8_t[]>& buffer)
     }
 
     // signal the tunnel/connection to continue receiving (as it stops automatically once we receive something)
-    if (hasPushedMessages)
+    if (hasPushedMessages && (_connection != nullptr))
         _connection->HandleWriteAsync(boost::system::error_code());
 
     if (len > 0) {

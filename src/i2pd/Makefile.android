@@ -71,18 +71,19 @@ endif
 ifeq ($(USE_AESNI),yes)
 #check if AES-NI is supported by CPU
 ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
+	CXXFLAGS += -DARM64AES
 	# check whether build is ARM related, not the machine that it compiles on
 	# ifeq ($(IS_ARM_BUILD),yes)
 	# 	CXXFLAGS += -DARM64AES
 	# else
 	# 	CPU_FLAGS += -maes
 	# endif
-	machine := $(shell uname -m)
-	ifeq ($(machine), aarch64)
-		CXXFLAGS += -DARM64AES
-	else
-		CPU_FLAGS += -maes
-	endif
+	#machine := $(shell uname -m)
+	#ifeq ($(machine), aarch64)
+	#	CXXFLAGS += -DARM64AES
+	#else
+	#	CPU_FLAGS += -maes
+	#endif
 endif
 endif
 
@@ -92,6 +93,6 @@ ifneq ($(shell $(GREP) -c avx /proc/cpuinfo),0)
 	#ifneq ($(IS_ARM_BUILD),yes)
 	#	CPU_FLAGS += -mavx
 	#endif
-	CPU_FLAGS += -mavx
+	#CPU_FLAGS += -mavx
 endif
 endif
