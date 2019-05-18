@@ -7114,7 +7114,7 @@ bool ProcessMessages(CI2pdNode* pfrom)
 
     int64_t nStartTime = GetTimeMillis();
     int iMsg = 0;
-    LogPrintf("%s : start: %ld, (%d)\n", __func__, GetTimeMillis(), pfrom->vRecvMsg.size());
+    // LogPrintf("%s : start: %ld, (%d)\n", __func__, GetTimeMillis(), pfrom->vRecvMsg.size());
 
     std::deque<CNetMessage>::iterator it = pfrom->vRecvMsg.begin();
     while (!pfrom->fDisconnect && it != pfrom->vRecvMsg.end()) {
@@ -7198,7 +7198,7 @@ bool ProcessMessages(CI2pdNode* pfrom)
         break;
     }
 
-    LogPrintf("%s : end: %ld, (%d)\n", __func__, GetTimeMillis() - nStartTime, pfrom->vRecvMsg.size());
+    // LogPrintf("%s : end: %ld, (%d)\n", __func__, GetTimeMillis() - nStartTime, pfrom->vRecvMsg.size());
 
     // In case the connection got shut down, its receive buffer was wiped
     if (!pfrom->fDisconnect)

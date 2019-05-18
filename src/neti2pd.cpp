@@ -1725,7 +1725,7 @@ void ThreadMessageHandler()
         bool fSleep = true;
 
         int64_t nStartTime = GetTimeMillis();
-        LogPrintf("%s : loop start %ld msecs \n", __func__, GetTimeMillis());
+        // LogPrintf("%s : loop start %ld msecs \n", __func__, GetTimeMillis());
 
         BOOST_FOREACH (CI2pdNode* pnode, vNodesCopy) {
             if (pnode->fDisconnect)
@@ -1736,7 +1736,7 @@ void ThreadMessageHandler()
                 identity = pnode->_connection->GetRemoteIdentity();
 
             int64_t nNodeStartTime = GetTimeMillis();
-            LogPrintf("%s : node loop  %ld msecs (%s)\n", __func__, nNodeStartTime - nStartTime, identity);
+            // LogPrintf("%s : node loop  %ld msecs (%s)\n", __func__, nNodeStartTime - nStartTime, identity);
             // I2PERF:
             // MilliSleep(100);
 
@@ -1759,7 +1759,7 @@ void ThreadMessageHandler()
             }
 
             int64_t nProcessMessages = GetTimeMillis();
-            LogPrintf("%s : ProcessMessages  %ld msecs (%s)\n", __func__, nProcessMessages - nNodeStartTime, identity);
+            // LogPrintf("%s : ProcessMessages  %ld msecs (%s)\n", __func__, nProcessMessages - nNodeStartTime, identity);
 
             boost::this_thread::interruption_point();
 
@@ -1775,7 +1775,7 @@ void ThreadMessageHandler()
                 // be quite heavy (and might in turn trigger receiving and so on), it was slim before w/ direct sockets
                 
                 if (lockMain) {
-                    LogPrintf("%s : SendMessages cs_main locked: %s\n", __func__, "");
+                    // LogPrintf("%s : SendMessages cs_main locked: %s\n", __func__, "");
                     // DLOCKSFIX: order of locks: cs_main, mempool.cs, ...
                     // I'm reluctantly doing this but almost always mempool goes along
                     TRY_LOCK(mempool.cs, lockMempool);
@@ -1788,7 +1788,7 @@ void ThreadMessageHandler()
                                 g_signals.AddressRefreshBroadcast();
 
                                 int64_t nBroadcast = GetTimeMillis();
-                                LogPrintf("%s : Broadcast  %ld msecs (%s)\n", __func__, nBroadcast - nProcessMessages, identity);
+                                // LogPrintf("%s: Broadcast  %ld msecs (%s)\n", __func__, nBroadcast - nProcessMessages, identity);
                                 nProcessMessages = nBroadcast;
                             }
                         }
@@ -1801,7 +1801,7 @@ void ThreadMessageHandler()
                             g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
 
                             int64_t nSendMessages = GetTimeMillis();
-                            LogPrintf("%s : SendMessages  %ld msecs (%s)\n", __func__, nSendMessages - nProcessMessages, identity);
+                            //LogPrintf("%s: SendMessages %ld msecs (%s)\n", __func__, nSendMessages - nProcessMessages, identity);
                             nProcessMessages = nSendMessages;
                         }
                     }
@@ -1811,7 +1811,7 @@ void ThreadMessageHandler()
             boost::this_thread::interruption_point();
 
             int64_t nNodeEndLoop = GetTimeMillis();
-            LogPrintf("%s : node loop end  %ld msecs (%s)\n", __func__, nNodeEndLoop - nProcessMessages, identity);
+            // LogPrintf("%s : node loop end  %ld msecs (%s)\n", __func__, nNodeEndLoop - nProcessMessages, identity);
         }
 
 
@@ -2671,11 +2671,12 @@ void CI2pdNode::HandleServerReceived(const uint8_t * buf, size_t len, ContinueTo
 {
     // std::string message((const char*)buf, len);
     std::string message((const char*)buf, std::min((int)len, 30));
-    
-    if (_connection != nullptr)
-        LogPrintf("HandleServerReceived: message received...'%s' (%d), from '%s' \n", message, len, _connection->GetRemoteIdentity());
-    else 
-        LogPrintf("HandleServerReceived: message received...'%s' (%d), from 'null?' \n", message, len);
+
+    // I2PERF: connection is often out of scope here and deleted? comment for now.    
+    // if (_connection != nullptr && _connection->IsStreamAlive())
+    //     LogPrintf("HandleServerReceived: message received...'%s' (%d), from '%s' \n", message, len, _connection->GetRemoteIdentity());
+    // else 
+    LogPrintf("HandleServerReceived: message received...'%s' (%d), from 'null?' \n", message, len);
     // LogPrintf("HandleServerReceived: message received...'%s' (%d) \n", _connection->GetRemoteIdentity(), len);
 
     LOCK(cs_messageReceived);
