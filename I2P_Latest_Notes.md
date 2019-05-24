@@ -37,6 +37,20 @@ Make sure my-keys.dat and destinations folder are removed. Start the app briefly
 - client.ColossusXT.tar.gz, server.ColossusXT.tar.gz - use these files to quickly setup data dir-s, basically use them as templates for either 'client' (non-MN) or 'server' (MN) setup. Read through the ColossusXT.conf as it contains necessary notes.
 - snapshot_052419.tar.gz - only as a temp measure and if you really wish to get going fast and know what you're doing - (and may cause problems difficult to track down). I don't wish to encourage this, but just use it as a template, and add your wallet.dat/masternode.conf to the testnet4, nothing else (no other files, so 4 subdirs and wallet.dat, possibly masternode.conf, that's all). Start and it should start from the very recent block. But keep in mind this isn't ideal. You should ideally start from scratch, just wallet.dat (or no wallet), and let it sync from the start, that results in a more stable structure, less surprises. 
 
+# Nodes
+```
+addnode=h722acegogbffjgwd52bydcycifugd5lmvdnsk7rtuk2vjpge5ea.b32.i2p:6667
+addnode=ker57lgh3hl5jqfflpwuuhmopqe54f3x23hggd2prwovfo3byw3q.b32.i2p:6667
+addnode=xqt6q6kten5nkzdo6ojxs5sbthtp7wjlnewid2l3iit55venn5pq.b32.i2p:6667
+addnode=otpnrrgoueyirvtg6jn5hrs6qny4v5kqv2xvy4d3uqrv7d6y6zxa.b32.i2p:6667
+addnode=o5nwexnmfj73nun24unqod72njlst4bz5fz6x6wkcpdp3qqrfn4q.b32.i2p:6667
+addnode=jeipu2cxzqphi6q7fvzhzyjn2ndk5h7gxnxsa6gfccrmliqlcn5q.b32.i2p:6667
+addnode=275ucmvmcp7lspeprvijbhnjlw74sihces5ayuxjmb7r7gxdncoq.b32.i2p:6667
+addnode=esg42kihxfcwdi7xyygrf7kwylndw6li24adgw777yhfpxgs5jra.b32.i2p:6667
+addnode=vflaa3ywbqpapcxaik2dowa57wb2nuqza7nrc3ch5wa7ck5qtyha.b32.i2p:6667
+addnode=uwfo2s5ve2dkovci2dsy4axmfehka32jhe6xayjhhpvcrjkhwchq.b32.i2p:6667
+addnode=pguwb5pqjpyi57eknlwulumf4hf4xozupxrtl4bc23mwifywngsa.b32.i2p:6667
+```
 
 # I2P Relevant Files, Dirs (in order of importance) - Testnet
 
