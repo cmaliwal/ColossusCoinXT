@@ -247,8 +247,16 @@ int64_t CreateNewLock(CTransaction tx)
 
         CTransactionLock newLock;
         newLock.nBlockHeight = nBlockHeight;
+        // I2PTESTNET:
         newLock.nExpiration = GetTime() + (60 * 60); //locks expire after 60 minutes (24 confirmations)
         newLock.nTimeout = GetTime() + (60 * 5);
+
+        // I2PTESTNETFIX:
+        if (Params().NetworkID() == CBaseChainParams::TESTNET && Params().IsBlockchainLateSynced()) {
+            newLock.nExpiration = GetTime() + Params().GetBlockchainSyncedSeconds();
+            // newLock.nTimeout = GetTime() + (60 * 5);
+        }
+
         newLock.txHash = tx.GetHash();
         mapTxLocks.insert(make_pair(tx.GetHash(), newLock));
     } else {
@@ -334,8 +342,16 @@ bool ProcessConsensusVote(CI2pdNode* pnode, CConsensusVote& ctx)
 
         CTransactionLock newLock;
         newLock.nBlockHeight = 0;
+        // I2PTESTNET:
         newLock.nExpiration = GetTime() + (60 * 60);
         newLock.nTimeout = GetTime() + (60 * 5);
+
+        // I2PTESTNETFIX:
+        if (Params().NetworkID() == CBaseChainParams::TESTNET && Params().IsBlockchainLateSynced()) {
+            newLock.nExpiration = GetTime() + Params().GetBlockchainSyncedSeconds();
+            // newLock.nTimeout = GetTime() + (60 * 5);
+        }
+
         newLock.txHash = ctx.txHash;
         mapTxLocks.insert(make_pair(ctx.txHash, newLock));
     } else

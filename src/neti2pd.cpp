@@ -490,7 +490,8 @@ CI2pdNode* ConnectNode(CI2PAddress addrConnect, const char* pszDest, bool obfuSc
         auto clientConnectionCreatedCallback2 = std::bind(&CI2pdNode::HandleClientConnectionCreated, pnode, _1);
         tunnel->SetConnectionCreatedCallback(clientConnectionCreatedCallback);
         tunnel->SetConnectedCallback(std::bind(&CI2pdNode::HandleClientConnected, pnode, _1));
-        tunnel->SetReceivedCallback(std::bind(&CI2pdNode::HandleClientReceived, pnode, _1, _2, _3));
+        tunnel->SetReceivedCallback(std::bind(&CI2pdNode::HandleClientReceived, pnode, _1, _2)); //, _3));
+        tunnel->SetTimedOutCallback(std::bind(&CI2pdNode::HandleClientTimedOut, pnode, _1));
 
         // this moved from ConnectNode here so we can have callbacks hooked to node properly
         auto clientEndpoint = tunnel->GetLocalEndpoint();
@@ -510,12 +511,35 @@ CI2pdNode* ConnectNode(CI2PAddress addrConnect, const char* pszDest, bool obfuSc
     return NULL;
 }
 
+bool CloseTunnelSafe(CI2pdNode* pnode, std::shared_ptr<I2PService> tunnel, bool isServer)
+{
+    // this is a bug I think, we shouldn't close server tunnels from within the node, as there's only one tunnel (on Bind)
+    if (isServer) {
+        // should we mark something here or something?
+        LogPrintf("net: CloseTunnelSafe: server tunnel just detached (%d)\n", pnode->id);
+        return true;
+    }
+    CloseTunnel(tunnel, isServer);
+}
+
 void CI2pdNode::CloseTunnelDisconnect()
 {
     fDisconnect = true;
+
+    // do we need to do anything else? just release our ptr and it should free up (stop transmitting)
+    if (_connection != nullptr && !_connection->IsTerminated()) { // && _connection->IsStreamAlive()) {
+        std::string identity = addr.ToString();
+        if (fInbound)
+            identity = _connection->GetRemoteIdentity();
+        LogPrintf("net: disconnecting connection= %s \n", identity);
+        _connection->SetToTerminate();
+        _connection.reset();
+    }
+
     if (i2pTunnel != nullptr) { //INVALID_SOCKET) {
         LogPrintf("net: disconnecting peer=%d\n", id);
-        CloseTunnel(i2pTunnel, fInbound);
+        CloseTunnelSafe(this, i2pTunnel, fInbound);
+        // CloseTunnel(i2pTunnel, fInbound);
     }
 
     // in case this fails, we'll empty the recv buffer when the CI2pdNode is deleted
@@ -1857,7 +1881,8 @@ void static HandleServerStreamAccepted(
     std::string identity,
     ServerConnectionCreatedCallback& connectionCreatedCallback,
     ServerClientConnectedCallback& connectedCallback,
-    ReceivedCallback& receivedCallback, 
+    ReceivedCallback& receivedCallback,
+    ConnectionTimedOutCallback& timedOutCallback, 
     const CDestination& addrBind, 
     bool fWhitelisted) //, const ListenTunnel& hListenTunnel)
 {
@@ -1884,13 +1909,17 @@ void static HandleServerStreamAccepted(
 
     if (nInbound >= nMaxConnections - MAX_OUTBOUND_CONNECTIONS) {
         LogPrintf("net: connection from %s dropped (full)\n", addrBind.ToString());
-        CloseTunnel(tunnel);
+        // don't close the server tunnel, there can be only one
+        // CloseTunnelSafe(this, i2pTunnel, fInbound);
+        // CloseTunnel(tunnel);
         return;
     }
 
     if (CI2pdNode::IsBanned(addrBind) && !whitelisted) {
         LogPrintf("net: connection from %s dropped (banned)\n", addrBind.ToString());
-        CloseTunnel(tunnel);
+        // don't close the server tunnel, there can be only one
+        // CloseTunnelSafe(this, i2pTunnel, fInbound);
+        // CloseTunnel(tunnel);
         return;
     }
 
@@ -1916,7 +1945,8 @@ void static HandleServerStreamAccepted(
 
     connectionCreatedCallback = std::bind(&CI2pdNode::HandleServerConnectionCreated, pnode, _1, _2);
     connectedCallback = std::bind(&CI2pdNode::HandleServerClientConnected, pnode, _1, _2);
-    receivedCallback = std::bind(&CI2pdNode::HandleServerReceived, pnode, _1, _2, _3);
+    receivedCallback = std::bind(&CI2pdNode::HandleServerReceived, pnode, _1, _2); //, _3);
+    timedOutCallback = std::bind(&CI2pdNode::HandleServerClientTimedOut, pnode, _1);
 
     // now that we have a node register callbacks (bound to the node itself)
     // should this be before or after the vNodes.push?
@@ -2031,7 +2061,7 @@ bool BindListenPort(const CDestination& addrBind, string& strError, bool fWhitel
     // is opened - i.e. we have one server node per each client.
     // ServerStreamAcceptedCallback acceptedCallback = std::bind(HandleServerStreamAccepted, _1, addrBind, fWhitelisted);
     ServerStreamAcceptedCallback acceptedCallback = 
-        std::bind(HandleServerStreamAccepted, _1, _2, _3, _4, _5, addrBind, fWhitelisted);
+        std::bind(HandleServerStreamAccepted, _1, _2, _3, _4, _5, _6, addrBind, fWhitelisted);
     if (ConnectServerTunnel(addrBind, tunnel, nConnectTimeout, acceptedCallback)) { //std::bind(HandleServerStreamAccepted, _1, addrBind, fWhitelisted))) {
         vhListenTunnel.push_back(ListenTunnel(tunnel, fWhitelisted));
 
@@ -2260,6 +2290,9 @@ bool StopNode()
         fAddressesInitialized = false;
     }
 
+    // cleanup the server tunnel?
+    // CExplicitNetCleanup::callCleanup();
+
     return true;
 }
 
@@ -2272,8 +2305,12 @@ public:
     {
         // Close tunnels
         BOOST_FOREACH (CI2pdNode* pnode, vNodes)
-            if (pnode->i2pTunnel != nullptr) //INVALID_SOCKET)
-                CloseTunnel(pnode->i2pTunnel, pnode->fInbound);
+            if (pnode->i2pTunnel != nullptr) { //INVALID_SOCKET) 
+                // pnode->CloseTunnelDisconnect();
+                CloseTunnelSafe(pnode, pnode->i2pTunnel, pnode->fInbound);
+                // CloseTunnel(pnode->i2pTunnel, pnode->fInbound);
+            }
+        // this is the only place to close server tunnel(s)
         BOOST_FOREACH (ListenTunnel& hListenTunnel, vhListenTunnel)
             if (hListenTunnel.tunnel != nullptr) // INVALID_SOCKET)
                 if (!CloseTunnel(hListenTunnel.tunnel))
@@ -2591,7 +2628,8 @@ CI2pdNode::CI2pdNode(std::shared_ptr<I2PService> tunnelIn, CI2PAddress addrIn, s
 
 CI2pdNode::~CI2pdNode()
 {
-    CloseTunnel(i2pTunnel, fInbound);
+    CloseTunnelSafe(this, i2pTunnel, fInbound);
+    // CloseTunnel(i2pTunnel, fInbound);
 
     if (pfilter)
         delete pfilter;
@@ -2611,17 +2649,28 @@ void CI2pdNode::HandleClientConnected(std::shared_ptr<i2p::client::I2PPureTunnel
 }
 
 // void CI2pdNode::HandleClientReceived(std::string message, ContinueToReceiveCallback continueToReceiveCallback)
-void CI2pdNode::HandleClientReceived(const uint8_t * buf, size_t len, ContinueToReceiveCallback continueToReceiveCallback)
+void CI2pdNode::HandleClientReceived(const uint8_t * buf, size_t len) //, ContinueToReceiveCallback continueToReceiveCallback)
 {
     // std::string message((const char*)buf, len);
     std::string message((const char*)buf, std::min((int)len, 30));
     LogPrintf("HandleClientReceived: message received...'%s' (%d) \n", message, len);
 
+    if (fDisconnect || _connection == nullptr || _connection->IsTerminated() || !_connection->IsAlive()) {
+        fDisconnect = true;
+        return;
+    }
+
+    if (fDisconnect || _connection == nullptr)
+    {
+        LogPrintf("HandleClientReceived: node's been deleted? exiting \n");
+        return;
+    }
+
     LOCK(cs_messageReceived);
 
     // if (_hasPushedMessages || !_messageReceived.empty()) {
     if (_hasPushedMessages || _receivedBufferSize > 0) {
-        LogPrintf("net: HandleServerReceived: this shouldn't have happened! old message is not processed and we have a new one coming in?  (%s)\n", addr.ToString());
+        LogPrintf("net: HandleClientReceived: this shouldn't have happened! old message is not processed and we have a new one coming in?  (%s)\n", addr.ToString());
         // try and do a fast message processing here if possible? we're outside the processing thread so it's not easy
     }
 
@@ -2638,6 +2687,47 @@ void CI2pdNode::HandleClientReceived(const uint8_t * buf, size_t len, ContinueTo
     // MilliSleep(50);
 
     // _messageReceived = message;
+}
+
+void CI2pdNode::HandleClientTimedOut(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)
+{
+    fDisconnect = true;
+    LogPrintf("HandleClientTimedOut: destroying on timeout at all times...\n");
+    if (connection != nullptr) {
+        LogPrintf("HandleClientTimedOut: connection that just timed out...'%s' \n", connection->GetRemoteIdentity());
+    }
+    return;
+
+    // if (fDisconnect || connection == nullptr) {
+    //     fDisconnect = true;
+    //     LogPrintf("HandleServerClientTimedOut: already destroyed?...\n");
+    //     // LogPrintf("HandleServerClientTimedOut: already destroyed?...'%s' - %ld \n", connection->GetRemoteIdentity());
+    //     // LogPrintf("HandleServerClientTimedOut: big time out...'%s' - %ld \n", 
+    //     //     connection->GetRemoteIdentity(), GetTimeMillis() - connection->TimedOutTime());
+    // }
+
+    // std::string identity = addr.ToString();
+    // auto activeConnection = _connection;
+    // if (connection != nullptr) {
+    //     // if (_connection == nullptr)
+    //     activeConnection = connection;
+    //     if (_connection == nullptr || _connection != connection) {
+    //         LogPrintf("HandleClientTimedOut: connections out of sync?...'%s' \n", identity);
+    //     }
+    // }
+
+    // LogPrintf("HandleClientTimedOut: connection timed out...'%s' - %ld \n", 
+    //     identity, activeConnection->TimedOutTime());
+
+    // if (GetTimeMillis() - activeConnection->TimedOutTime() > 30 * 60 * 1000) {
+    //     fDisconnect = true;
+    //     LogPrintf("HandleClientTimedOut: big time out...'%s' - %ld \n", 
+    //         identity, GetTimeMillis() - activeConnection->TimedOutTime());
+    // }
+
+    // if (activeConnection == nullptr || activeConnection->HasTimedOut() || !activeConnection->IsStreamAlive() ) {
+    //     // fDisconnect = true;
+    // }
 }
 
 void CI2pdNode::HandleServerConnectionCreated(std::shared_ptr<I2PPureServerTunnel> tunnel, std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)
@@ -2666,17 +2756,62 @@ void CI2pdNode::HandleServerClientConnected(std::shared_ptr<I2PPureServerTunnel>
     LogPrintf("HandleServerClientConnected: connected...'%s' \n", connection->GetRemoteIdentity());
 }
 
-// void CI2pdNode::HandleServerReceived(std::string message, ContinueToReceiveCallback continueToReceiveCallback)
-void CI2pdNode::HandleServerReceived(const uint8_t * buf, size_t len, ContinueToReceiveCallback continueToReceiveCallback)
+void CI2pdNode::HandleServerClientTimedOut(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)
 {
+    fDisconnect = true;
+    LogPrintf("HandleServerClientTimedOut: destroying on timeout at all times...\n");
+    if (connection != nullptr) {
+        LogPrintf("HandleServerClientTimedOut: connection that just timed out...'%s' \n", connection->GetRemoteIdentity());
+    }
+    return;
+
+    // if (fDisconnect || connection == nullptr) {
+    //     fDisconnect = true;
+    //     LogPrintf("HandleServerClientTimedOut: already destroyed?...\n");
+    //     // LogPrintf("HandleServerClientTimedOut: already destroyed?...'%s' - %ld \n", connection->GetRemoteIdentity());
+    // }
+    // std::shared_ptr<i2p::client::I2PPureTunnelConnection> activeConnection = nullptr;
+    // // auto activeConnection = _connection;
+    // if (connection != nullptr) {
+    //     // if (_connection == nullptr)
+    //     activeConnection = connection;
+    //     if (_connection == nullptr || _connection != connection) {
+    //         LogPrintf("HandleServerClientTimedOut: connections out of sync?...'%s' \n", connection->GetRemoteIdentity());
+    //     }
+    // }
+    // else
+    //     activeConnection = _connection;
+
+    // LogPrintf("HandleServerClientTimedOut: connection timed out...'%s' - %ld \n", 
+    //     activeConnection->GetRemoteIdentity(), activeConnection->TimedOutTime());
+
+    // if (GetTimeMillis() - activeConnection->TimedOutTime() >= 10 * 60 * 1000) {
+    //     fDisconnect = true;
+    //     LogPrintf("HandleServerClientTimedOut: big time out...'%s' - %ld \n", 
+    //         activeConnection->GetRemoteIdentity(), GetTimeMillis() - activeConnection->TimedOutTime());
+    // }
+
+    // if (activeConnection == nullptr || activeConnection->HasTimedOut() || !activeConnection->IsStreamAlive() ) {
+    //     // fDisconnect = true;
+    // }
+}
+
+// void CI2pdNode::HandleServerReceived(std::string message, ContinueToReceiveCallback continueToReceiveCallback)
+void CI2pdNode::HandleServerReceived(const uint8_t * buf, size_t len) //, ContinueToReceiveCallback continueToReceiveCallback)
+{
+    if (_connection == nullptr || _connection->IsTerminated() || _connection->HasTimedOut() || !_connection->IsStreamAlive() ) {
+        fDisconnect = true;
+        return;
+    }
+
     // std::string message((const char*)buf, len);
     std::string message((const char*)buf, std::min((int)len, 30));
 
     // I2PERF: connection is often out of scope here and deleted? comment for now.    
-    // if (_connection != nullptr && _connection->IsStreamAlive())
-    //     LogPrintf("HandleServerReceived: message received...'%s' (%d), from '%s' \n", message, len, _connection->GetRemoteIdentity());
-    // else 
-    LogPrintf("HandleServerReceived: message received...'%s' (%d), from 'null?' \n", message, len);
+    if (_connection != nullptr && _connection->IsStreamAlive())
+        LogPrintf("HandleServerReceived: message received...'%s' (%d), from '%s' \n", message, len, _connection->GetRemoteIdentity());
+    else 
+        LogPrintf("HandleServerReceived: message received...'%s' (%d) \n", message, len);
     // LogPrintf("HandleServerReceived: message received...'%s' (%d) \n", _connection->GetRemoteIdentity(), len);
 
     LOCK(cs_messageReceived);
@@ -2705,10 +2840,6 @@ size_t CI2pdNode::PopMessageReceived(std::unique_ptr<uint8_t[]>& buffer)
     size_t len = 0;
     bool hasPushedMessages;
 
-    if (_connection == nullptr) {
-        LogPrintf("PopMessageReceived: _connection is null? not sure what to do, we should abort... \n");
-    }
-
     {
         LOCK(cs_messageReceived);
 
@@ -2732,6 +2863,10 @@ size_t CI2pdNode::PopMessageReceived(std::unique_ptr<uint8_t[]>& buffer)
         // message = hasPushedMessages ? _messageReceived : message;
         // _hasPushedMessages = false;
         // _messageReceived = std::string();
+    }
+
+    if (hasPushedMessages && _connection == nullptr) {
+        LogPrintf("PopMessageReceived: _connection is null? not sure what to do, we should abort... \n");
     }
 
     // signal the tunnel/connection to continue receiving (as it stops automatically once we receive something)

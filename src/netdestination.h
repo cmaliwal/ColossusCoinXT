@@ -69,7 +69,8 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(FLATDATA(url));
+        READWRITE(LIMITED_STRING(url, 1024));
+        // READWRITE(FLATDATA(url));
     }
 
     friend class CI2pSubNet;

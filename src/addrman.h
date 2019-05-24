@@ -243,6 +243,8 @@ protected:
     //! Mark an entry as currently-connected-to.
     void Connected_(const CDestination& addr, int64_t nTime);
 
+    CAddrInfo GetRandInfo();
+
 public:
     /**
      * serialized format:

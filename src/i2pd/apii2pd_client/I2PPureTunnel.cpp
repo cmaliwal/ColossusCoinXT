@@ -6,6 +6,7 @@
 #include "Destination.h"
 #include "ClientContext.h"
 #include "I2PPureTunnel.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -28,36 +29,48 @@ namespace i2p
             I2PServiceHandler(owner), 
             //m_Socket(socket), 
             //m_RemoteEndpoint(socket->remote_endpoint()),
-            m_IsQuiet(true)
+            m_IsQuiet(true),
+            _hasTimedOut(false),
+            _timedOutTime(0)
         {
             m_Stream = GetOwner()->GetLocalDestination()->CreateStream(leaseSet, port);
         }
 
         I2PPureTunnelConnection::I2PPureTunnelConnection(
-            I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-            ReceivedCallback receivedCallback) : // ClientConnectedCallback connectedCallback, 
+            I2PService * owner, 
+            std::shared_ptr<i2p::stream::Stream> stream,
+            ReceivedCallback receivedCallback,
+            ConnectionTimedOutCallback timedOutCallback) : // ClientConnectedCallback connectedCallback, 
             I2PServiceHandler(owner), 
             //m_Socket(socket), 
             m_Stream(stream),
             //_connectedCallback(connectedCallback),
             _receivedCallback(receivedCallback),
+            _timedOutCallback(timedOutCallback),
             //m_RemoteEndpoint(socket->remote_endpoint()), 
-            m_IsQuiet(true)
+            m_IsQuiet(true),
+            _hasTimedOut(false),
+            _timedOutTime(0)
         {
         }
 
         I2PPureTunnelConnection::I2PPureTunnelConnection(
-            I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+            I2PService * owner, 
+            std::shared_ptr<i2p::stream::Stream> stream,
             //std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
             const boost::asio::ip::tcp::endpoint& target, 
             ReceivedCallback receivedCallback,
+            ConnectionTimedOutCallback timedOutCallback,
             bool quiet) :
             I2PServiceHandler(owner), 
             //m_Socket(socket), 
             m_Stream(stream),
             _receivedCallback(receivedCallback),
+            _timedOutCallback(timedOutCallback),
             //m_RemoteEndpoint(target), 
-            m_IsQuiet(quiet)
+            m_IsQuiet(quiet),
+            _hasTimedOut(false),
+            _timedOutTime(0)
         {
         }
 
@@ -287,8 +300,24 @@ namespace i2p
                     LogPrint(eLogError, "I2PPureTunnelConnection: stream read error: ", ecode.message());
                     if (bytes_transferred > 0)
                         Write(m_StreamBuffer, bytes_transferred); // postpone termination
-                    else if (ecode == boost::asio::error::timed_out && m_Stream && m_Stream->IsOpen())
-                        StreamReceive();
+                    else if (ecode == boost::asio::error::timed_out && m_Stream && m_Stream->IsOpen()) {
+                        if (!_hasTimedOut)
+                            _timedOutTime = i2p::util::time::GetTimeMillis();
+                        _hasTimedOut = true;
+
+                        if (_shouldTerminate) {
+                            LogPrint(eLogError, "I2PPureTunnelConnection.HandleStreamReceive: node terminated... ");
+                            Terminate();
+                            return;
+                        }
+                        if (_timedOutCallback) {
+                            _timedOutCallback(shared_from_this());
+                            // LogPrint(eLogError, "I2PPureTunnelConnection: error: no received callback specified... ");
+                        }
+                        // don't keep timed out connections, just terminate & the node above will do the same (_timedOutCallback)
+                        Terminate();
+                        // StreamReceive();
+                    }
                     else
                         Terminate();
                 } else
@@ -307,13 +336,23 @@ namespace i2p
                 LogPrint(eLogDebug, "I2PPureTunnelConnection.Write: Address ", m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32(), " - received from stream...: ", message);
             }
 
+            if (_shouldTerminate) {
+                LogPrint(eLogError, "I2PPureTunnelConnection.Write: node terminated, terminating connection as well... ");
+                Terminate();
+                return;
+            }
             if (!_receivedCallback) {
-                LogPrint(eLogError, "I2PPureTunnelConnection: error: no received callback specified... ", "");
+                LogPrint(eLogError, "I2PPureTunnelConnection: error: no received callback specified... ");
                 Terminate();
                 return;
             }
 
-            _receivedCallback(buf, len, nullptr);
+            _receivedCallback(buf, len); //, nullptr);
+
+            if (_hasTimedOut) {
+                _reactivated = true;
+                _reactivatedTime = i2p::util::time::GetTimeMillis();
+            }
 
             // TODO: we might want to add a callback to call back in here again (and continue the loop), when the received is processed
             // Note: this is the old way, we've now reorganized, we call from the Node when node has read the message and is ready
@@ -432,10 +471,11 @@ namespace i2p
 
                 auto connectionCreatedCallback = clientTunnel->GetConnectionCreatedCallback();
                 auto receivedCallback = clientTunnel->GetReceivedCallback();
+                auto timedOutCallback = clientTunnel->GetTimedOutCallback();
                 //auto connectedCallback = clientTunnel->GetConnectedCallback();
 
                 auto connection = std::make_shared<I2PPureTunnelConnection>(
-                    GetOwner(), stream, receivedCallback); // , connectedCallback
+                    GetOwner(), stream, receivedCallback, timedOutCallback); // , connectedCallback
                 //auto connection = std::make_shared<I2PPureTunnelConnection>(GetOwner(), m_Socket, stream);
                 GetOwner()->AddHandler(connection);
 
@@ -702,6 +742,7 @@ namespace i2p
                 ServerConnectionCreatedCallback connectionCreatedCallback;
                 ServerClientConnectedCallback connectedCallback;
                 ReceivedCallback receivedCallback;
+                ConnectionTimedOutCallback timedOutCallback;
 
                 // put this before Connect, prepare others to receive in case a stream gets connected right away.
                 // Since we're a server now, we should be ready before and we probably won't be sending anything before
@@ -712,7 +753,8 @@ namespace i2p
                         remoteIdentity,
                         connectionCreatedCallback,
                         connectedCallback,
-                        receivedCallback);
+                        receivedCallback,
+                        timedOutCallback);
 
                 // // now the other callbacks should be ready, as we're linking those to the node (set on accept above)
                 // auto connectionCreatedCallback = serverTunnel->GetConnectionCreatedCallback();
@@ -720,7 +762,7 @@ namespace i2p
                 // auto receivedCallback = serverTunnel->GetReceivedCallback();
 
                 // new connection, we only need received inside
-                auto conn = CreateI2PConnection(stream, receivedCallback);
+                auto conn = CreateI2PConnection(stream, receivedCallback, timedOutCallback);
                 AddHandler(conn);
                 // TODO: we should add some callback when the handler is removed - as that happens regularly for connection,
                 // connection gets terminated from inside and we're neve notified seems.
@@ -746,11 +788,14 @@ namespace i2p
             }
         }
 
-        std::shared_ptr<I2PPureTunnelConnection> I2PPureServerTunnel::CreateI2PConnection(std::shared_ptr<i2p::stream::Stream> stream, ReceivedCallback receivedCallback)
+        std::shared_ptr<I2PPureTunnelConnection> I2PPureServerTunnel::CreateI2PConnection(
+            std::shared_ptr<i2p::stream::Stream> stream, 
+            ReceivedCallback receivedCallback,
+            ConnectionTimedOutCallback timedOutCallback)
         {
             // return std::make_shared<I2PPureTunnelConnection>(this, stream, GetEndpoint(), receivedCallback, false);
             // turn quiet on as it was producing errors (turned in code as well)
-            return std::make_shared<I2PPureTunnelConnection>(this, stream, GetEndpoint(), receivedCallback); //, false);
+            return std::make_shared<I2PPureTunnelConnection>(this, stream, GetEndpoint(), receivedCallback, timedOutCallback); //, false);
         }
 
 

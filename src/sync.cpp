@@ -34,13 +34,13 @@ void PrintLockContention(const char* pszName, const char* pszFile, int nLine)
 //
 
 struct CLockLocation {
-    CLockLocation(const char* pszName, const char* pszFile, int nLine, bool fOwn = false)
+    CLockLocation(const char* pszName, const char* pszFile, int nLine) //, bool fOwn = false)
     {
         mutexName = pszName;
         sourceFile = pszFile;
         sourceLine = nLine;
         nStartTime = GetTimeMillis();
-        fIsOwnedAlready = fOwn;
+        // fIsOwnedAlready = fOwn;
     }
 
     std::string ToString() const
@@ -51,16 +51,16 @@ struct CLockLocation {
     std::string MutexName() const { return mutexName; }
     std::string FileName() const { return sourceFile; }
     int64_t GetStartTime() const { return nStartTime; }
-    int64_t GetLockTime() const { return nLockTime; }
-    void SetLockTime() { nLockTime = GetTimeMillis(); }
-    bool IsOwned() const { return fIsOwnedAlready; }
+    // int64_t GetLockTime() const { return nLockTime; }
+    // void SetLockTime() { nLockTime = GetTimeMillis(); }
+    // bool IsOwned() const { return fIsOwnedAlready; }
 private:
     std::string mutexName;
     std::string sourceFile;
     int sourceLine;
     int64_t nStartTime;
-    int64_t nLockTime;
-    bool fIsOwnedAlready;
+    // int64_t nLockTime;
+    // bool fIsOwnedAlready;
 };
 
 typedef std::vector<std::pair<void*, CLockLocation> > LockStack;
@@ -92,7 +92,7 @@ static void potential_deadlock_detected(const std::pair<void*, void*>& mismatch,
     }
 }
 
-static void push_lock(void* c, const CLockLocation& locklocation, bool fTry, bool skipLogging = false, bool fOwn = false)
+static void push_lock(void* c, const CLockLocation& locklocation, bool fTry) //, bool skipLogging = false, bool fOwn = false)
 {
     if (lockstack.get() == NULL)
         lockstack.reset(new LockStack);
@@ -166,12 +166,12 @@ static void pop_lock()
     dd_mutex.unlock();
 }
 
-void EnterCritical(const char* pszName, const char* pszFile, int nLine, void* cs, bool fTry, bool fOwn)
+void EnterCritical(const char* pszName, const char* pszFile, int nLine, void* cs, bool fTry) //, bool fOwn)
 {
-    std::string file = pszFile;
-    bool skipLogging = file == "util.cpp";
-    //LogPrintf("EnterCritical: %s, %s:%d\n", pszName, pszFile, nLine);
-    push_lock(cs, CLockLocation(pszName, pszFile, nLine, fOwn), fTry, skipLogging, fOwn);
+    // std::string file = pszFile;
+    // bool skipLogging = file == "util.cpp";
+    // //LogPrintf("EnterCritical: %s, %s:%d\n", pszName, pszFile, nLine);
+    push_lock(cs, CLockLocation(pszName, pszFile, nLine), fTry); //, skipLogging, fOwn);
 }
 
 void LeaveCritical()

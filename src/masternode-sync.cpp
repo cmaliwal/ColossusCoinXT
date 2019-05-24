@@ -34,8 +34,16 @@ bool CMasternodeSync::IsBlockchainSynced()
     static bool fBlockchainSynced = false;
     static int64_t lastProcess = GetTime();
 
+    int _syncIntervalSeconds = 60 * 60;
+    
+    // I2PTESTNETFIX:
+    if (Params().NetworkID() == CBaseChainParams::TESTNET && Params().IsBlockchainLateSynced())
+        _syncIntervalSeconds = Params().GetBlockchainSyncedSeconds();
+
+    // I2PTESTNET:
     // if the last call to this function was more than 60 minutes ago (client was in sleep mode) reset the sync process
-    if (GetTime() - lastProcess > 60 * 60) {
+    if (GetTime() - lastProcess > _syncIntervalSeconds) {
+    // if (GetTime() - lastProcess > 60 * 60) {
         Reset();
         fBlockchainSynced = false;
     }
@@ -51,7 +59,9 @@ bool CMasternodeSync::IsBlockchainSynced()
     CBlockIndex* pindex = chainActive.Tip();
     if (pindex == NULL) return false;
 
-    if (pindex->nTime + 60 * 60 < GetTime())
+    // I2PTESTNET:
+    if (pindex->nTime + _syncIntervalSeconds < GetTime())
+    // if (pindex->nTime + 60 * 60 < GetTime())
         return false;
 
     fBlockchainSynced = true;

@@ -131,6 +131,11 @@ namespace util
 		int GetMTU (const boost::asio::ip::address& localAddress);
 		const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6=false);
 	}
+
+	namespace time
+	{
+		int64_t GetTimeMillis();
+	}
 }
 }
 

@@ -255,6 +255,7 @@ bool CAddrMan::Add_(const CI2PAddress& addr, const CI2pUrl& source, int64_t nTim
     CAddrInfo* pinfo = Find(addr, &nId);
 
     if (pinfo) {
+        // I2PTESTNET: ?
         // periodically update nTime
         bool fCurrentlyOnline = (GetAdjustedTime() - addr.nTime < 24 * 60 * 60);
         int64_t nUpdateInterval = (fCurrentlyOnline ? 60 * 60 : 24 * 60 * 60);
@@ -332,7 +333,7 @@ void CAddrMan::Attempt_(const CDestination& addr, int64_t nTime)
     info.nAttempts++;
 }
 
-static CAddrInfo GetRandInfo(std::map<int, CAddrInfo> mapInfo)
+CAddrInfo CAddrMan::GetRandInfo() //std::map<int, CAddrInfo> mapInfo)
 {
     if (mapInfo.size() == 0)
         return CAddrInfo();
@@ -340,7 +341,7 @@ static CAddrInfo GetRandInfo(std::map<int, CAddrInfo> mapInfo)
     int iPos = 0;
     // for (std::map<int, CAddrInfo>::const_iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
     for (std::map<int, CAddrInfo>::iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
-        if (iPos == nPos) {
+        if (iPos >= nPos) {
             CAddrInfo& info = (*it).second;
             return info;
         }
@@ -379,7 +380,7 @@ CI2PAddress CAddrMan::Select_()
             if (nLoops > 10) {
                 LogPrintf("addrman: Select: looping, taking any value to bail out... ('%s')\n", "");
                 fChanceFactor *= 1.2;
-                return GetRandInfo(mapInfo);
+                return GetRandInfo(); //mapInfo);
             }
 
             int nKBucket = GetRandInt(ADDRMAN_TRIED_BUCKET_COUNT);
@@ -406,7 +407,7 @@ CI2PAddress CAddrMan::Select_()
             if (nLoops > 10) {
                 LogPrintf("addrman: Select: looping, taking any value to bail out... ('%s')\n", "");
                 fChanceFactor *= 1.2;
-                return GetRandInfo(mapInfo);
+                return GetRandInfo(); //mapInfo);
                 // return CI2PAddress();
             }
 

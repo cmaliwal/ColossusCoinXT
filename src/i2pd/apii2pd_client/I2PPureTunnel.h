@@ -36,7 +36,8 @@ namespace i2p
         typedef std::function<void(std::shared_ptr<I2PPureTunnelConnection> connection)> ClientConnectedCallback;
         typedef std::function<void(const boost::system::error_code& ecode)> ContinueToReceiveCallback;
         // typedef std::function<void(std::string, ContinueToReceiveCallback)> ReceivedCallback;
-        typedef std::function<void(const uint8_t * buf, size_t len, ContinueToReceiveCallback)> ReceivedCallback;
+        // typedef std::function<void(const uint8_t * buf, size_t len, ContinueToReceiveCallback)> ReceivedCallback;
+        typedef std::function<void(const uint8_t * buf, size_t len)> ReceivedCallback;
         typedef std::function<void(const char* msg, size_t len)> SendCallback;
         typedef std::function<void()> ReadyToSendCallback;
         typedef std::function<void(const boost::system::error_code& ecode)> ErrorSendCallback;
@@ -50,25 +51,40 @@ namespace i2p
             std::shared_ptr<I2PPureServerTunnel> tunnel, 
             std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)> ServerClientConnectedCallback;
 
+        typedef std::function<void(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)> 
+            ConnectionTimedOutCallback;
+
         // this is really the same callback signature as the ClientConnected, but let's separate if needed
         typedef std::function<void(
             std::shared_ptr<I2PPureServerTunnel> tunnel, 
             std::string identity,
             ServerConnectionCreatedCallback& connectionCreatedCallback,
             ServerClientConnectedCallback& connectedCallback,
-            ReceivedCallback& receivedCallback)> ServerStreamAcceptedCallback;
+            ReceivedCallback& receivedCallback,
+            ConnectionTimedOutCallback& timedOutCallback)> ServerStreamAcceptedCallback;
 
         class I2PPureTunnelConnection : public I2PServiceHandler, public std::enable_shared_from_this<I2PPureTunnelConnection>
         {
         public:
             //ClientConnectedCallback _connectedCallback;
             ReceivedCallback _receivedCallback;
+            ConnectionTimedOutCallback _timedOutCallback;
 
         public:
             // std::shared_ptr<boost::asio::ip::tcp::socket> socket,
             I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
-            I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream, ReceivedCallback receivedCallback); // to I2P using simplified API
-            I2PPureTunnelConnection(I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream, const boost::asio::ip::tcp::endpoint& target, ReceivedCallback receivedCallback, bool quiet = true); // from I2P
+            I2PPureTunnelConnection(
+                I2PService * owner, 
+                std::shared_ptr<i2p::stream::Stream> stream, 
+                ReceivedCallback receivedCallback,
+                ConnectionTimedOutCallback timedOutCallback); // to I2P using simplified API
+            I2PPureTunnelConnection(
+                I2PService * owner, 
+                std::shared_ptr<i2p::stream::Stream> stream, 
+                const boost::asio::ip::tcp::endpoint& target, 
+                ReceivedCallback receivedCallback, 
+                ConnectionTimedOutCallback timedOutCallback,
+                bool quiet = true); // from I2P
             ~I2PPureTunnelConnection();
             void I2PConnect(const uint8_t * msg = nullptr, size_t len = 0);
             void Connect(bool isUniqueLocal = true);
@@ -86,8 +102,17 @@ namespace i2p
             // moved to public to be able to callback
             //void HandleWrite(const boost::system::error_code& ecode);
 
+            void SetToTerminate() { _shouldTerminate = true; }
+            bool IsTerminated() { return Dead (); }
+            bool IsAlive() { return !HasTimedOut() && !IsTerminated() && IsStreamAlive(); }
+
             std::string GetRemoteIdentity() { return m_Stream ? m_Stream->GetRemoteIdentity()->GetIdentHash().ToBase32() : ""; }
             bool IsStreamAlive() { return m_Stream != nullptr; }
+
+            bool HasTimedOut() { return _hasTimedOut; }
+            int64_t TimedOutTime() { return _timedOutTime; }
+            bool HasReactivated() { return _reactivated; }
+            int64_t ReactivatedTime() { return _reactivatedTime; }
 
         protected:
             void Terminate();
@@ -109,6 +134,12 @@ namespace i2p
             std::shared_ptr<i2p::stream::Stream> m_Stream;
             //boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
             bool m_IsQuiet; // don't send destination
+            bool _hasTimedOut;
+            int64_t _timedOutTime;
+            bool _reactivated = false;
+            int64_t _reactivatedTime = 0;
+            bool _shouldTerminate = false;
+            //bool _isTerminated = false;
         };
 
         // test
@@ -123,6 +154,7 @@ namespace i2p
             ConnectionCreatedCallback _connectionCreatedCallback;
             ClientConnectedCallback _connectedCallback;
             ReceivedCallback _receivedCallback;
+            ConnectionTimedOutCallback _timedOutCallback;
             SendCallback _sendCallback;
             SendMoreCallback _sendMoreCallback;
             // fast fix, use handlers set to find it (or plural?)
@@ -154,6 +186,9 @@ namespace i2p
             void SetReceivedCallback(ReceivedCallback receivedCallback) { _receivedCallback = receivedCallback; }
             ReceivedCallback GetReceivedCallback() { return _receivedCallback; }
             
+            void SetTimedOutCallback(ConnectionTimedOutCallback timedOutCallback) { _timedOutCallback = timedOutCallback; }
+            ConnectionTimedOutCallback GetTimedOutCallback() { return _timedOutCallback; }
+
             // void SetSendCallback(SendCallback sendCallback) { _sendCallback = sendCallback; }
             // SendCallback GetSendCallback() { return _sendCallback; }
 
@@ -234,7 +269,10 @@ namespace i2p
 
             void Accept();
             void HandleAccept(std::shared_ptr<i2p::stream::Stream> stream);
-            virtual std::shared_ptr<I2PPureTunnelConnection> CreateI2PConnection(std::shared_ptr<i2p::stream::Stream> stream, ReceivedCallback receivedCallback);
+            virtual std::shared_ptr<I2PPureTunnelConnection> CreateI2PConnection(
+                std::shared_ptr<i2p::stream::Stream> stream, 
+                ReceivedCallback receivedCallback, 
+                ConnectionTimedOutCallback timedOutCallback);
 
         private:
             bool m_IsUniqueLocal;

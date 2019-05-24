@@ -88,7 +88,8 @@ QString TransactionDesc::toHTML(CWallet* wallet, CWalletTx& wtx, TransactionReco
 {
     QString strHTML;
 
-    LOCK2(cs_main, wallet->cs_wallet);
+    // LOCK2(cs_main, wallet->cs_wallet);
+    LOCK3(cs_main, mempool.cs, wallet->cs_wallet);
     strHTML.reserve(4000);
     strHTML += "<html><font face='verdana, arial, helvetica, sans-serif'>";
 

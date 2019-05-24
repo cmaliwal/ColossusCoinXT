@@ -2457,8 +2457,15 @@ bool IsInitialBlockDownload()
     static bool lockIBDState = false;
     if (lockIBDState)
         return false;
+    // I2PTESTNET:    
     bool state = (chainActive.Height() < pindexBestHeader->nHeight - 24 * 6 ||
                   pindexBestHeader->GetBlockTime() < GetTime() - 6 * 60 * 60); // ~144 blocks behind -> 2 x fork detection time
+
+    // I2PTESTNETFIX:
+    if (Params().NetworkID() == CBaseChainParams::TESTNET && Params().IsBlockchainLateSynced())
+        state = (chainActive.Height() < pindexBestHeader->nHeight - 24 * 6 ||
+                 pindexBestHeader->GetBlockTime() < GetTime() - Params().GetBlockchainSyncedSeconds());
+
     if (!state)
         lockIBDState = true;
     return state;
@@ -3479,8 +3486,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // Check that the block does not overmint
     CAmount nExpectedMint = nFees + GetBlockExpectedMint(pindex->nHeight);
     if (!IsBlockValueValid(block, pindex->nHeight, nExpectedMint, pindex->nMint, pindex->pprev))
-        return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
-            FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
+        LogPrintf("%s : reward pays too much (actual=%s vs limit=%s)\n", __func__, FormatMoney(pindex->nMint), FormatMoney(nExpectedMint));
+        // return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
+        //     FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
 
     // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
     AccumulatorMap mapAccumulators;
@@ -7319,7 +7327,15 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
         bool fFetch = state.fPreferredDownload || (nPreferredDownload == 0 && !pto->fClient && !pto->fOneShot); // Download if this is a nice peer, or we have no nice peers and this one might do.
         if (!state.fSyncStarted && !pto->fClient && fFetch /*&& !fImporting*/ && !fReindex) {
             // Only actively request headers from a single peer, unless we're close to end of initial download.
-            if (nSyncStarted == 0 || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - 6 * 60 * 60) { // NOTE: was "close to today" and 24h in Bitcoin
+
+            // I2PTESTNETFIX:
+            int _initialIntervalSeconds = 6 * 60 * 60;
+            if (Params().NetworkID() == CBaseChainParams::TESTNET && Params().IsBlockchainLateSynced())
+                _initialIntervalSeconds = Params().GetBlockchainSyncedSeconds();
+
+            // I2PTESTNET:
+            if (nSyncStarted == 0 || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - _initialIntervalSeconds) {
+            // if (nSyncStarted == 0 || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - 6 * 60 * 60) { // NOTE: was "close to today" and 24h in Bitcoin
                 state.fSyncStarted = true;
                 nSyncStarted++;
                 //CBlockIndex *pindexStart = pindexBestHeader->pprev ? pindexBestHeader->pprev : pindexBestHeader;

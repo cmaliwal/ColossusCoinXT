@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <string>
 #include <boost/asio.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "util.h"
 #include "Log.h"
@@ -302,6 +303,15 @@ namespace net
 
 #endif
 	}
+}
+namespace time
+{
+    int64_t GetTimeMillis()
+    {
+        return (boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time()) -
+                boost::posix_time::ptime(boost::gregorian::date(1970, 1, 1)))
+            .total_milliseconds();
+    }
 }
 } // util
 } // i2p

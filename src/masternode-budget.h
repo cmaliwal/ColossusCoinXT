@@ -505,6 +505,12 @@ public:
         // Proposals must be at least a day old to make it into a budget
         if (Params().NetworkID() == CBaseChainParams::MAIN) return (nTime < GetTime() - (60 * 60 * 24));
 
+        // I2PTESTNETFIX:
+        if (Params().NetworkID() == CBaseChainParams::TESTNET && Params().IsBlockchainLateSynced()) {
+            return (nTime < GetTime() - (Params().GetBlockchainSyncedSeconds()));
+        }
+
+        // I2PTESTNET:
         // For testing purposes - 5 minutes
         return (nTime < GetTime() - (60 * 5));
     }

@@ -206,7 +206,8 @@ public:
     QString describe(TransactionRecord* rec, int unit)
     {
         {
-            LOCK2(cs_main, wallet->cs_wallet);
+            // LOCK2(cs_main, wallet->cs_wallet);
+            LOCK3(cs_main, mempool.cs, wallet->cs_wallet);
             std::map<uint256, CWalletTx>::iterator mi = wallet->mapWallet.find(rec->hash);
             if (mi != wallet->mapWallet.end()) {
                 return TransactionDesc::toHTML(wallet, mi->second, rec, unit);

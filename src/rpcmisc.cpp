@@ -161,6 +161,9 @@ UniValue getinfo(const UniValue& params, bool fHelp)
 
     obj.push_back(Pair("errors", boost::algorithm::join(warnings, " ")));
 
+    if (Params().IsBlockchainLateSynced())
+        obj.push_back(Pair("latesync", Params().IsBlockchainLateSynced()));
+
     return obj;
 }
 

@@ -146,6 +146,10 @@ public:
     CAmount GetRequiredMasternodeCollateral() const { return nRequiredMasternodeCollateral; }
     std::string GetBootstrapUrl() const { return strBootstrapUrl; }
 
+    bool IsBlockchainLateSynced() const { return _isBlockchainLateSynced; }
+    int GetBlockchainSyncedHoursInterval() const { return _blockchainSyncedHoursInterval; } 
+    int GetBlockchainSyncedSeconds() const { return GetBlockchainSyncedHoursInterval() * 60 * 60; } 
+
     virtual CBitcoinAddress GetDevFundAddress() const = 0;
     virtual CBitcoinAddress GetTxFeeAddress() const = 0;
     virtual CBitcoinAddress GetUnallocatedBudgetAddress() const = 0;
@@ -221,6 +225,9 @@ protected:
     unsigned int nModifierIntervalRatio;
     CAmount nRequiredMasternodeCollateral;
     std::string strBootstrapUrl;
+
+    int _blockchainSyncedHoursInterval;
+    bool _isBlockchainLateSynced;
 };
 
 /** 

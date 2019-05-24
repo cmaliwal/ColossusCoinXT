@@ -729,7 +729,16 @@ bool CMasternodePing::CheckAndUpdate(int& nDos, bool fRequireEnabled)
         return false;
     }
 
-    if (sigTime <= GetAdjustedTime() - 60 * 60) {
+    int _signatureIntervalSeconds = 60 * 60;
+    
+    // I2PTESTNETFIX:
+    if (Params().NetworkID() == CBaseChainParams::TESTNET && Params().IsBlockchainLateSynced())
+        _signatureIntervalSeconds = Params().GetBlockchainSyncedSeconds();
+        // _signatureIntervalSeconds = GetTime() + Params().GetBlockchainSyncedSeconds();
+
+    // I2PTESTNET:
+    if (sigTime <= GetAdjustedTime() - _signatureIntervalSeconds) {
+    // if (sigTime <= GetAdjustedTime() - 60 * 60) {
         LogPrint("masternode","CMasternodePing::CheckAndUpdate - Signature rejected, too far into the past %s - %d %d \n", vin.prevout.hash.ToString(), sigTime, GetAdjustedTime());
         nDos = 1;
         return false;

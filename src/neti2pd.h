@@ -419,12 +419,14 @@ public:
     void HandleClientConnectionCreated(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection);
     void HandleClientConnected(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection);
     // void HandleClientReceived(std::string message, i2p::client::ContinueToReceiveCallback continueToReceiveCallback);
-    void HandleClientReceived(const uint8_t * buf, size_t len, i2p::client::ContinueToReceiveCallback continueToReceiveCallback);
+    void HandleClientReceived(const uint8_t * buf, size_t len); //, i2p::client::ContinueToReceiveCallback continueToReceiveCallback);
+    void HandleClientTimedOut(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection);
 
     void HandleServerConnectionCreated(std::shared_ptr<i2p::client::I2PPureServerTunnel> tunnel, std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection);
     void HandleServerClientConnected(std::shared_ptr<i2p::client::I2PPureServerTunnel> tunnel, std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection);
+    void HandleServerClientTimedOut(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection);
     //void HandleServerReceived(std::string message, i2p::client::ContinueToReceiveCallback continueToReceiveCallback);
-    void HandleServerReceived(const uint8_t * buf, size_t len, i2p::client::ContinueToReceiveCallback continueToReceiveCallback);
+    void HandleServerReceived(const uint8_t * buf, size_t len); //, i2p::client::ContinueToReceiveCallback continueToReceiveCallback);
 
     // std::string PopMessageReceived();
     size_t PopMessageReceived(std::unique_ptr<uint8_t[]>& buffer);
