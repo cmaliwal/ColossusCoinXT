@@ -63,7 +63,8 @@ namespace stream
 		m_AckSendTimer (m_Service),  m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_WindowSize (MIN_WINDOW_SIZE), m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
+		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0),
+		m_Dead(false)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -75,7 +76,8 @@ namespace stream
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0),  m_WindowSize (MIN_WINDOW_SIZE),
 		m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
-		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
+		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0),
+		m_Dead(false)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 	}
@@ -97,6 +99,8 @@ namespace stream
 
 	void Stream::CleanUp ()
 	{
+		if (Kill()) { return; }
+
 		{
 			std::unique_lock<std::mutex> l(m_SendBufferMutex);
 			m_SendBuffer.CleanUp ();

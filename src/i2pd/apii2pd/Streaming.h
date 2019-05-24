@@ -9,6 +9,8 @@
 #include <functional>
 #include <memory>
 
+#include <atomic>
+
 #if defined(WIN32) && defined(USE_3RD_STD_THREADS)
 #include "../threads/mingw.mutex.h"
 #else
@@ -188,7 +190,12 @@ namespace stream
 			/** don't call me */
 			void Terminate ();
 
+            // Call to know if the handler is dead
+            inline bool Dead () { return m_Dead; }
+
 		private:
+            // Call when terminating or handing over to avoid race conditions
+            inline bool Kill () { return m_Dead.exchange(true); }
 
 			void CleanUp ();
 
@@ -238,6 +245,8 @@ namespace stream
 			int m_WindowSize, m_RTT, m_RTO, m_AckDelay;
 			uint64_t m_LastWindowSizeIncreaseTime;
 			int m_NumResendAttempts;
+
+            std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
 	};
 
 	class StreamingDestination: public std::enable_shared_from_this<StreamingDestination>
