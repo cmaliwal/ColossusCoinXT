@@ -8,15 +8,68 @@
 #include "masternodeconfig.h"
 #include "util.h"
 #include "ui_interface.h"
-#include <base58.h>
+#include "base58.h"
+
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/classification.hpp>
 // clang-format on
+
+using CMasternodeEntry = CMasternodeConfig::CMasternodeEntry;
 
 CMasternodeConfig masternodeConfig;
 
-void CMasternodeConfig::add(std::string alias, std::string ip, std::string privKey, std::string txHash, std::string outputIndex)
+static const std::string strConfigHeader = "# Masternode config file\n"
+                        "# Format: alias IP:port masternodeprivkey collateral_output_txid collateral_output_index\n"
+                        "# Example: mn1 127.0.0.2:51572 93HaYBVUCYjEMeeH1Y4sBGLALQZE1Yc1K64xiqgX37tGBDQL8Xg 2bcd3c84c84f87eaa86e4e56834c92927a07f9e18718810b92e0d0324456a67c 0\n";
+
+CMasternodeConfig::CMasternodeConfig():
+    csEntries_(new CCriticalSection)
+{}
+
+std::vector<CMasternodeEntry> CMasternodeConfig::getEntries() const
 {
-    CMasternodeEntry cme(alias, ip, privKey, txHash, outputIndex);
-    entries.push_back(cme);
+    LOCK(*csEntries_);
+    return entries_;
+}
+
+int CMasternodeConfig::getCount() const
+{
+    LOCK(*csEntries_);
+    return entries_.size();
+}
+
+bool CMasternodeConfig::addEntry(const CMasternodeEntry& entry)
+{
+    if (!entry.isValid())
+        return error("%s, entry is not valid\n", __func__);
+
+    LOCK(*csEntries_);
+    entries_.push_back(entry);
+    return writeConfig();
+}
+
+bool CMasternodeConfig::deleteEntry(int index)
+{
+    LOCK(*csEntries_);
+    if (index >= 0 && index < entries_.size()) {
+        entries_.erase(entries_.begin() + index);
+        return writeConfig();
+    } else
+        return error("%s, (%d) is out of range (%u)\n", __func__, index, entries_.size());
+}
+
+bool CMasternodeConfig::deleteEntry(const std::string& alias)
+{
+    LOCK(*csEntries_);
+    for (int i = 0; i < entries_.size(); ++i) {
+        if (entries_.at(i).getAlias() == alias) {
+            entries_.erase(entries_.begin() + i);
+            return writeConfig();
+        }
+    }
+
+    return error("%s, alias %s was not found\n", __func__, alias);
 }
 
 bool CMasternodeConfig::read(std::string& strErr)
@@ -27,38 +80,37 @@ bool CMasternodeConfig::read(std::string& strErr)
 
     if (!streamConfig.good()) {
         FILE* configFile = fopen(pathMasternodeConfigFile.string().c_str(), "a");
-        if (configFile != NULL) {
-            std::string strHeader = "# Masternode config file\n"
-                                    "# Format: alias IP:port masternodeprivkey collateral_output_txid collateral_output_index\n"
-                                    "# Example: mn1 127.0.0.2:51572 93HaYBVUCYjEMeeH1Y4sBGLALQZE1Yc1K64xiqgX37tGBDQL8Xg 2bcd3c84c84f87eaa86e4e56834c92927a07f9e18718810b92e0d0324456a67c 0\n";
-            fwrite(strHeader.c_str(), std::strlen(strHeader.c_str()), 1, configFile);
+        if (configFile != nullptr) {
+            fwrite(strConfigHeader.c_str(), strConfigHeader.size(), 1, configFile);
             fclose(configFile);
         }
         return true; // Nothing to read, so just return
     }
 
+    std::vector<CMasternodeEntry> entries;
     for (std::string line; std::getline(streamConfig, line); linenumber++) {
-        if (line.empty()) continue;
+        if (line.empty())
+            continue;
 
-        std::istringstream iss(line);
-        std::string comment, alias, ip, privKey, txHash, outputIndex;
+        vector<string> words;
+        boost::split(words, line, boost::algorithm::is_any_of(" \t"));
+        if (words.empty())
+            continue; // skip empty line
+        if (words.front().front() == '#')
+            continue; // skip comment
 
-        if (iss >> comment) {
-            if (comment.at(0) == '#') continue;
-            iss.str(line);
-            iss.clear();
+        if (words.size() < 5) {
+            strErr = _("Could not parse masternode.conf") + "\n" +
+                     strprintf(_("Line: %d"), linenumber) + "\n\"" + line + "\"";
+            streamConfig.close();
+            return false;
         }
 
-        if (!(iss >> alias >> ip >> privKey >> txHash >> outputIndex)) {
-            iss.str(line);
-            iss.clear();
-            if (!(iss >> alias >> ip >> privKey >> txHash >> outputIndex)) {
-                strErr = _("Could not parse masternode.conf") + "\n" +
-                         strprintf(_("Line: %d"), linenumber) + "\n\"" + line + "\"";
-                streamConfig.close();
-                return false;
-            }
-        }
+        string alias = boost::algorithm::join(vector<string>(words.begin(), words.begin() + words.size() - 4), " "); // space separated alias
+        string ip = words.at(words.size() - 4);
+        string privKey = words.at(words.size() - 3);
+        string txHash = words.at(words.size() - 2);
+        string outputIndex = words.at(words.size() - 1);
 
         // If port is not specified - append default
         if (ip.find(':') == string::npos)
@@ -90,10 +142,24 @@ bool CMasternodeConfig::read(std::string& strErr)
             return false;
         }
 
-        add(alias, ip, privKey, txHash, outputIndex);
+        if (alias.empty()) {
+            strErr = _("Alias cannot be empty in masternode.conf") + "\n" +
+                     strprintf(_("Line: %d"), linenumber) + "\n\"" + line + "\"";
+            streamConfig.close();
+            return false;
+        }
+
+        CMasternodeEntry cme(alias, ip, privKey, txHash, outputIndex);
+        entries.push_back(cme);
     }
 
     streamConfig.close();
+
+    {
+        LOCK(*csEntries_);
+        entries_ = entries;
+    }
+
     return true;
 }
 
@@ -107,4 +173,23 @@ bool CMasternodeConfig::CMasternodeEntry::castOutputIndex(int &n)
     }
 
     return true;
+}
+
+bool CMasternodeConfig::writeConfig() const
+{
+    boost::filesystem::path pathMasternodeConfigFile = GetMasternodeConfigFile();
+    FILE* configFile = fopen(pathMasternodeConfigFile.string().c_str(), "w");
+    if (configFile != nullptr) {
+        fwrite(strConfigHeader.c_str(), strConfigHeader.size(), 1, configFile);
+        for (const CMasternodeEntry& mne : entries_) {
+            if (mne.isValid()) {
+                string line = strprintf("%s %s %s %s %s\n", mne.getAlias(), mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex());
+                fwrite(line.c_str(), line.size(), 1, configFile);
+            }
+        }
+
+        fclose(configFile);
+        return true;
+    } else
+        return false;
 }

@@ -87,6 +87,7 @@ QT_MOC_CPP = \
   qt/moc_macdockiconhandler.cpp \
   qt/moc_macnotificationhandler.cpp \
   qt/moc_masternodelist.cpp \
+  qt/moc_masternodeentrydialog.cpp \
   qt/moc_multisenddialog.cpp \
   qt/moc_multisigdialog.cpp\
   qt/moc_notificator.cpp \
@@ -166,6 +167,7 @@ BITCOIN_QT_H = \
   qt/macdockiconhandler.h \
   qt/macnotificationhandler.h \
   qt/masternodelist.h \
+  qt/masternodeentrydialog.h \
   qt/multisenddialog.h \
   qt/multisigdialog.h\
   qt/networkstyle.h \
@@ -286,6 +288,7 @@ BITCOIN_QT_CPP = \
   qt/guiutil.cpp \
   qt/intro.cpp \
   qt/masternodelist.cpp \
+  qt/masternodeentrydialog.cpp \
   qt/networkstyle.cpp \
   qt/notificator.cpp \
   qt/optionsdialog.cpp \
@@ -317,6 +320,7 @@ BITCOIN_QT_CPP += \
   qt/governancetable.cpp \
   qt/governancetablemodel.cpp \
   qt/masternodelist.cpp \
+  qt/masternodeentrydialog.cpp \
   qt/multisenddialog.cpp \
   qt/multisigdialog.cpp\
   qt/openuridialog.cpp \

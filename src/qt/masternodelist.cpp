@@ -12,6 +12,7 @@
 #include "wallet.h"
 #include "walletmodel.h"
 #include "askpassphrasedialog.h"
+#include "masternodeentrydialog.h"
 
 #include <QMessageBox>
 #include <QTimer>
@@ -49,6 +50,8 @@ MasternodeList::MasternodeList(QWidget* parent) : QWidget(parent),
     contextMenu->addAction(startAliasAction);
     connect(ui->tableWidgetMyMasternodes, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(showContextMenu(const QPoint&)));
     connect(startAliasAction, SIGNAL(triggered()), this, SLOT(on_startButton_clicked()));
+    connect(ui->addButton, SIGNAL(triggered()), this, SLOT(on_addButton_clicked()));
+    connect(ui->deleteButton, SIGNAL(triggered()), this, SLOT(on_deleteButton_clicked()));
 
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateMyNodeList()));
@@ -218,6 +221,61 @@ void MasternodeList::updateMyNodeList(bool fForce)
 
     // reset "timer"
     ui->secondsLabel->setText("0");
+}
+
+void MasternodeList::on_addButton_clicked()
+{
+    set<string> busyOutputs;
+    BOOST_FOREACH (CMasternodeConfig::CMasternodeEntry mne, masternodeConfig.getEntries()) {
+        busyOutputs.insert(strprintf("%s:%s", mne.getTxHash(), mne.getOutputIndex()));
+    }
+
+    vector<MasternodeOutput> outputList;
+    vector<COutput> possibleCoins = activeMasternode.SelectCoinsMasternode();
+    for (const COutput& out : possibleCoins)
+        if (busyOutputs.find(strprintf("%s:%d", out.tx->GetHash().ToString(), out.i)) == busyOutputs.end())
+            outputList.emplace_back(out.tx->GetHash().ToString(), out.i);
+
+    if (outputList.empty()) {
+        QMessageBox::warning(this, this->windowTitle(), tr("Masternode outputs were not found."), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    MasternodeEntryDialog dlg(outputList, this);
+    int answer = dlg.exec();
+    if (QDialog::Accepted == answer) {
+        int txIndex = dlg.getOutputIndex();
+        if (txIndex >= 0 && txIndex < outputList.size()) {
+            const MasternodeOutput& out = outputList.at(txIndex);
+            CMasternodeConfig::CMasternodeEntry mne(dlg.getAlias(), dlg.getIP(), dlg.getPrivateKey(), out.txHash, to_string(out.index));
+            if (masternodeConfig.addEntry(mne))
+                updateMyNodeList(true);
+        }
+    }
+}
+
+void MasternodeList::on_deleteButton_clicked()
+{
+    // Find selected node alias
+    QItemSelectionModel* selectionModel = ui->tableWidgetMyMasternodes->selectionModel();
+    QModelIndexList selected = selectionModel->selectedRows();
+    if (selected.empty())
+        return;
+
+    QModelIndex index = selected.at(0);
+    int nSelectedRow = index.row();
+    std::string strAlias = ui->tableWidgetMyMasternodes->item(nSelectedRow, 0)->text().toStdString();
+
+    // Display message box
+    QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm masternode delete"),
+        tr("Are you sure you want to delete masternode %1?").arg(QString::fromStdString(strAlias)),
+        QMessageBox::Yes | QMessageBox::Cancel,
+        QMessageBox::Cancel);
+    if (retval != QMessageBox::Yes)
+        return;
+
+    if (masternodeConfig.deleteEntry(strAlias))
+        ui->tableWidgetMyMasternodes->removeRow(nSelectedRow);
 }
 
 void MasternodeList::on_startButton_clicked()
