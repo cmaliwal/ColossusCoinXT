@@ -72,6 +72,16 @@ bool CMasternodeConfig::deleteEntry(const std::string& alias)
     return error("%s, alias %s was not found\n", __func__, alias);
 }
 
+CMasternodeEntry CMasternodeConfig::findEntry(const std::string& alias)
+{
+    LOCK(*csEntries_);
+    for (int i = 0; i < entries_.size(); ++i)
+        if (entries_.at(i).getAlias() == alias)
+            return entries_.at(i);
+
+    return {};
+}
+
 bool CMasternodeConfig::read(std::string& strErr)
 {
     int linenumber = 1;

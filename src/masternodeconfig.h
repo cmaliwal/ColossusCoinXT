@@ -31,6 +31,8 @@ public:
         std::string outputIndex;
 
     public:
+        CMasternodeEntry() {}
+
         CMasternodeEntry(std::string alias, std::string ip, std::string privKey, std::string txHash, std::string outputIndex)
         {
             this->alias = alias;
@@ -110,6 +112,8 @@ public:
     bool deleteEntry(int index);
 
     bool deleteEntry(const std::string& alias);
+
+    CMasternodeEntry findEntry(const std::string& alias);
 
 private:
     bool writeConfig() const;

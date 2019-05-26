@@ -248,8 +248,17 @@ void MasternodeList::on_addButton_clicked()
         if (txIndex >= 0 && txIndex < outputList.size()) {
             const MasternodeOutput& out = outputList.at(txIndex);
             CMasternodeConfig::CMasternodeEntry mne(dlg.getAlias(), dlg.getIP(), dlg.getPrivateKey(), out.txHash, to_string(out.index));
-            if (masternodeConfig.addEntry(mne))
+            if (masternodeConfig.addEntry(mne)) {
                 updateMyNodeList(true);
+                if (GetBoolArg("-mnconflock", true) && pwalletMain) {
+                    LOCK(pwalletMain->cs_wallet);
+                    LogPrintf("%s - Locking Masternode Collateral: %s %s\n", __func__, mne.getTxHash(), mne.getOutputIndex());
+                    uint256 mnTxHash;
+                    mnTxHash.SetHex(mne.getTxHash());
+                    COutPoint outpoint = COutPoint(mnTxHash, boost::lexical_cast<unsigned int>(mne.getOutputIndex()));
+                    pwalletMain->LockCoin(outpoint);
+                }
+            }
         }
     }
 }
@@ -274,8 +283,18 @@ void MasternodeList::on_deleteButton_clicked()
     if (retval != QMessageBox::Yes)
         return;
 
-    if (masternodeConfig.deleteEntry(strAlias))
+    CMasternodeConfig::CMasternodeEntry mne = masternodeConfig.findEntry(strAlias);
+    if (masternodeConfig.deleteEntry(strAlias)) {
         ui->tableWidgetMyMasternodes->removeRow(nSelectedRow);
+        if (GetBoolArg("-mnconflock", true) && pwalletMain && mne.isValid()) {
+            LOCK(pwalletMain->cs_wallet);
+            LogPrintf("%s - Locking Masternode Collateral: %s %s\n", __func__, mne.getTxHash(), mne.getOutputIndex());
+            uint256 mnTxHash;
+            mnTxHash.SetHex(mne.getTxHash());
+            COutPoint outpoint = COutPoint(mnTxHash, boost::lexical_cast<unsigned int>(mne.getOutputIndex()));
+            pwalletMain->UnlockCoin(outpoint);
+        }
+    }
 }
 
 void MasternodeList::on_startButton_clicked()
