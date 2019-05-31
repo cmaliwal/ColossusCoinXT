@@ -90,6 +90,10 @@ namespace stream
 
 	void Stream::Terminate ()
 	{
+		if (Dead()) {
+			LogPrint (eLogError, "Streaming.Terminate: stream is dead? rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+		}			
+			
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
@@ -99,7 +103,12 @@ namespace stream
 
 	void Stream::CleanUp ()
 	{
-		if (Kill()) { return; }
+		if (Kill()) { 
+			LogPrint (eLogError, "Streaming.CleanUp: stream is dead? rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			return; 
+		} else {
+			LogPrint (eLogDebug, "Streaming.CleanUp: rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+		}
 
 		{
 			std::unique_lock<std::mutex> l(m_SendBufferMutex);
@@ -565,6 +574,10 @@ namespace stream
 
 	void Stream::Close ()
 	{
+		if (Dead()) {
+			LogPrint (eLogError, "Streaming.Close: stream is dead? status=", m_Status, ", rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+		}			
+
 		LogPrint(eLogDebug, "Streaming: closing stream with sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID, ", status=", m_Status);
 		switch (m_Status)
 		{
@@ -764,10 +777,19 @@ namespace stream
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
+			if (Dead()) {
+				LogPrint (eLogError, "Streaming.HandleResendTimer: stream is dead already? status=", m_Status, ", rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			}			
+
 			// check for resend attempts
 			if (m_NumResendAttempts >= MAX_NUM_RESEND_ATTEMPTS)
 			{
 				LogPrint (eLogWarning, "Streaming: packet was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS, " attempts, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+
+				if (Dead()) {
+					LogPrint (eLogError, "Streaming: stream is dead already? status=", m_Status, ", rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+				}			
+					
 				m_Status = eStreamStatusReset;
 				Close ();
 				return;
@@ -1059,8 +1081,11 @@ namespace stream
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			auto it = m_Streams.find (stream->GetRecvStreamID ());
-			if (it != m_Streams.end ())
+			if (it != m_Streams.end ()) {
 				m_Streams.erase (it);
+			} else {
+				LogPrint (eLogWarning, "Streaming.DeleteStream: stream not found? rSID=", stream->GetRecvStreamID(), ", sSID=", stream->GetSendStreamID());
+			}
 		}
 	}
 

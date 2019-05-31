@@ -231,6 +231,7 @@ public:
     std::pair<std::string, std::string> GetVotes(std::string strProposalName);
 
     CAmount GetTotalBudget(int nHeight) const;
+    CAmount GetTotalDevFund(int nHeight) const;
     std::vector<CBudgetProposal*> GetBudget();
     std::vector<CBudgetProposal*> GetAllProposals();
     std::vector<CFinalizedBudget*> GetFinalizedBudgets();
@@ -244,9 +245,11 @@ public:
     bool UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CI2pdNode* pfrom, std::string& strError);
     bool PropExists(uint256 nHash);
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CBlockIndex* pindexPrev);
+    bool IsTransactionValidBeforeH8(const CTransaction& txNew, int nBlockHeight, CBlockIndex* pindexPrev);
     std::string GetRequiredPaymentsString(int nBlockHeight);
     void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStake, CBlockIndex* pindexPrev);
     int GrabHighestCount(int nTargetHeight, CScript& payee, CAmount& nAmount) const;
+    std::vector<std::pair<CScript, CAmount>> FindBudgetPayments(int nTargetHeight) const;
     CAmount GetBudgetValue(int nTargetHeight, CBlockIndex* pindexPrev) const;
     CAmount GetPaidBudgetValue(int nTargetHeight, CBlockIndex* pindexPrev) const;
     void CheckOrphanVotes();

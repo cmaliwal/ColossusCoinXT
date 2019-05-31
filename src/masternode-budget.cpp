@@ -555,6 +555,23 @@ int CBudgetManager::GrabHighestCount(int nTargetHeight, CScript& payee, CAmount&
     return nHighestCount;
 }
 
+std::vector<std::pair<CScript, CAmount>> CBudgetManager::FindBudgetPayments(int nTargetHeight) const
+{
+    std::vector<std::pair<CScript, CAmount>> payments;
+    const int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
+
+    CScript payee;
+    CAmount nAmount = 0;
+    for (int i = 0; i < Params().GetMaxSuperBlocksPerCycle(); ++i) {
+        if (GrabHighestCount(nTargetHeight + i, payee, nAmount) >= nFivePercent)
+            payments.emplace_back(payee, nAmount);
+        else
+            break;
+    }
+
+    return payments;
+}
+
 CAmount CBudgetManager::GetPaidBudgetValue(int nTargetHeight, CBlockIndex* pindexPrev) const
 {
     if (nTargetHeight % GetBudgetPaymentCycleBlocks() >= Params().GetMaxSuperBlocksPerCycle()) {
@@ -634,48 +651,90 @@ void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, b
         return;
     }
 
-    CScript payee;
-    CAmount nAmount = 0;
     const int nTargetHeight = pindexPrev->nHeight + 1;
-    const int nHighestCount = GrabHighestCount(nTargetHeight, payee, nAmount);
-    const int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
+    const CAmount nTotalBudget = GetTotalBudget(nTargetHeight);
 
-    if (nHighestCount < nFivePercent) {
-        LogPrint("masternode", "%s - No Budget payment, nHighestCount = %d, finalized budgets size = %lld\n", __func__, nHighestCount, mapFinalizedBudgets.size());
+    if (nTargetHeight >= Params().GetChainHeight(ChainHeight::H8)) { // single superblock
+        // Add finalized budgets first
+        CAmount nPaidBudget = 0;
+        std::vector<std::pair<CScript, CAmount>> payments = FindBudgetPayments(nTargetHeight);
+        for (const std::pair<CScript, CAmount>& payment : payments) {
+            if (nPaidBudget + payment.second <= nTotalBudget) {
+                nPaidBudget += payment.second;
+                txNew.vout.push_back(CTxOut(payment.second, payment.first));
 
-        if (0 == (nTargetHeight % GetBudgetPaymentCycleBlocks())) {
-            const CAmount nTotalBudget = GetTotalBudget(nTargetHeight);
-            LogPrint("masternode", "%s - Make payment %s to the official Developer Fund Address\n", __func__, FormatMoney(nTotalBudget));
+                CTxDestination address1;
+                ExtractDestination(payment.first, address1);
+                CBitcoinAddress address2(address1);
+                LogPrint("masternode", "%s - Budget payment to %s for %lld\n", __func__, address2.ToString(), payment.second);
+            }
+        }
 
-            // Append an additional output as the budget payment
-            txNew.vout.push_back(CTxOut(nTotalBudget, GetScriptForDestination(Params().GetUnallocatedBudgetAddress().Get())));
+        // Append unallocated amount
+        if (nPaidBudget < nTotalBudget) {
+            const CAmount nUnallocatedAmount = nTotalBudget - nPaidBudget;
+            txNew.vout.push_back(CTxOut(nUnallocatedAmount, GetScriptForDestination(Params().GetUnallocatedBudgetAddress().Get())));
+            LogPrint("masternode", "%s - Unallocated budget payment %s to the official Developer Fund Address\n", __func__, FormatMoney(nUnallocatedAmount));
+        }
+
+        // Append dev fund payment
+        if (nTargetHeight >= Params().GetChainHeight(ChainHeight::H9)) {
+            txNew.vout.push_back(CTxOut(GetTotalDevFund(nTargetHeight), GetScriptForDestination(Params().GetDevFundAddress().Get())));
+            LogPrint("masternode", "%s - Dev fund payment %s to the official Developer Fund Address\n", __func__, FormatMoney(GetTotalDevFund(nTargetHeight)));
+        }
+
+        // Create 108M once
+        if (nTargetHeight == Params().GetChainHeight(ChainHeight::H9)) {
+            txNew.vout.push_back(CTxOut(108000000 * COIN, GetScriptForDestination(Params().Get108MAddress().Get())));
+            LogPrint("masternode", "%s - 108M created to the official Address\n", __func__);
+        }
+
+        if (Params().NetworkID() == CBaseChainParams::TESTNET) {
+            // Create 1B once
+            if (nTargetHeight == Params().GetChainHeight(ChainHeight::H9a)) {
+                txNew.vout.push_back(CTxOut(1000000000 * COIN, GetScriptForDestination(Params().Get1BAddress().Get())));
+                LogPrint("masternode", "%s - 1B created to the official Address\n", __func__);
+            }
         }
     } else {
-        // Append budget payment
-        unsigned int i = txNew.vout.size();
-        txNew.vout.resize(i + 1);
-        txNew.vout[i].scriptPubKey = payee;
-        txNew.vout[i].nValue = nAmount;
+        CScript payee;
+        CAmount nAmount = 0;
+        const int nHighestCount = GrabHighestCount(nTargetHeight, payee, nAmount);
+        const int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
 
-        CTxDestination address1;
-        ExtractDestination(payee, address1);
-        CBitcoinAddress address2(address1);
-        LogPrint("masternode", "%s - Budget payment to %s for %lld, nHighestCount = %d\n", __func__, address2.ToString(), nAmount, nHighestCount);
+        if (nHighestCount < nFivePercent) {
+            LogPrint("masternode", "%s - No Budget payment, nHighestCount = %d, finalized budgets size = %lld\n", __func__, nHighestCount, mapFinalizedBudgets.size());
+            if (0 == (nTargetHeight % GetBudgetPaymentCycleBlocks())) {
+                LogPrint("masternode", "%s - Make payment %s to the official Developer Fund Address\n", __func__, FormatMoney(nTotalBudget));
+                txNew.vout.push_back(CTxOut(nTotalBudget, GetScriptForDestination(Params().GetUnallocatedBudgetAddress().Get())));
+            }
+        } else {
+            // Append budget payment
+            unsigned int i = txNew.vout.size();
+            txNew.vout.resize(i + 1);
+            txNew.vout[i].scriptPubKey = payee;
+            txNew.vout[i].nValue = nAmount;
 
-        // Append unallocated budget payment to the last budget block in the current cycle
-        CScript payee2;
-        CAmount nAmount2 = 0;
-        const int nHighestCountNext = GrabHighestCount(nTargetHeight + 1, payee2, nAmount2);
-        if (nHighestCountNext < nFivePercent) {
-            const CAmount nPaidAmount = GetPaidBudgetValue(nTargetHeight, pindexPrev);
-            if (nPaidAmount >= 0) {
-                const CAmount nUnallocatedAmount = GetTotalBudget(nTargetHeight) - nAmount - nPaidAmount;
-                if (nUnallocatedAmount < 0) {
-                    error("%s: Negative unallocated amount %s, nAmount=%s, nPaidAmount=%s",
-                          __func__, FormatMoney(nUnallocatedAmount), FormatMoney(nAmount), FormatMoney(nPaidAmount));
-                } else if (nUnallocatedAmount > 0) {
-                    txNew.vout.push_back(CTxOut(nUnallocatedAmount, GetScriptForDestination(Params().GetUnallocatedBudgetAddress().Get())));
-                    LogPrint("masternode", "%s - Unallocated budget payment %s to the official Developer Fund Address\n", __func__, FormatMoney(nUnallocatedAmount));
+            CTxDestination address1;
+            ExtractDestination(payee, address1);
+            CBitcoinAddress address2(address1);
+            LogPrint("masternode", "%s - Budget payment to %s for %lld, nHighestCount = %d\n", __func__, address2.ToString(), nAmount, nHighestCount);
+
+            // Append unallocated budget payment to the last budget block in the current cycle
+            CScript payee2;
+            CAmount nAmount2 = 0;
+            const int nHighestCountNext = GrabHighestCount(nTargetHeight + 1, payee2, nAmount2);
+            if (nHighestCountNext < nFivePercent) {
+                const CAmount nPaidAmount = GetPaidBudgetValue(nTargetHeight, pindexPrev);
+                if (nPaidAmount >= 0) {
+                    const CAmount nUnallocatedAmount = GetTotalBudget(nTargetHeight) - nAmount - nPaidAmount;
+                    if (nUnallocatedAmount < 0) {
+                        error("%s: Negative unallocated amount %s, nAmount=%s, nPaidAmount=%s",
+                              __func__, FormatMoney(nUnallocatedAmount), FormatMoney(nAmount), FormatMoney(nPaidAmount));
+                    } else if (nUnallocatedAmount > 0) {
+                        txNew.vout.push_back(CTxOut(nUnallocatedAmount, GetScriptForDestination(Params().GetUnallocatedBudgetAddress().Get())));
+                        LogPrint("masternode", "%s - Unallocated budget payment %s to the official Developer Fund Address\n", __func__, FormatMoney(nUnallocatedAmount));
+                    }
                 }
             }
         }
@@ -726,6 +785,9 @@ bool CBudgetManager::IsBudgetPaymentBlock(int nBlockHeight)
     if (!IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS))
         return false;
 
+    if (nBlockHeight >= Params().GetChainHeight(ChainHeight::H8))
+        return 0 == (nBlockHeight % GetBudgetPaymentCycleBlocks()); // single super block since H8
+
     if (nBlockHeight % GetBudgetPaymentCycleBlocks() >= Params().GetMaxSuperBlocksPerCycle())
         return false;
 
@@ -745,13 +807,72 @@ bool CBudgetManager::IsBudgetPaymentBlock(int nBlockHeight)
 
 bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHeight, CBlockIndex* pindexPrev)
 {
+    if (nBlockHeight < Params().GetChainHeight(ChainHeight::H8))
+        return IsTransactionValidBeforeH8(txNew, nBlockHeight, pindexPrev);
+    else if (0 != nBlockHeight % GetBudgetPaymentCycleBlocks())
+        return true; // not super block
+    else; // do verification below
+
+    auto FindPayment = [](const CTransaction& tx, const CScript& script)->CAmount {
+        CAmount nAmount = 0;
+        for (const CTxOut& out : tx.vout)
+            if (out.scriptPubKey == script)
+                nAmount += out.nValue;
+
+        return nAmount;
+    };
+
+    // Check finalized budgets first
+    CAmount nPaidBudget = 0;
+    const CAmount nTotalBudget = GetTotalBudget(nBlockHeight);
+    std::vector<std::pair<CScript, CAmount>> payments = FindBudgetPayments(nBlockHeight);
+    for (const std::pair<CScript, CAmount>& payment : payments) {
+        if (nPaidBudget + payment.second <= nTotalBudget) {
+            nPaidBudget += payment.second;
+            CAmount nAmount = FindPayment(txNew, payment.first);
+            if (nAmount < payment.second)
+                return error("%s: budget payment amount is wrong or not found. Paid=%s Required=%s\n", __func__, FormatMoney(nAmount), FormatMoney(payment.second));
+        }
+    }
+
+    // Check unallocated amount
+    CAmount nUnallocated = FindPayment(txNew, GetScriptForDestination(Params().GetUnallocatedBudgetAddress().Get()));
+    if (nUnallocated < nTotalBudget - nPaidBudget)
+        return error("%s: unallocated budget payment amount is wrong or not found. Paid=%s Required=%s\n", __func__, FormatMoney(nUnallocated), FormatMoney(nTotalBudget - nPaidBudget));
+
+    // Check dev fund payment
+    if (nBlockHeight >= Params().GetChainHeight(ChainHeight::H9)) {
+        CAmount nDevFund = FindPayment(txNew, GetScriptForDestination(Params().GetDevFundAddress().Get()));
+        if (nDevFund < GetTotalDevFund(nBlockHeight))
+            return error("%s: dev fund payment amount is wrong or not found. Paid=%s Required=%s\n", __func__, FormatMoney(nDevFund), FormatMoney(GetTotalDevFund(nBlockHeight)));
+    }
+
+    // Check coin creation
+    if (nBlockHeight == Params().GetChainHeight(ChainHeight::H9)) {
+        CAmount nAmount = FindPayment(txNew, GetScriptForDestination(Params().Get108MAddress().Get()));
+        if (nAmount != 108000000 * COIN)
+            return error("%s: 108M coins were not found. Paid=%s\n", __func__, FormatMoney(nAmount));
+    }
+
+    if (Params().NetworkID() == CBaseChainParams::TESTNET) {
+        if (nBlockHeight == Params().GetChainHeight(ChainHeight::H9a)) {
+            CAmount nAmount = FindPayment(txNew, GetScriptForDestination(Params().Get1BAddress().Get()));
+            if (nAmount != 1000000000 * COIN)
+                return error("%s: 1B coins were not found. Paid=%s\n", __func__, FormatMoney(nAmount));
+        }
+    }
+
+    return true;
+}
+
+bool CBudgetManager::IsTransactionValidBeforeH8(const CTransaction& txNew, int nBlockHeight, CBlockIndex* pindexPrev)
+{
     CScript payee;
     CAmount nAmount = 0;
     const int nHighestCount = GrabHighestCount(nBlockHeight, payee, nAmount);
     int nFivePercent = mnodeman.CountEnabled(ActiveProtocol()) / 20;
 
-    LogPrint("masternode","CBudgetManager::IsTransactionValid() - nHighestCount: %lli, 5%% of Masternodes: %lli\n", 
-        nHighestCount, nFivePercent);
+    LogPrint("masternode","%s - nHighestCount: %lli, 5%% of Masternodes: %lli\n", __func__, nHighestCount, nFivePercent);
     // If budget doesn't have 5% of the network votes, then we must pay to the dev fund address
     if (nHighestCount < nFivePercent) {
         if (0 == (nBlockHeight % GetBudgetPaymentCycleBlocks())) {
@@ -983,6 +1104,12 @@ std::string CBudgetManager::GetRequiredPaymentsString(int nBlockHeight)
 CAmount CBudgetManager::GetTotalBudget(int nHeight) const
 {
     CAmount nSubsidy = GetBlockValueBudget(nHeight);
+    return nSubsidy * GetBudgetPaymentCycleBlocks();
+}
+
+CAmount CBudgetManager::GetTotalDevFund(int nHeight) const
+{
+    CAmount nSubsidy = GetBlockValueDevFund(nHeight);
     return nSubsidy * GetBudgetPaymentCycleBlocks();
 }
 

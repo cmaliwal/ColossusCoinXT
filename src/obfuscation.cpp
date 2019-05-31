@@ -259,6 +259,7 @@ void CObfuscationPool::ProcessMessageObfuscation(CI2pdNode* pfrom, std::string& 
             }
 
             {
+                // I2PDEADLOCK: TODO: this is dangerous, should be TRY_LOCK (see comments in CMasternodeSync::Process)
                 LOCK(cs_main);
                 if (!AcceptableInputs(mempool, state, CTransaction(tx), false, NULL, false, true)) {
                     LogPrintf("dsi -- transaction not valid! \n");
@@ -992,6 +993,7 @@ bool CObfuscationPool::IsCollateralValid(const CTransaction& txCollateral)
     LogPrint("obfuscation", "CObfuscationPool::IsCollateralValid %s\n", txCollateral.ToString());
 
     {
+        // I2PDEADLOCK: TODO: this is dangerous, should be TRY_LOCK (see comments in CMasternodeSync::Process)
         LOCK(cs_main);
         CValidationState state;
         if (!AcceptableInputs(mempool, state, txCollateral, true, NULL)) {
@@ -1178,6 +1180,10 @@ void CObfuscationPool::SendObfuscationDenominate(std::vector<CTxIn>& vin, std::v
         LogPrintf("Submitting tx %s\n", tx.ToString());
 
         while (true) {
+            // I2PDEADLOCK: TODO: this is dangerous, should be a real TRY_LOCK (see comments in CMasternodeSync::Process)
+            // problem w/ this is that it's like a real LOCK, any above lock will never get released and we're stuck here
+            // waiting on cs_main
+            LogPrintf("CObfuscationPool::SendObfuscationDenominate: DEADLOCK warning! \n");
             TRY_LOCK(cs_main, lockMain);
             if (!lockMain) {
                 MilliSleep(50);

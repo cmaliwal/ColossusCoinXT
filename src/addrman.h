@@ -239,11 +239,12 @@ protected:
 
     //! Select several addresses at once.
     void GetAddr_(std::vector<CI2PAddress>& vAddr);
+    CI2PAddress GetAddr_(bool fUseTried = false, bool fUseAny = false);
 
     //! Mark an entry as currently-connected-to.
     void Connected_(const CDestination& addr, int64_t nTime);
 
-    CAddrInfo GetRandInfo();
+    // CAddrInfo GetRandInfo();
 
 public:
     /**
@@ -520,14 +521,19 @@ public:
     }
 
     //! Mark an entry as connection attempted to.
-    void Attempt(const CDestination& addr, int64_t nTime = GetAdjustedTime())
+    bool Attempt(const CDestination& addr, int64_t nTime = GetAdjustedTime())
     {
+        int64_t nStartTime = GetTimeMillis();
         while (true) {
             TRY_LOCK(cs, lockcs);
             // I2PERF: this could be what's causing the slow downs, if we're hitting this often...
             if (!lockcs) {
                 LogPrintf("addrman: Attempt: try lock failed, looping? ('%ld')\n", nTime);
                 MilliSleep(50);
+                if (GetTimeMillis() - nStartTime > 2000) {
+                    return false;
+                    // break;
+                }
                 continue;
             }
             Check();
@@ -535,6 +541,7 @@ public:
             Check();
             break;
         }
+        return true;
         // {
         //     LOCK(cs);
         //     Check();

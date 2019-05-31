@@ -108,6 +108,7 @@ namespace i2p
             if (Kill()) return;
             if (m_Stream)
             {
+                LogPrint(eLogDebug, "I2PPureTunnelConnection.Terminate: stream: rSID=", m_Stream->GetRecvStreamID(), ", sSID=", m_Stream->GetSendStreamID());
                 m_Stream->Close();
                 m_Stream.reset();
             }

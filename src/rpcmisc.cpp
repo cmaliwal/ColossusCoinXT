@@ -164,6 +164,10 @@ UniValue getinfo(const UniValue& params, bool fHelp)
     if (Params().IsBlockchainLateSynced())
         obj.push_back(Pair("latesync", Params().IsBlockchainLateSynced()));
 
+    bool fForceOnTry = GetBoolArg("-deadlockdebugontry", false);
+    if (fForceOnTry)
+        obj.push_back(Pair("deadlockdebugontry", fForceOnTry));
+
     return obj;
 }
 

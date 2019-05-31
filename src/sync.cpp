@@ -116,7 +116,8 @@ static void push_lock(void* c, const CLockLocation& locklocation, bool fTry) //,
 
     (*lockstack).push_back(std::make_pair(c, locklocation));
 
-    if (!fTry) {
+    bool fForceOnTry = GetBoolArg("-deadlockdebugontry", false);
+    if (!fTry || fForceOnTry) {
         BOOST_FOREACH (const PAIRTYPE(void*, CLockLocation) & i, (*lockstack)) {
             if (i.first == c)
                 break;

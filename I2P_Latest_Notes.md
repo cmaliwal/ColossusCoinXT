@@ -53,8 +53,8 @@ addnode=pguwb5pqjpyi57eknlwulumf4hf4xozupxrtl4bc23mwifywngsa.b32.i2p:6667
 ```
 
 # Testnet details
-- 11 nodes at the moment - but most of them are minimal (1GB RAM) smallest VM-s, which is pretty much going into swap at all times (not ideal). I.e. we'll need more dedicated, larger nodes for speed to pick up somewhat.
-- overall, I'm very happy w/ the testnet as it's working right now (wasn't the case last week or few days ago, but it's looking good now). There're still issues from time to time, but that something that needs filtering out and some time (the level of changes and in the very critical networking layer requires more testing, but I think I'm now pretty much done w/ the big problems).
+- 11 nodes at the moment - but most of them are minimal, smallest VM-s (1GB RAM, low CPU), which is not ideal. I.e. we'll need more dedicated, larger nodes for speed to pick up somewhat.
+- overall, I'm very happy w/ the testnet as it's working right now (wasn't the case last week or few days ago, but it's looking good now). There're still issues from time to time, but that's something that needs filtering out and some time (the level of changes and in the very critical networking layer requires more testing, but I think we're now pretty much done w/ the big problems).
 
 # I2P Relevant Files, Dirs (in order of importance) - Testnet
 

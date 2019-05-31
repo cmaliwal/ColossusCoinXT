@@ -278,6 +278,26 @@ void CMasternodeSync::Process()
     //if (!lockMain) return;
     //TRY_LOCK(mempool.cs, lockMempool);
     //if (!lockMempool) return;
+    // I2PDEADLOCK: potential deadlock warning here, we don't want to lock things for performance, hmm?
+    // iterate and copy nodes, unlock, then do stuff? do we have per node lock? or does it even make sense?
+    // POTENTIAL DEADLOCK DETECTED
+    // Previous lock order was:
+    // (1) cs_vNodes  masternode-sync.cpp:282
+    // cs_main  masternode.cpp:219
+    // (2) cs  txmempool.h:152
+    // Current lock order is:
+    // cs_main  neti2pd.cpp:1797
+    // (2) mempool.cs  neti2pd.cpp:1805
+    // (1) cs_vNodes  neti2pd.cpp:1810
+    // (1) cs_vNodes  main.cpp:7226
+    // I2PDEADLOCK: this is actually safe: 
+    // - cs_main is TRY_LOCK (CMasternode::Check) so this thread will not lock up,
+    // - then mempool.cs is LOCK but last lock and as cs_main/mempool.cs always go in that order (make sure), who holds
+    //   the cs_main, holds the mempool.cs, i.e. this thread is guaranteed to execute and finish, others will just wait
+    //   on the cs_main somewhere and that's it. If they got hold of the cs_main, our try beneath will fail and this will
+    //   get out and release the cs_vNodes here), simple as that. 
+    // I2PDEADLOCK: TODO: There're number of other places where AcceptableInputs is called (which is the key here) and 
+    // almost always there's TRY_LOCK (cs_main) which is fine then - but in couple places (obfuscation) there's a LOCK!
 
     TRY_LOCK(cs_vNodes, lockRecv);
     if (!lockRecv) return;

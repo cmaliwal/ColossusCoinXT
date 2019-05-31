@@ -65,12 +65,13 @@ static Checkpoints::MapCheckpoints mapCheckpoints =
         (3250, uint256("000000000007e3a1bdc37ba87b9621634b8b99a7f1f35fce1704747b43f47361"))
         (300006, uint256("cfe4a07b3ba6c57d9b255f0cd55e39753a0a24ff34526aebc120d29e3c62ab69")) // First block with stake min age 8 hours
         (388800, uint256("162ba8a591e130267bbe671abe20bd9bbc1c055ba3fae08ce2e2c1ef6679799e")) // H4
-        (692100, uint256("9d24cb4f32f74e83bf0edd2c6ef4719ba41f7004b7bf9a77f186fa787107490d"));
+        (692100, uint256("9d24cb4f32f74e83bf0edd2c6ef4719ba41f7004b7bf9a77f186fa787107490d"))
+        (840000, uint256("b8028db08b3da8e853b217d96b563c2f3e264aec9254a10e6dfa48d2de9c0baf"));
 
 static const Checkpoints::CCheckpointData data = {
     &mapCheckpoints,
-    1548766244, // * UNIX timestamp of last checkpoint block
-    1513089,    // * total number of transactions between genesis and last checkpoint
+    1557745777, // * UNIX timestamp of last checkpoint block
+    1828521,    // * total number of transactions between genesis and last checkpoint
                 //   (the tx=... number in the SetBestChain debug.log lines)
     2000        // * estimated number of transactions per day after checkpoint
 };
@@ -237,6 +238,14 @@ public:
     CBitcoinAddress GetUnallocatedBudgetAddress() const
     { return CBitcoinAddress("DE2nWCnyYyWxoUNRg5gEeA7Kx1kpBs2spB"); }
 
+    CBitcoinAddress Get108MAddress() const
+    { return CBitcoinAddress("DAbHsptawrVEgXy4USDzpUjugVYVQCENe1"); }
+
+    CBitcoinAddress Get1BAddress() const { 
+        throw runtime_error("Get1BAddress is testnet feature only");
+        return CBitcoinAddress("DAbHsptawrVEgXy4USDzpUjugVYVQCENe1");
+    }
+
     int GetChainHeight(ChainHeight ch) const
     {
         switch (ch) {
@@ -260,6 +269,16 @@ public:
 
         case ChainHeight::H7:
             return 550000;
+
+        case ChainHeight::H8:
+            return 907200;
+
+        case ChainHeight::H9:
+            return 950400;
+
+        case ChainHeight::H9a:
+            throw runtime_error("ChainHeight::H9a is testnet feature only");
+            return 950400;
 
         default:
             assert(false);
@@ -406,6 +425,12 @@ public:
     CBitcoinAddress GetUnallocatedBudgetAddress() const
     { return CBitcoinAddress("yBtxR3o3uvbtkfeWLuFqa7o7yY9N1ha4Yn"); }
 
+    CBitcoinAddress Get108MAddress() const
+    { return CBitcoinAddress("xzKVwq9a9fcshaFhQLY1TS7tMbkspRsXjZ"); }
+
+    CBitcoinAddress Get1BAddress() const 
+    { return CBitcoinAddress("xzH1sEBGVoCprUKZVoVv6uHyVvKbxdrwVw"); }
+
     int GetChainHeight(ChainHeight ch) const
     {
         switch (ch) {
@@ -421,6 +446,17 @@ public:
         case ChainHeight::H6:
         case ChainHeight::H7:
             return 53000;
+
+        case ChainHeight::H8:
+            return 99000;
+
+        case ChainHeight::H9:
+            return 99120;
+
+        case ChainHeight::H9a:
+            return 115440; // 115560
+            // return 115320;
+            // return 109200;
 
         default:
             assert(false);
@@ -586,7 +622,7 @@ bool SelectParamsFromCommandLine()
 uint64_t GetBlockChainSize()
 {
     const uint64_t GB_BYTES = 1000000000LL;
-    return 1LL * GB_BYTES;
+    return 2LL * GB_BYTES;
 }
 
 bool VerifyGenesisBlock(const std::string& datadir, const uint256& genesisHash, std::string& err)

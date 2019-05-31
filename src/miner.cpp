@@ -573,8 +573,8 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
                 }
 
                 LogPrintf("COLXMiner wait 5 seconds (%u, %d, %d, %d)\n", vNodes.size(), pwallet->IsLocked(), fMintableCoins, masternodeSync.IsBlockchainSynced());
-                MilliSleep(50);
-                // MilliSleep(5000);
+                // MilliSleep(50);
+                MilliSleep(5000);
             }
 
             //search our map of hashed blocks, see if bestblock has been hashed yet

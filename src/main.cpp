@@ -2232,9 +2232,11 @@ CAmount GetBlockValueReward(int nHeight)
     if (nHeight == Params().GetChainHeight(ChainHeight::H1))
         return GetBlockValue(nHeight); //premine has no budget allocation
     else if (nHeight < Params().GetChainHeight(ChainHeight::H4))
-        return GetBlockValue(nHeight) * (100 - 5) / 100; // 5 is old budget percent
+        return GetBlockValue(nHeight) * (100 - 5) / 100; // 5% budget
+    else if (nHeight < Params().GetChainHeight(ChainHeight::H8))
+        return GetBlockValue(nHeight) * (100 - Params().GetBudgetPercent()) / 100; // 10% budget
     else
-        return GetBlockValue(nHeight) * (100 - Params().GetBudgetPercent()) / 100;
+        return GetBlockValue(nHeight) * (100 - Params().GetBudgetPercent() - Params().GetDevFundPercent()) / 100; // dev fund is not included in the block reward
 }
 
 CAmount GetBlockValueBudget(int nHeight)
@@ -2242,9 +2244,9 @@ CAmount GetBlockValueBudget(int nHeight)
     if (nHeight == Params().GetChainHeight(ChainHeight::H1))
         return 0; //premine has no budget allocation
     else if (nHeight < Params().GetChainHeight(ChainHeight::H4))
-        return GetBlockValue(nHeight) * 5 / 100; // 5 is old budget percent
+        return GetBlockValue(nHeight) * 5 / 100; // 5% budget
     else
-        return GetBlockValue(nHeight) * Params().GetBudgetPercent() / 100;
+        return GetBlockValue(nHeight) * Params().GetBudgetPercent() / 100; // 10% budget
 }
 
 CAmount GetBlockValueDevFund(int nHeight)
@@ -2252,7 +2254,7 @@ CAmount GetBlockValueDevFund(int nHeight)
     if (nHeight < Params().GetChainHeight(ChainHeight::H4))
         return 0; // no dev fund allocation
     else
-        return GetBlockValue(nHeight) * Params().GetDevFundPercent() / 100;
+        return GetBlockValue(nHeight) * Params().GetDevFundPercent() / 100; // 10% dev fund
 }
 
 CAmount GetMasternodePayment(int nHeight, int nMasternodeCount, CAmount nMoneySupply)
@@ -2261,6 +2263,8 @@ CAmount GetMasternodePayment(int nHeight, int nMasternodeCount, CAmount nMoneySu
         return GetBlockValueReward(nHeight) * 60 / 100; // old rules 60% goes to the masternode
     else if (nHeight >= Params().GetChainHeight(ChainHeight::H6))
         return (GetBlockValueReward(nHeight) - GetBlockValueDevFund(nHeight)) * 60 / 100; // 60% goes to the masternode again
+    else if (nHeight >= Params().GetChainHeight(ChainHeight::H8))
+        return GetBlockValueReward(nHeight) * 60 / 100; // dev fund is not included in the reward anymore
     else; // see-saw algorithm [H4; H6)
 
     const CAmount nReward = GetBlockValueReward(nHeight) - GetBlockValueDevFund(nHeight);
@@ -3486,9 +3490,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // Check that the block does not overmint
     CAmount nExpectedMint = nFees + GetBlockExpectedMint(pindex->nHeight);
     if (!IsBlockValueValid(block, pindex->nHeight, nExpectedMint, pindex->nMint, pindex->pprev))
-        LogPrintf("%s : reward pays too much (actual=%s vs limit=%s)\n", __func__, FormatMoney(pindex->nMint), FormatMoney(nExpectedMint));
-        // return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
-        //     FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
+        return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
+            FormatMoney(pindex->nMint), FormatMoney(nExpectedMint)), REJECT_INVALID, "bad-cb-amount");
+        //LogPrintf("%s : reward pays too much (actual=%s vs limit=%s)\n", __func__, FormatMoney(pindex->nMint), FormatMoney(nExpectedMint));
 
     // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
     AccumulatorMap mapAccumulators;
@@ -3666,12 +3670,12 @@ void static UpdateTip(CBlockIndex* pindexNew)
         int nUpgraded = 0;
         const CBlockIndex* pindex = chainActive.Tip();
         for (int i = 0; i < 100 && pindex != NULL; i++) {
-            if (pindex->nVersion > CBlock::CURRENT_VERSION)
+            if (pindex->nVersion > CBlockHeader::CURRENT_VERSION)
                 ++nUpgraded;
             pindex = pindex->pprev;
         }
         if (nUpgraded > 0)
-            LogPrintf("SetBestChain: %d of last 100 blocks above version %d\n", nUpgraded, (int)CBlock::CURRENT_VERSION);
+            LogPrintf("SetBestChain: %d of last 100 blocks above version %d\n", nUpgraded, (int)CBlockHeader::CURRENT_VERSION);
         if (nUpgraded > 100 / 2) {
             // strMiscWarning is read by GetWarnings(), called by Qt and the JSON-RPC code to warn the user:
             strMiscWarning = _("Warning: This version is obsolete, upgrade required!");
@@ -4056,6 +4060,7 @@ bool ActivateBestChain(CValidationState& state, CBlock* pblock, bool fAlreadyChe
         bool fInitialDownload = false;
 
         while (true) {
+            // I2PDEADLOCK: this isn't really a TRY_LOCK as we're looping around
             TRY_LOCK(cs_main, lockMain);
             if (!lockMain) {
                 MilliSleep(50);
@@ -6352,6 +6357,7 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
             if (addr.nTime > nSince && !pfrom->fGetAddr && vAddr.size() <= 10 && addr.IsRoutable()) {
                 // Relay to a limited number of other nodes
                 {
+                    // I2PDEADLOCK: TRY_LOCK(cs_vRecvMsg), LOCK(cs_vNodes). Tunnel thread: LOCK(cs_vNodes), TRY_LOCK(cs_vRecvMsg)
                     LOCK(cs_vNodes);
                     // Use deterministic randomness to send to the same nodes for 24 hours
                     // at a time so the setAddrKnowns of the chosen nodes prevent repeats

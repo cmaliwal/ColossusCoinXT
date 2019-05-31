@@ -1782,10 +1782,10 @@ void ThreadMessageHandler()
                 }
             }
 
+            boost::this_thread::interruption_point();
+
             int64_t nProcessMessages = GetTimeMillis();
             // LogPrintf("%s : ProcessMessages  %ld msecs (%s)\n", __func__, nProcessMessages - nNodeStartTime, identity);
-
-            boost::this_thread::interruption_point();
 
             // Send messages
             {

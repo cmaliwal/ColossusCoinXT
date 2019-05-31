@@ -333,29 +333,29 @@ void CAddrMan::Attempt_(const CDestination& addr, int64_t nTime)
     info.nAttempts++;
 }
 
-CAddrInfo CAddrMan::GetRandInfo() //std::map<int, CAddrInfo> mapInfo)
-{
-    if (mapInfo.size() == 0)
-        return CAddrInfo();
-    int nPos = GetRandInt(mapInfo.size());
-    int iPos = 0;
-    // for (std::map<int, CAddrInfo>::const_iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
-    for (std::map<int, CAddrInfo>::iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
-        if (iPos >= nPos) {
-            CAddrInfo& info = (*it).second;
-            return info;
-        }
-    }
-    CAddrInfo& start = (*mapInfo.begin()).second;
-    return start;
-}
+// CAddrInfo CAddrMan::GetRandInfo() //std::map<int, CAddrInfo> mapInfo)
+// {
+//     if (mapInfo.size() == 0)
+//         return CAddrInfo();
+//     int nPos = GetRandInt(mapInfo.size());
+//     int iPos = 0;
+//     // for (std::map<int, CAddrInfo>::const_iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
+//     for (std::map<int, CAddrInfo>::iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
+//         if (iPos >= nPos) {
+//             CAddrInfo& info = (*it).second;
+//             return info;
+//         }
+//     }
+//     CAddrInfo& start = (*mapInfo.begin()).second;
+//     return start;
+// }
 
 CI2PAddress CAddrMan::Select_()
 {
     if (size() == 0)
         return CI2PAddress();
 
-    // I2PDK: it seems that nobody asked this, and below the 'else' goes in everytime? even if empty
+    // I2PDK: this should be covered by size() check but still below, the 'else' goes in everytime? even if empty
     if (nTried <= 0 && nNew <= 0) {
         LogPrintf("addrman: Select: all zeroes? ('%s')\n", "");
         return CAddrInfo(); // CI2PAddress();
@@ -364,66 +364,107 @@ CI2PAddress CAddrMan::Select_()
     // I2PDK: there's an issue here, especially when we have little addresses to start w/
     // sort of like the size() == 0 condition above - end result is that this loops for a very
     // long time
+    // I2PERF: this is way too expensive (at least for amount of addresses in i2p), turning it off for now.
+    bool fUseTried = nTried > 0 && (nNew == 0 || GetRandInt(2) == 0);
+    return GetAddr_(fUseTried);
+
+    // if (mapInfo.size() == 0)
+    //     return CAddrInfo();
+    // int64_t nStartTime = GetTimeMillis();
+    // double fChanceFactor = 1.0;
+    // int nLoops = 0;
+    // while (true) {
+    //     nLoops++;
+    //     int nPos = GetRandInt(mapInfo.size());
+    //     int iPos = 0;
+    //     for (std::map<int, CAddrInfo>::iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
+    //         if (iPos >= nPos) {
+    //             CAddrInfo& info = (*it).second;
+    //             int nId = (*it).first;
+    //             assert(mapInfo.count(nId) == 1);
+    //             if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
+    //                 return info;
+    //             int64_t timeSpent = GetTimeMillis() - nStartTime;
+    //             if (timeSpent > 10 || nLoops > 10) {
+    //                 LogPrintf("addrman: Select (tried): taking any value to bail out... ('%s'), %ld\n", info.ToString(), timeSpent);
+    //                 return info;
+    //             }
+    //             fChanceFactor *= 2.0; //1.2;
+    //             break;
+    //         }
+    //     }
+    // }
+    // CAddrInfo& start = (*mapInfo.begin()).second;
+    // return start;
+
+
+
     // int64_t nStartTime = GetTimeMillis();
 
-    // Use a 50% chance for choosing between tried and new table entries.
-    if (nTried > 0 && (nNew == 0 || GetRandInt(2) == 0)) {
-        // use a tried node
-        double fChanceFactor = 1.0;
-        int nLoops = 0;
-        while (1) {
-            // I2PERF: this could be what's causing the slow downs, if we're hitting this often and
-            // waiting 200ms each time? just debug it to see what's going on and if still an issue
-            // fix for an endless loop here on small amount of addresses
-            // int64_t nTime = GetTimeMillis();
-            // if (nTime - nStartTime > 200) {
-            if (nLoops > 10) {
-                LogPrintf("addrman: Select: looping, taking any value to bail out... ('%s')\n", "");
-                fChanceFactor *= 1.2;
-                return GetRandInfo(); //mapInfo);
-            }
+    // // Use a 50% chance for choosing between tried and new table entries.
+    // if (nTried > 0 && (nNew == 0 || GetRandInt(2) == 0)) {
+    //     // use a tried node
+    //     double fChanceFactor = 1.0;
+    //     int nLoops = 0;
+    //     while (1) {
+    //         nLoops++;
+    //         // I2PERF: this could be what's causing the slow downs, if we're hitting this often and
+    //         // waiting 200ms each time? just debug it to see what's going on and if still an issue
+    //         // fix for an endless loop here on small amount of addresses
+    //         int64_t timeSpent = GetTimeMillis() - nStartTime;
+    //         if (timeSpent > 200 || nLoops > 50000) {
+    //         // if (nLoops > 10) {
+    //             // LogPrintf("addrman: Select: looping, taking any value to bail out... ('%s')\n", "");
+    //             fChanceFactor *= 1.2;
+    //             auto randinfo = GetRandInfo();
+    //             LogPrintf("addrman: Select (tried): taking any value to bail out... ('%s'), %ld\n", randinfo.ToString(), timeSpent);
+    //             return randinfo;
+    //             // return GetRandInfo(); //mapInfo);
+    //         }
 
-            int nKBucket = GetRandInt(ADDRMAN_TRIED_BUCKET_COUNT);
-            int nKBucketPos = GetRandInt(ADDRMAN_BUCKET_SIZE);
-            if (vvTried[nKBucket][nKBucketPos] == -1)
-                continue;
-            int nId = vvTried[nKBucket][nKBucketPos];
-            assert(mapInfo.count(nId) == 1);
-            CAddrInfo& info = mapInfo[nId];
-            if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
-                return info;
-            fChanceFactor *= 1.2;
-            nLoops++;
-        }
-    } else {
-        // use a new node
-        double fChanceFactor = 1.0;
-        int nLoops = 0;
-        while (1) {
-            // I2PERF: this could be what's causing the slow downs, if we're hitting this often...
-            // fix for an endless loop here on small amount of addresses
-            // int64_t nTime = GetTimeMillis();
-            // if (nTime - nStartTime > 200) {
-            if (nLoops > 10) {
-                LogPrintf("addrman: Select: looping, taking any value to bail out... ('%s')\n", "");
-                fChanceFactor *= 1.2;
-                return GetRandInfo(); //mapInfo);
-                // return CI2PAddress();
-            }
+    //         int nKBucket = GetRandInt(ADDRMAN_TRIED_BUCKET_COUNT);
+    //         int nKBucketPos = GetRandInt(ADDRMAN_BUCKET_SIZE);
+    //         if (vvTried[nKBucket][nKBucketPos] == -1)
+    //             continue;
+    //         int nId = vvTried[nKBucket][nKBucketPos];
+    //         assert(mapInfo.count(nId) == 1);
+    //         CAddrInfo& info = mapInfo[nId];
+    //         if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
+    //             return info;
+    //         fChanceFactor *= 1.2;
+    //     }
+    // } else {
+    //     // use a new node
+    //     double fChanceFactor = 1.0;
+    //     int nLoops = 0;
+    //     while (1) {
+    //         nLoops++;
+    //         // I2PERF: this could be what's causing the slow downs, if we're hitting this often...
+    //         // fix for an endless loop here on small amount of addresses
+    //         // int64_t nTime = GetTimeMillis();
+    //         int64_t timeSpent = GetTimeMillis() - nStartTime;
+    //         if (timeSpent > 200 || nLoops > 50000) {
+    //         // if (nLoops > 10) {
+    //             // LogPrintf("addrman: Select: looping, taking any value to bail out... ('%s')\n", "");
+    //             fChanceFactor *= 1.2;
+    //             auto randinfo = GetRandInfo();
+    //             LogPrintf("addrman: Select (new): taking any value to bail out... ('%s'), %ld\n", randinfo.ToString(), timeSpent);
+    //             return randinfo;
+    //             // return GetRandInfo(); //mapInfo);
+    //         }
 
-            int nUBucket = GetRandInt(ADDRMAN_NEW_BUCKET_COUNT);
-            int nUBucketPos = GetRandInt(ADDRMAN_BUCKET_SIZE);
-            if (vvNew[nUBucket][nUBucketPos] == -1)
-                continue;
-            int nId = vvNew[nUBucket][nUBucketPos];
-            assert(mapInfo.count(nId) == 1);
-            CAddrInfo& info = mapInfo[nId];
-            if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
-                return info;
-            fChanceFactor *= 1.2;
-            nLoops++;
-        }
-    }
+    //         int nUBucket = GetRandInt(ADDRMAN_NEW_BUCKET_COUNT);
+    //         int nUBucketPos = GetRandInt(ADDRMAN_BUCKET_SIZE);
+    //         if (vvNew[nUBucket][nUBucketPos] == -1)
+    //             continue;
+    //         int nId = vvNew[nUBucket][nUBucketPos];
+    //         assert(mapInfo.count(nId) == 1);
+    //         CAddrInfo& info = mapInfo[nId];
+    //         if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
+    //             return info;
+    //         fChanceFactor *= 1.2;
+    //     }
+    // }
 }
 
 #ifdef DEBUG_ADDRMAN
@@ -520,9 +561,42 @@ void CAddrMan::GetAddr_(std::vector<CI2PAddress>& vAddr)
         assert(mapInfo.count(vRandom[n]) == 1);
 
         const CAddrInfo& ai = mapInfo[vRandom[n]];
-        if (!ai.IsTerrible())
+        if (!ai.IsTerrible()) {
             vAddr.push_back(ai);
+        } else {
+            LogPrintf("addrman.GetAddr_: ai's terrible? ('%s')\n", ai.ToString());
+        }
     }
+}
+
+CI2PAddress CAddrMan::GetAddr_(bool fUseTried, bool fUseAny)
+{
+    if (size() <= 0)
+        return CAddrInfo();
+
+    for (unsigned int n = 0; n < vRandom.size(); n++) {
+        int nRndPos = GetRandInt(vRandom.size() - n) + n;
+        SwapRandom(n, nRndPos);
+        assert(mapInfo.count(vRandom[n]) == 1);
+
+        const CAddrInfo& ai = mapInfo[vRandom[n]];
+        if (!ai.IsTerrible()) {
+            if (fUseAny)
+                return ai;
+            if (!fUseTried && !ai.fInTried)
+                return ai;
+            if (fUseTried && ai.fInTried)
+                return ai;
+            // return ai;
+        } else {
+            LogPrintf("addrman.GetAddr_: ai's terrible? ('%s')\n", ai.ToString());
+        }
+        if (fUseAny && vRandom.size() - n == 1) {
+            LogPrintf("addrman.GetAddr_: returning terrible? ('%s')\n", ai.ToString());
+            return ai;
+        }
+    }
+    return CAddrInfo();
 }
 
 void CAddrMan::Connected_(const CDestination& addr, int64_t nTime)
