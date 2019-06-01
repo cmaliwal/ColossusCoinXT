@@ -55,7 +55,7 @@ Make sure my-keys.dat and destinations folder are removed. Start the app briefly
 9) Blockchain is the same (forked) existing testnet, so you can reuse existing wallet funds (up to ~115K mark), or let me know your account address and I'll reroute some funds.
 
 # Files 
-- https://1drv.ms/f/s!AnrEFg2ff_U_h98eiQniM60nL5ROKA- let me know if any issues and I'll set up an alternative. 
+- https://1drv.ms/f/s!AnrEFg2ff_U_h98eiQniM60nL5ROKA - let me know if any issues and I'll set up an alternative. 
 - no 'android' binaries (for the moment, i2p has some issues compiling, will be shortly/next).
 - client.ColossusXT.tar.gz, server.ColossusXT.tar.gz - use these files to quickly setup data dir-s, basically use them as templates for either 'client' (non-MN) or 'server' (MN) setup. Read through the ColossusXT.conf as it contains necessary notes.
 - ~~snapshot_052419.tar.gz~~ (will be revisited) - only as a temp measure and if you really wish to get going fast and know what you're doing - (and may cause problems difficult to track down). I don't wish to encourage this, but just use it as a template, and add your wallet.dat/masternode.conf to the testnet4, nothing else (no other files, so 4 subdirs and wallet.dat, possibly masternode.conf, that's all). Start and it should start from the very recent block. But keep in mind this isn't ideal. You should ideally start from scratch, just wallet.dat (or no wallet), and let it sync from the start, that results in a more stable structure, less surprises. 
