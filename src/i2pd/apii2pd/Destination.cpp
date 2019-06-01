@@ -154,7 +154,10 @@ namespace client
 				m_Pool->SetLocalDestination (nullptr);
 				i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 			}
+			
 			m_Service.stop ();
+
+			LogPrint(eLogInfo, "LeaseSetDestination::Stop: stopping thread...");
 			if (m_Thread)
 			{
 				m_Thread->join ();

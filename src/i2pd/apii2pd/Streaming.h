@@ -191,11 +191,13 @@ namespace stream
 			void Terminate ();
 
             // Call to know if the handler is dead
-            inline bool Dead () { return m_Dead; }
+            inline bool Dead () { return _dead; }
+            inline bool IsClosed () { return _closed; }
 
 		private:
             // Call when terminating or handing over to avoid race conditions
-            inline bool Kill () { return m_Dead.exchange(true); }
+            inline bool Kill () { return _dead.exchange(true); }
+            inline bool EnsureClosed () { return _closed.exchange(true); }
 
 			void CleanUp ();
 
@@ -246,7 +248,8 @@ namespace stream
 			uint64_t m_LastWindowSizeIncreaseTime;
 			int m_NumResendAttempts;
 
-            std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
+            volatile std::atomic<bool> _closed; //To avoid cleaning up multiple times
+            volatile std::atomic<bool> _dead; //To avoid cleaning up multiple times
 	};
 
 	class StreamingDestination: public std::enable_shared_from_this<StreamingDestination>
@@ -328,6 +331,7 @@ namespace stream
 				self->m_ReceiveTimer.async_wait (
 					[self, buffer, handler, left](const boost::system::error_code & ec)
 					{
+						// I2P: this is triggering Stream destructor (and subsequent mutex / unwind error)
 						self->HandleReceiveTimer(ec, buffer, handler, left);
 					});
 			}

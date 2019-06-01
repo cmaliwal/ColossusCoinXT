@@ -64,7 +64,7 @@ namespace stream
 		m_WindowSize (MIN_WINDOW_SIZE), m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO),
 		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0),
-		m_Dead(false)
+		_dead(false), _closed(false)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
@@ -77,7 +77,7 @@ namespace stream
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0),  m_WindowSize (MIN_WINDOW_SIZE),
 		m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0),
-		m_Dead(false)
+		_dead(false), _closed(false)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 	}
@@ -92,6 +92,7 @@ namespace stream
 	{
 		if (Dead()) {
 			LogPrint (eLogError, "Streaming.Terminate: stream is dead? rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			return;
 		}			
 			
 		m_AckSendTimer.cancel ();
@@ -110,10 +111,15 @@ namespace stream
 			LogPrint (eLogDebug, "Streaming.CleanUp: rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 		}
 
-		{
+		// _Unwind_Exception?
+		try {
 			std::unique_lock<std::mutex> l(m_SendBufferMutex);
 			m_SendBuffer.CleanUp ();
+		} catch (...) { // I2P: don't do this, exception?
+			LogPrint (eLogError, "Streaming.CleanUp: _Unwind_Exception, due to thread being closed? rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			m_SendBuffer.CleanUp ();
 		}
+
 		while (!m_ReceiveQueue.empty ())
 		{
 			auto packet = m_ReceiveQueue.front ();
@@ -404,6 +410,11 @@ namespace stream
 
 	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler handler)
 	{
+		if (Dead()) {
+			LogPrint (eLogError, "Streaming.AsyncSend: stream is dead? rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			return;
+		}			
+			
 		if (len > 0 && buf)
 		{
 			std::unique_lock<std::mutex> l(m_SendBufferMutex);
@@ -416,6 +427,11 @@ namespace stream
 
 	void Stream::SendBuffer ()
 	{
+		if (Dead()) {
+			LogPrint (eLogError, "Streaming.SendBuffer: stream is dead? rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			return;
+		}			
+			
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
 		if (numMsgs <= 0) return; // window is full
 
@@ -425,6 +441,11 @@ namespace stream
 			std::unique_lock<std::mutex> l(m_SendBufferMutex);
 			while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.IsEmpty () && numMsgs > 0))
 			{
+				if (Dead()) {
+					LogPrint (eLogError, "Streaming.SendBuffer: stream is dead? rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+					return;
+				}			
+					
 				Packet * p = m_LocalDestination.NewPacket ();
 				uint8_t * packet = p->GetBuffer ();
 				// TODO: implement setters
@@ -574,8 +595,14 @@ namespace stream
 
 	void Stream::Close ()
 	{
+		if (EnsureClosed()) {
+			LogPrint (eLogError, "Streaming.Close: stream closed already? status=", m_Status, ", rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			return;
+		}			
+
 		if (Dead()) {
 			LogPrint (eLogError, "Streaming.Close: stream is dead? status=", m_Status, ", rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+			return;
 		}			
 
 		LogPrint(eLogDebug, "Streaming: closing stream with sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID, ", status=", m_Status);
@@ -779,6 +806,7 @@ namespace stream
 		{
 			if (Dead()) {
 				LogPrint (eLogError, "Streaming.HandleResendTimer: stream is dead already? status=", m_Status, ", rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+				return;
 			}			
 
 			// check for resend attempts
@@ -788,6 +816,7 @@ namespace stream
 
 				if (Dead()) {
 					LogPrint (eLogError, "Streaming: stream is dead already? status=", m_Status, ", rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+					return;
 				}			
 					
 				m_Status = eStreamStatusReset;
