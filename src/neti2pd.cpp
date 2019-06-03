@@ -1129,7 +1129,7 @@ void ThreadTunnelHandler()
                 // * We process a message in the buffer (message handler thread).
 
                 // I2PERF:
-                MilliSleep(5);
+                // MilliSleep(5);
 
                 // I2PDK: not sure how to emulate this, FD_SET will specify preference of send over receive (as per the
                 // above comments). Probably best is to store fdset equivalents (flags) within a vector on the stack
@@ -1205,7 +1205,8 @@ void ThreadTunnelHandler()
 
             // I2PDK: not sure about this or how much? due to the random looping forever issue
             // I2PERF:
-            MilliSleep(50);
+            MilliSleep(30);
+            // MilliSleep(50);
             // MilliSleep(200);
             
             //
@@ -1577,15 +1578,16 @@ void ThreadOpenConnections()
         int nTries = 0;
         while (true) {
             CI2PAddress addr = addrman.Select();
+            LogPrintf("net.Select: addr: ('%s')\n", addr.ToString());
             // I2PDK: in case there's nothing or random buckets algo is stalling (which happens on near empty list)
             // we'd return an empty address, which is not valid, bail out if so.
             if (!addr.IsValid())
                 break;
 
             // I2PDK: not sure about this or how much? due to the random looping forever issue
-            // I2PERF:
+            // I2PERF: I think we can remove this now as addrman is fixed and not stalling?
             // MilliSleep(50);
-            MilliSleep(250);
+            // MilliSleep(250);
 
             // if we selected an invalid address, restart
             if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
@@ -1602,7 +1604,8 @@ void ThreadOpenConnections()
                 continue;
 
             // only consider very recently tried nodes after 30 failed attempts
-            if (nANow - addr.nLastTry < 600 && nTries < 30)
+            // if (nANow - addr.nLastTry < 600 && nTries < 30)
+            if (nANow - addr.nLastTry < 60 * 3 && nTries < 30)
                 continue;
 
             // do not allow non-default ports, unless after 50 invalid addresses selected already

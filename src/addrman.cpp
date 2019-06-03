@@ -366,36 +366,40 @@ CI2PAddress CAddrMan::Select_()
     // long time
     // I2PERF: this is way too expensive (at least for amount of addresses in i2p), turning it off for now.
     bool fUseTried = nTried > 0 && (nNew == 0 || GetRandInt(2) == 0);
-    return GetAddr_(fUseTried);
 
-    // if (mapInfo.size() == 0)
-    //     return CAddrInfo();
-    // int64_t nStartTime = GetTimeMillis();
-    // double fChanceFactor = 1.0;
-    // int nLoops = 0;
-    // while (true) {
-    //     nLoops++;
-    //     int nPos = GetRandInt(mapInfo.size());
-    //     int iPos = 0;
-    //     for (std::map<int, CAddrInfo>::iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
-    //         if (iPos >= nPos) {
-    //             CAddrInfo& info = (*it).second;
-    //             int nId = (*it).first;
-    //             assert(mapInfo.count(nId) == 1);
-    //             if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
-    //                 return info;
-    //             int64_t timeSpent = GetTimeMillis() - nStartTime;
-    //             if (timeSpent > 10 || nLoops > 10) {
-    //                 LogPrintf("addrman: Select (tried): taking any value to bail out... ('%s'), %ld\n", info.ToString(), timeSpent);
-    //                 return info;
-    //             }
-    //             fChanceFactor *= 2.0; //1.2;
-    //             break;
-    //         }
-    //     }
-    // }
-    // CAddrInfo& start = (*mapInfo.begin()).second;
-    // return start;
+    if (size() > 5 && mapInfo.size() - size() < 3) // if enough in random
+        return GetAddr_(fUseTried, false); //true);
+
+    if (mapInfo.size() == 0)
+        return CAddrInfo();
+    int64_t nStartTime = GetTimeMillis();
+    double fChanceFactor = 1.0;
+    int nLoops = 0;
+    // while (true) 
+    {
+        nLoops++;
+        int nPos = GetRandInt(mapInfo.size());
+        int iPos = 0;
+        for (std::map<int, CAddrInfo>::iterator it = mapInfo.begin(); it != mapInfo.end(); it++, iPos++) {
+            if (iPos >= nPos) {
+                CAddrInfo& info = (*it).second;
+                int nId = (*it).first;
+                assert(mapInfo.count(nId) == 1);
+                return info;
+                // if (GetRandInt(1 << 30) < fChanceFactor * info.GetChance() * (1 << 30))
+                //     return info;
+                // int64_t timeSpent = GetTimeMillis() - nStartTime;
+                // if (timeSpent > 10 || nLoops > 10) {
+                //     LogPrintf("addrman: Select (tried): taking any value to bail out... ('%s'), %ld\n", info.ToString(), timeSpent);
+                //     return info;
+                // }
+                // fChanceFactor *= 2.0; //1.2;
+                // break;
+            }
+        }
+    }
+    CAddrInfo& start = (*mapInfo.begin()).second;
+    return start;
 
 
 
@@ -591,7 +595,8 @@ CI2PAddress CAddrMan::GetAddr_(bool fUseTried, bool fUseAny)
         } else {
             LogPrintf("addrman.GetAddr_: ai's terrible? ('%s')\n", ai.ToString());
         }
-        if (fUseAny && vRandom.size() - n == 1) {
+        // if (fUseAny && vRandom.size() - n == 1) {
+        if (vRandom.size() - n == 1) {
             LogPrintf("addrman.GetAddr_: returning terrible? ('%s')\n", ai.ToString());
             return ai;
         }

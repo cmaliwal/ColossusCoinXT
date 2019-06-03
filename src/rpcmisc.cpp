@@ -168,6 +168,10 @@ UniValue getinfo(const UniValue& params, bool fHelp)
     if (fForceOnTry)
         obj.push_back(Pair("deadlockdebugontry", fForceOnTry));
 
+    bool fSkipPOSCheck = GetBoolArg("-skipposcheck", true);
+    if (fSkipPOSCheck)
+        obj.push_back(Pair("skipposcheck", fSkipPOSCheck));
+
     return obj;
 }
 

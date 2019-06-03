@@ -313,7 +313,25 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock blockFrom, const CTra
     //if wallet is simply checking to make sure a hash is valid
     if (fCheck) {
         hashProofOfStake = stakeHash(nTimeTx, ss, prevout.n, prevout.hash, nTimeBlockFrom);
-        return stakeTargetHit(hashProofOfStake, nValueIn, bnTargetPerCoinDay);
+        bool success = stakeTargetHit(hashProofOfStake, nValueIn, bnTargetPerCoinDay);
+        if (!success) {
+            // LogPrintf("CheckStakeKernelHash.stakeTargetHit: failed. %s, %d, %s \n", 
+            // nTimeTx, 
+            // boost::lexical_cast<std::string>(nStakeModifier).c_str(), nStakeModifierHeight, 
+            // prevout.n, 
+            // nTimeBlockFrom);
+            LogPrintf("CheckStakeKernelHash.stakeTargetHit: using modifier %s at height=%d timestamp=%s for block from height=%d timestamp=%s\n",
+                boost::lexical_cast<std::string>(nStakeModifier).c_str(), nStakeModifierHeight,
+                DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nStakeModifierTime).c_str(),
+                mapBlockIndex[blockFrom.GetHash()]->nHeight,
+                DateTimeStrFormat("%Y-%m-%d %H:%M:%S", blockFrom.GetBlockTime()).c_str());
+            LogPrintf("CheckStakeKernelHash.stakeTargetHit: pass protocol=%s modifier=%s nTimeBlockFrom=%u prevoutHash=%s nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s\n",
+                "0.3",
+                boost::lexical_cast<std::string>(nStakeModifier).c_str(),
+                nTimeBlockFrom, prevout.hash.ToString().c_str(), nTimeBlockFrom, prevout.n, nTimeTx,
+                hashProofOfStake.ToString().c_str());
+        }
+        return success;
     }
 
     bool fSuccess = false;
@@ -396,8 +414,14 @@ bool CheckProofOfStake(const CBlock block, uint256& hashProofOfStake)
 
     unsigned int nInterval = 0;
     unsigned int nTime = block.nTime;
-    if (!CheckStakeKernelHash(block.nBits, blockprev, txPrev, txin.prevout, nTime, nInterval, true, hashProofOfStake, fDebug))
-        return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n", tx.GetHash().ToString().c_str(), hashProofOfStake.ToString().c_str()); // may occur during initial download or if behind on block chain sync
+    if (!CheckStakeKernelHash(block.nBits, blockprev, txPrev, txin.prevout, nTime, nInterval, true, hashProofOfStake, fDebug)) {
+        bool fSkipPOSCheck = GetBoolArg("-skipposcheck", true);
+        if (!fSkipPOSCheck) {
+            return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n", tx.GetHash().ToString().c_str(), hashProofOfStake.ToString().c_str()); // may occur during initial download or if behind on block chain sync
+        }
+        // I2PTESTNETFIX:
+        LogPrintf("ERROR: (off): CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n", tx.GetHash().ToString().c_str(), hashProofOfStake.ToString().c_str()); // may occur during initial download or if behind on block chain sync
+    }
 
     return true;
 }
