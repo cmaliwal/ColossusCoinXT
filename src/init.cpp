@@ -1439,6 +1439,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc,
             CDestination addrLocal(strAddr, GetListenPort(), fNameLookup);
             if (!addrLocal.IsValid())
                 return InitError(strprintf(_("Cannot resolve -externalip address: '%s'"), strAddr));
+            LogPrintf("net.externalip: we're LOCAL! ('%s') %d\n", strAddr, GetAdjustedTime());
             AddLocal(CDestination(strAddr, GetListenPort(), fNameLookup), LOCAL_MANUAL);
         }
     }

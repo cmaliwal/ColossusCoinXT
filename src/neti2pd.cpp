@@ -383,8 +383,11 @@ CI2pdNode* FindNode(const CI2pUrl& ip)
 {
     LOCK(cs_vNodes);
     for (CI2pdNode* pnode : vNodes)
-        if ((CI2pUrl)pnode->addr == ip)
+        if ((CI2pUrl)pnode->addr == ip) {
+            if (pnode->fDisconnect)
+                LogPrintf("net.FindNode: disconnected? ('%s') %d\n", pnode->addr.ToString(), GetAdjustedTime());
             return (pnode);
+        }
     return NULL;
 }
 
@@ -430,13 +433,17 @@ CI2pdNode* ConnectNode(CI2PAddress addrConnect, const char* pszDest, bool obfuSc
 {
     using namespace std::placeholders;    // adds visibility of _1, _2, _3,...
 
+    // LogPrintf("net.ConnectNode: ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
     //CDestination addr = CDestination(CI2pUrl(hostname), port);
 
     if (pszDest == NULL) {
         // we clean masternode connections in CMasternodeMan::ProcessMasternodeConnections()
         // so should be safe to skip this and connect to local Hot MN on CActiveMasternode::ManageStatus()
-        if (IsLocal(addrConnect) && !obfuScationMaster)
-            return NULL;
+        if (IsLocal(addrConnect) && !obfuScationMaster) {
+            LogPrintf("net.ConnectNode: IsLocal(addrConnect) && !obfuScationMaster ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
+            // I2PTESTNETFIX: we're local as we often have externalip (nature of i2p) and this almost always returns here? 
+            //return NULL;
+        }
 
         // Look for an existing connection
         CI2pdNode* pnode = FindNode((CDestination)addrConnect);
@@ -444,6 +451,7 @@ CI2pdNode* ConnectNode(CI2PAddress addrConnect, const char* pszDest, bool obfuSc
             pnode->fObfuScationMaster = obfuScationMaster;
 
             pnode->AddRef();
+            LogPrintf("net.ConnectNode: FindNode found ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
             return pnode;
         }
     }
@@ -1578,11 +1586,13 @@ void ThreadOpenConnections()
         int nTries = 0;
         while (true) {
             CI2PAddress addr = addrman.Select();
-            LogPrintf("net.Select: addr: ('%s')\n", addr.ToString());
+            LogPrintf("net.Select: addr: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
             // I2PDK: in case there's nothing or random buckets algo is stalling (which happens on near empty list)
             // we'd return an empty address, which is not valid, bail out if so.
-            if (!addr.IsValid())
+            if (!addr.IsValid()) {
+                LogPrintf("net.Select: not valid: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
                 break;
+            }
 
             // I2PDK: not sure about this or how much? due to the random looping forever issue
             // I2PERF: I think we can remove this now as addrman is fixed and not stalling?
@@ -1590,27 +1600,37 @@ void ThreadOpenConnections()
             // MilliSleep(250);
 
             // if we selected an invalid address, restart
-            if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
-                break;
+            if (!addr.IsValid() || setConnected.count(addr.GetGroup())) { // || IsLocal(addr)) {
+                //LogPrintf("net.Select: same group?: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
+                // break;
+            }
 
             // If we didn't find an appropriate destination after trying 100 addresses fetched from addrman,
             // stop this loop, and let the outer loop run again (which sleeps, adds seed nodes, recalculates
             // already-connected network ranges, ...) before trying new addrman addresses.
             nTries++;
-            if (nTries > 100)
+            if (nTries > 100) {
+                LogPrintf("net.Select: nTries > 100: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
                 break;
+            }
 
-            if (IsLimited(addr))
+            if (IsLimited(addr)) {
+                LogPrintf("net.Select: limited: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
                 continue;
+            }
 
             // only consider very recently tried nodes after 30 failed attempts
             // if (nANow - addr.nLastTry < 600 && nTries < 30)
-            if (nANow - addr.nLastTry < 60 * 3 && nTries < 30)
+            if (nANow - addr.nLastTry < 60 * 3 && nTries < 30) {
+                LogPrintf("net.Select: recently tried: ('%s') %d %d\n", addr.ToString(), GetAdjustedTime(), addr.nLastTry);
                 continue;
+            }
 
             // do not allow non-default ports, unless after 50 invalid addresses selected already
-            if (Params().NetworkID() == CBaseChainParams::MAIN && addr.GetPort() != Params().GetDefaultPort() && nTries < 50)
-                continue;
+            if (Params().NetworkID() == CBaseChainParams::MAIN && addr.GetPort() != Params().GetDefaultPort() && nTries < 50) {
+                LogPrintf("net.Select: non-default port: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
+                //continue;
+            }
 
             addrConnect = addr;
             break;
@@ -1681,6 +1701,7 @@ void ThreadOpenAddedConnections()
         }
         BOOST_FOREACH (vector<CDestination>& vserv, lservAddressesToAdd) {
             CSemaphoreGrant grant(*semOutbound);
+            LogPrintf("net.ThreadOpenAddedConnections: server connection? ('%s') %d\n", "", GetAdjustedTime());
             OpenNetworkConnection(CI2PAddress(vserv[i % vserv.size()]), &grant);
             MilliSleep(500);
         }
@@ -1691,17 +1712,22 @@ void ThreadOpenAddedConnections()
 // if successful, this moves the passed grant to the constructed node
 bool OpenNetworkConnection(const CI2PAddress& addrConnect, CSemaphoreGrant* grantOutbound, const char* pszDest, bool fOneShot)
 {
+    // DebugPrintf("net.OpenNetworkConnection: ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
     //
     // Initiate outbound network connection
     //
     boost::this_thread::interruption_point();
     if (!pszDest) {
-        if (IsLocal(addrConnect) ||
+        if ( //IsLocal(addrConnect) ||
             FindNode((CI2pUrl)addrConnect) || CI2pdNode::IsBanned(addrConnect) ||
-            FindNode(addrConnect.ToStringIPPort()))
+            FindNode(addrConnect.ToStringIPPort())) {
+            LogPrintf("net.OpenNetworkConnection: !pszDest FindNode ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
             return false;
-    } else if (FindNode(pszDest))
+        }
+    } else if (FindNode(pszDest)) {
+        LogPrintf("net.OpenNetworkConnection: FindNode ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
         return false;
+    }
 
     // I2PDK: this is a precondition to even consider connecting to i2p nodes, we need to be
     // up and running and 'on the network' with inbound and outbound channels, floodfills etc.
@@ -1709,6 +1735,7 @@ bool OpenNetworkConnection(const CI2PAddress& addrConnect, CSemaphoreGrant* gran
     // for any connection.
     auto localDest = i2p::client::context.GetSharedLocalDestination();
     if (!localDest->AreTunnelsReady ()) {
+        LogPrintf("net.OpenNetworkConnection: !AreTunnelsReady ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
         // this will loop anyway (every 2 mins?) so just bail out and try later on.
         return false;
     }

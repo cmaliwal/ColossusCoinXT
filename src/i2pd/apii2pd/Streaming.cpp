@@ -117,7 +117,7 @@ namespace stream
 			m_SendBuffer.CleanUp ();
 		} catch (...) { // I2P: don't do this, exception? // __cxxabi::__forced_unwind
 			LogPrint (eLogError, "Streaming.CleanUp: _Unwind_Exception, due to thread being closed? rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
-			m_SendBuffer.CleanUp ();
+			// m_SendBuffer.CleanUp ();
 		}
 
 		while (!m_ReceiveQueue.empty ())

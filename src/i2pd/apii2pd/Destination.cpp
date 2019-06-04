@@ -157,7 +157,7 @@ namespace client
 			
 			m_Service.stop ();
 
-			LogPrint(eLogInfo, "LeaseSetDestination::Stop: stopping thread...");
+			LogPrint(eLogDebug, "LeaseSetDestination::Stop: stopping thread...");
 			if (m_Thread)
 			{
 				m_Thread->join ();
