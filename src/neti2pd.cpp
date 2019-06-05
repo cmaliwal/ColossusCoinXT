@@ -1586,11 +1586,11 @@ void ThreadOpenConnections()
         int nTries = 0;
         while (true) {
             CI2PAddress addr = addrman.Select();
-            LogPrintf("net.Select: addr: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
+            // LogPrint("connection", "net.Select: addr: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
             // I2PDK: in case there's nothing or random buckets algo is stalling (which happens on near empty list)
             // we'd return an empty address, which is not valid, bail out if so.
             if (!addr.IsValid()) {
-                LogPrintf("net.Select: not valid: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
+                LogPrint("connection", "net.Select: not valid: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
                 break;
             }
 
@@ -1610,25 +1610,25 @@ void ThreadOpenConnections()
             // already-connected network ranges, ...) before trying new addrman addresses.
             nTries++;
             if (nTries > 100) {
-                LogPrintf("net.Select: nTries > 100: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
+                LogPrint("connection", "net.Select: nTries > 100: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
                 break;
             }
 
             if (IsLimited(addr)) {
-                LogPrintf("net.Select: limited: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
+                LogPrint("connection", "net.Select: limited: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
                 continue;
             }
 
             // only consider very recently tried nodes after 30 failed attempts
             // if (nANow - addr.nLastTry < 600 && nTries < 30)
             if (nANow - addr.nLastTry < 60 * 3 && nTries < 30) {
-                LogPrintf("net.Select: recently tried: ('%s') %d %d\n", addr.ToString(), GetAdjustedTime(), addr.nLastTry);
+                // LogPrint("connection", "net.Select: recently tried: ('%s') %d %d\n", addr.ToString(), GetAdjustedTime(), addr.nLastTry);
                 continue;
             }
 
             // do not allow non-default ports, unless after 50 invalid addresses selected already
             if (Params().NetworkID() == CBaseChainParams::MAIN && addr.GetPort() != Params().GetDefaultPort() && nTries < 50) {
-                LogPrintf("net.Select: non-default port: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
+                LogPrint("connection", "net.Select: non-default port: ('%s') %d\n", addr.ToString(), GetAdjustedTime());
                 //continue;
             }
 
@@ -1721,11 +1721,11 @@ bool OpenNetworkConnection(const CI2PAddress& addrConnect, CSemaphoreGrant* gran
         if ( //IsLocal(addrConnect) ||
             FindNode((CI2pUrl)addrConnect) || CI2pdNode::IsBanned(addrConnect) ||
             FindNode(addrConnect.ToStringIPPort())) {
-            LogPrintf("net.OpenNetworkConnection: !pszDest FindNode ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
+            // LogPrint("connection", "net.OpenNetworkConnection: !pszDest FindNode ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
             return false;
         }
     } else if (FindNode(pszDest)) {
-        LogPrintf("net.OpenNetworkConnection: FindNode ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
+        LogPrint("connection", "net.OpenNetworkConnection: FindNode ('%s') ('%s') %d\n", addrConnect.ToString(), pszDest ? pszDest : "", GetAdjustedTime());
         return false;
     }
 

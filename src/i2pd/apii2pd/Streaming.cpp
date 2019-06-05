@@ -46,6 +46,11 @@ namespace stream
 
 	void SendBufferQueue::CleanUp ()
 	{
+		if (Kill()) { 
+			LogPrint (eLogError, "SendBufferQueue::CleanUp: cleaned up?");
+			return; 
+		}
+
 		if (!m_Buffers.empty ())
 		{
 			for (auto it: m_Buffers)

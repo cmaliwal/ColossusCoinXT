@@ -142,6 +142,7 @@ namespace client
 
 	bool LeaseSetDestination::Stop ()
 	{
+		LogPrint(eLogDebug, "LeaseSetDestination::Stop: stopping...");
 		if (m_IsRunning)
 		{
 			m_CleanupTimer.cancel ();

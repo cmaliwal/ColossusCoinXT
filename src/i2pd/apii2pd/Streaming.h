@@ -131,10 +131,14 @@ namespace stream
 			bool IsEmpty () const { return m_Buffers.empty (); };
 			void CleanUp ();
 
+            inline bool Dead () { return _dead; }
+			
 		private:
+            inline bool Kill () { return _dead.exchange(true); }
 
 			std::list<std::shared_ptr<SendBuffer> > m_Buffers;
 			size_t m_Size;
+            volatile std::atomic<bool> _dead; //To avoid cleaning up multiple times
 	};
 
 	enum StreamStatus

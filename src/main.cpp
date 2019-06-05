@@ -47,6 +47,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
 
+#include <numeric>
+
 using namespace boost;
 using namespace std;
 using namespace libzerocoin;
@@ -500,6 +502,16 @@ CBlockIndex* LastCommonAncestor(CBlockIndex* pa, CBlockIndex* pb)
     return pa;
 }
 
+static std::string Join(std::vector<CBlockIndex*>& v)
+{
+    if (v.empty())
+        return std::string();
+    return std::accumulate(v.begin()+1, v.end(), std::to_string(v[0]->nHeight),
+                        [](const std::string& a, CBlockIndex* b){
+                            return a + ',' + std::to_string(b->nHeight);
+                        });
+}
+
 /** Update pindexLastCommonBlock and add not-in-flight missing successors to vBlocks, until it has
  *  at most count entries. */
 void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBlockIndex*>& vBlocks, NodeId& nodeStaller)
@@ -538,6 +550,9 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
     // download that next block if the window were 1 larger.
     int nWindowEnd = state->pindexLastCommonBlock->nHeight + BLOCK_DOWNLOAD_WINDOW;
     int nMaxHeight = std::min<int>(state->pindexBestKnownBlock->nHeight, nWindowEnd + 1);
+
+    DebugPrintf("%s : end, height...: %d, %d, %d, %d \n", __func__, nWindowEnd, nMaxHeight, state->pindexLastCommonBlock->nHeight, state->pindexBestKnownBlock->nHeight);
+
     NodeId waitingfor = -1;
     while (pindexWalk->nHeight < nMaxHeight) {
         // Read up to 128 (or more, if more blocks than that are needed) successors of pindexWalk (towards
@@ -547,9 +562,13 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
         vToFetch.resize(nToFetch);
         pindexWalk = state->pindexBestKnownBlock->GetAncestor(pindexWalk->nHeight + nToFetch);
         vToFetch[nToFetch - 1] = pindexWalk;
+
         for (unsigned int i = nToFetch - 1; i > 0; i--) {
             vToFetch[i - 1] = vToFetch[i]->pprev;
         }
+
+        if (fDebug && vToFetch.size() > 0) 
+            DebugPrintf("%s : fetch %d, %d, %s \n", __func__, nToFetch, pindexWalk->nHeight, Join(vToFetch));
 
         // Iterate over those blocks in vToFetch (in forward direction), adding the ones that
         // are not yet downloaded and not in flight to vBlocks. In the mean time, update
@@ -579,6 +598,10 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
             } else if (waitingfor == -1) {
                 // This is the first already-in-flight block.
                 waitingfor = mapBlocksInFlight[pindex->GetBlockHash()].first;
+                if (fDebug) {
+                    auto itInFlight = mapBlocksInFlight[pindex->GetBlockHash()].second;
+                    DebugPrintf("%s : waitingfor: %d, %d, %d \n", __func__, waitingfor, pindex->nHeight, (GetTimeMicros() - itInFlight->nTime) / 1000000 );
+                }
             }
         }
     }
@@ -6797,6 +6820,10 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
                             pindex->GetBlockHash().ToString(), pfrom->id);
                 }
                 if (vGetData.size() > 1) {
+                    if (fDebug) 
+                        DebugPrintf("%s : MarkBlockAsInFlight: %d, %d, %s \n", 
+                            __func__, vGetData.size(), pindexLast->nHeight, Join(vToFetch));
+                    
                     LogPrint("net", "Downloading blocks toward %s (%d) via headers direct fetch\n",
                             pindexLast->GetBlockHash().ToString(), pindexLast->nHeight);
                 }
@@ -7522,6 +7549,11 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
             vector<CBlockIndex*> vToDownload;
             NodeId staller = -1;
             FindNextBlocksToDownload(pto->GetId(), MAX_BLOCKS_IN_TRANSIT_PER_PEER - state.nBlocksInFlight, vToDownload, staller);
+
+            if (fDebug && vToDownload.size() > 0) 
+                DebugPrintf("%s : FindNextBlocksToDownload: %d, %d, %s \n", 
+                    __func__, MAX_BLOCKS_IN_TRANSIT_PER_PEER, state.nBlocksInFlight, Join(vToDownload));
+
             BOOST_FOREACH (CBlockIndex* pindex, vToDownload) {
                 vGetData.push_back(CInv(MSG_BLOCK, pindex->GetBlockHash()));
                 MarkBlockAsInFlight(pto->GetId(), pindex->GetBlockHash(), pindex);

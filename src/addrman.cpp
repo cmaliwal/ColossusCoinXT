@@ -593,11 +593,11 @@ CI2PAddress CAddrMan::GetAddr_(bool fUseTried, bool fUseAny)
                 return ai;
             // return ai;
         } else {
-            LogPrintf("addrman.GetAddr_: ai's terrible? ('%s')\n", ai.ToString());
+            // LogPrint("connection", "addrman.GetAddr_: ai's terrible? ('%s')\n", ai.ToString());
         }
         // if (fUseAny && vRandom.size() - n == 1) {
         if (vRandom.size() - n == 1) {
-            LogPrintf("addrman.GetAddr_: returning terrible? ('%s')\n", ai.ToString());
+            // LogPrint("connection", "addrman.GetAddr_: returning terrible? ('%s')\n", ai.ToString());
             return ai;
         }
     }
