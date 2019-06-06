@@ -551,7 +551,7 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
     int nWindowEnd = state->pindexLastCommonBlock->nHeight + BLOCK_DOWNLOAD_WINDOW;
     int nMaxHeight = std::min<int>(state->pindexBestKnownBlock->nHeight, nWindowEnd + 1);
 
-    DebugPrintf("%s : end, height...: %d, %d, %d, %d \n", __func__, nWindowEnd, nMaxHeight, state->pindexLastCommonBlock->nHeight, state->pindexBestKnownBlock->nHeight);
+    LogPrint("blockdown", "%s : end, height...: %d, %d, %d, %d \n", __func__, nWindowEnd, nMaxHeight, state->pindexLastCommonBlock->nHeight, state->pindexBestKnownBlock->nHeight);
 
     NodeId waitingfor = -1;
     while (pindexWalk->nHeight < nMaxHeight) {
@@ -567,8 +567,8 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
             vToFetch[i - 1] = vToFetch[i]->pprev;
         }
 
-        if (fDebug && vToFetch.size() > 0) 
-            DebugPrintf("%s : fetch %d, %d, %s \n", __func__, nToFetch, pindexWalk->nHeight, Join(vToFetch));
+        if (LogAcceptCategory("blockdown") && vToFetch.size() > 0) 
+            LogPrint("blockdown", "%s : fetch %d, %d, %s \n", __func__, nToFetch, pindexWalk->nHeight, Join(vToFetch));
 
         // Iterate over those blocks in vToFetch (in forward direction), adding the ones that
         // are not yet downloaded and not in flight to vBlocks. In the mean time, update
@@ -598,9 +598,9 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
             } else if (waitingfor == -1) {
                 // This is the first already-in-flight block.
                 waitingfor = mapBlocksInFlight[pindex->GetBlockHash()].first;
-                if (fDebug) {
+                if (LogAcceptCategory("blockdown")) {
                     auto itInFlight = mapBlocksInFlight[pindex->GetBlockHash()].second;
-                    DebugPrintf("%s : waitingfor: %d, %d, %d \n", __func__, waitingfor, pindex->nHeight, (GetTimeMicros() - itInFlight->nTime) / 1000000 );
+                    LogPrint("blockdown", "%s : waitingfor: %d, %d, %d \n", __func__, waitingfor, pindex->nHeight, (GetTimeMicros() - itInFlight->nTime) / 1000000 );
                 }
             }
         }
@@ -6820,8 +6820,8 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
                             pindex->GetBlockHash().ToString(), pfrom->id);
                 }
                 if (vGetData.size() > 1) {
-                    if (fDebug) 
-                        DebugPrintf("%s : MarkBlockAsInFlight: %d, %d, %s \n", 
+                    if (LogAcceptCategory("blockdown") && vToFetch.size() > 0) 
+                        LogPrint("blockdown", "%s : MarkBlockAsInFlight: %d, %d, %s \n", 
                             __func__, vGetData.size(), pindexLast->nHeight, Join(vToFetch));
                     
                     LogPrint("net", "Downloading blocks toward %s (%d) via headers direct fetch\n",
@@ -7550,8 +7550,8 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
             NodeId staller = -1;
             FindNextBlocksToDownload(pto->GetId(), MAX_BLOCKS_IN_TRANSIT_PER_PEER - state.nBlocksInFlight, vToDownload, staller);
 
-            if (fDebug && vToDownload.size() > 0) 
-                DebugPrintf("%s : FindNextBlocksToDownload: %d, %d, %s \n", 
+            if (LogAcceptCategory("blockdown") && vToDownload.size() > 0) 
+                LogPrint("blockdown", "%s : FindNextBlocksToDownload: %d, %d, %s \n", 
                     __func__, MAX_BLOCKS_IN_TRANSIT_PER_PEER, state.nBlocksInFlight, Join(vToDownload));
 
             BOOST_FOREACH (CBlockIndex* pindex, vToDownload) {

@@ -109,7 +109,9 @@ namespace i2p
             if (m_Stream)
             {
                 LogPrint(eLogDebug, "I2PPureTunnelConnection.Terminate: stream: rSID=", m_Stream->GetRecvStreamID(), ", sSID=", m_Stream->GetSendStreamID());
-                m_Stream->Close();
+                // this seems to be the cause of that exception on close, related to lock, thread & unwind
+                m_Stream->AsyncClose();
+                // m_Stream->Close();
                 m_Stream.reset();
             }
 
@@ -722,6 +724,9 @@ namespace i2p
                     if (!m_AccessList.count(stream->GetRemoteIdentity()->GetIdentHash()))
                     {
                         LogPrint(eLogWarning, "I2PPureServerTunnel: Address ", remoteIdentity, " is not in white list. Incoming connection dropped");
+                        // this seems to be the cause of that exception on close, related to lock, thread & unwind
+                        // ...should we do it here as well?
+                        //stream->AsyncClose();
                         stream->Close();
                         return;
                     }
