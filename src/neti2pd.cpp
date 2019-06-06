@@ -527,6 +527,12 @@ bool CloseTunnelSafe(CI2pdNode* pnode, std::shared_ptr<I2PService> tunnel, bool 
         LogPrintf("net: CloseTunnelSafe: server tunnel just detached (%d)\n", pnode->id);
         return true;
     }
+
+    if (tunnel == nullptr) {
+        LogPrint("net", "CloseTunnelSafe: tunnel is already null? (%d)\n", pnode->id);
+        return true;
+    }
+
     CloseTunnel(tunnel, isServer);
 }
 
@@ -2321,7 +2327,7 @@ bool StopNode()
     }
 
     // cleanup the server tunnel?
-    // CExplicitNetCleanup::callCleanup();
+    CExplicitNetCleanup::callCleanup();
 
     return true;
 }

@@ -1052,6 +1052,12 @@ void CDestination::SetPort(unsigned short portIn)
 
 bool CloseTunnel(std::shared_ptr<I2PPureClientTunnel> tunnel)
 {
+    if (tunnel == nullptr) {
+        return error("CloseTunnel (client): tunnel is already null?\n");
+        // LogPrint("net", "CloseTunnel (client): tunnel is already null?\n");
+        // return true;
+    }
+
     if (tunnel->IsStopped()){
         LogPrint(eLogWarning, "CloseTunnel(I2PPureClientTunnel): already stopped?");
         // return;
@@ -1064,6 +1070,10 @@ bool CloseTunnel(std::shared_ptr<I2PPureClientTunnel> tunnel)
 }
 bool CloseTunnel(std::shared_ptr<I2PPureServerTunnel> tunnel)
 {
+    if (tunnel == nullptr) {
+        return error("CloseTunnel (server): tunnel is already null?\n");
+    }
+
     if (tunnel->IsStopped()){
         LogPrint(eLogWarning, "CloseTunnel(I2PPureServerTunnel): already stopped?");
         // return;

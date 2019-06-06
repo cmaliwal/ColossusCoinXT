@@ -502,9 +502,10 @@ case $host in
      ;;
 esac
 
+SUB_TARGET_OS = none
 case $host in
-  *arm-linux*)
-    dnl make sure android stays above linux for hosts like *linux-android*
+  *arm*linux*)
+    dnl arm-unknown-linux-gnueabihf
     SUB_TARGET_OS=android
     dnl LEVELDB_TARGET_FLAGS="-DOS_ANDROID"
     ;;
@@ -1390,6 +1391,10 @@ echo "  debug enabled = $enable_debug"
 echo "  werror        = $enable_werror"
 echo
 echo "  target os     = $TARGET_OS"
+echo
+echo "  host          = $host"
+echo "  sub target os = $SUB_TARGET_OS"
+
 if test x$SUB_TARGET_OS = xandroid; then
   echo "  sub target os = $SUB_TARGET_OS"
 fi

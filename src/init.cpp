@@ -212,7 +212,10 @@ void PrepareShutdown()
     DumpMasternodes();
     DumpBudgets();
     DumpMasternodePayments();
+
     UnregisterNodeSignals(GetNodeSignals());
+
+    Daemon.stop();
 
     if (fFeeEstimatesInitialized) {
         boost::filesystem::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
