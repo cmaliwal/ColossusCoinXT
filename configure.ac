@@ -502,6 +502,14 @@ case $host in
      ;;
 esac
 
+case $host in
+  *arm-linux*)
+    dnl make sure android stays above linux for hosts like *linux-android*
+    SUB_TARGET_OS=android
+    dnl LEVELDB_TARGET_FLAGS="-DOS_ANDROID"
+    ;;
+esac
+
 if test x$use_pkgconfig = xyes; then
   m4_ifndef([PKG_PROG_PKG_CONFIG], [AC_MSG_ERROR(PKG_PROG_PKG_CONFIG macro not found. Please install pkg-config and re-run autogen.sh.)])
   m4_ifdef([PKG_PROG_PKG_CONFIG], [
@@ -1225,6 +1233,7 @@ fi
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
 AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
 AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
+AM_CONDITIONAL([TARGET_ANDROID], [test x$SUB_TARGET_OS = xandroid])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$use_tests = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
@@ -1381,6 +1390,10 @@ echo "  debug enabled = $enable_debug"
 echo "  werror        = $enable_werror"
 echo
 echo "  target os     = $TARGET_OS"
+if test x$SUB_TARGET_OS = xandroid; then
+  echo "  sub target os = $SUB_TARGET_OS"
+fi
+
 echo "  build os      = $BUILD_OS"
 echo
 echo "  CC            = $CC"

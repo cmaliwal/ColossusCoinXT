@@ -77,11 +77,16 @@ ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
 	# else
 	# 	CPU_FLAGS += -maes
 	# endif
-	machine := $(shell uname -m)
-	ifeq ($(machine), aarch64)
+
+	if TARGET_ANDROID
 		CXXFLAGS += -DARM64AES
 	else
-		CPU_FLAGS += -maes
+		machine := $(shell uname -m)
+		ifeq ($(machine), aarch64)
+			CXXFLAGS += -DARM64AES
+		else
+			CPU_FLAGS += -maes
+		endif
 	endif
 endif
 endif
@@ -92,6 +97,11 @@ ifneq ($(shell $(GREP) -c avx /proc/cpuinfo),0)
 	#ifneq ($(IS_ARM_BUILD),yes)
 	#	CPU_FLAGS += -mavx
 	#endif
-	CPU_FLAGS += -mavx
+
+	if TARGET_ANDROID
+		# echo
+	else
+		CPU_FLAGS += -mavx
+	endif
 endif
 endif
