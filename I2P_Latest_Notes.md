@@ -1,11 +1,18 @@
-I2P Latest Notes (060119)
+I2P Latest Notes (060719)
 =====================================
 
 [![Build Status](https://travis-ci.org/COLX-Project/COLX.svg?branch=i2pd)](https://travis-ci.org/COLX-Project/COLX) [![GitHub version](https://badge.fury.io/gh/COLX-Project%2FCOLX.svg)](https://badge.fury.io/gh/COLX-Project%2FCOLX)
 
-This should serve as a concise (hopefully) summary of what's important, for details please look up the other documents (and they should be updated shortly w some more info).  
-  
-#  New TESTNET (restarted) Notes
+This is a concise summary of things important (for details please look up the other documents).  
+
+#  Known Issues
+1) **slow i2p network initialization** (on app start). It takes a few minutes for i2p to initialize. That's the slowest part and likely the most UX issue of all (but we should add some notifications, splash or something, so that the user is aware of what's going on). I didn't do any optimization on this, so there's space to improve (and ways to tackle this, I've elaborated on discord, test channel) but it is inherently an i2p thing (i.e. it'll never be as fast as sockets, though I expect it be faster).
+2) **Slow recovery time, occasional ups and downs** - network sync slowdowns. I.e. once the 'flow' of info gets interrupted in some way (e.g. internet connection issues, forked nodes/blocks, or even i2p network slow patches etc.) it takes a bit for node to recover and rebuild the tunnels. This shouldn't normally happen though. The problem is w/ how i2p tunnels work (temporary and unstable, many hops and all) and rebuilding that is costly (if you have to reinit everything, couple tunnels it's not an issue). I've also noticed (I think) occasional i2p network slowdowns during the night (not confirmed though). Network latency (over i2p) is not really an issue (that I noticed) but it exists and it's not as prompt as over direct socket connection (when you need to recover fast). Couple testnet issues were directly related to all this (I've already fixed/adjusted the block downloading etc.), it's something we have to keep in mind.
+3) qt, peers list, **addresses are wrong for 'Inbound' connections** - i.e. you get number of connections having the same 'address' in the list, but in fact that's showing the current node's address (as a 'server'). No brainer just to get to do it.  
+
+I think that's pretty much it at this point. Shutdown should now work fine (no errors any more), everything else is pretty much as over 'normal'/sockets based network (all messages, tx-s flow, MN-s etc).
+
+#  TESTNET Notes
 Testnet is all new, it's using different blocks (other testnet latest up to 115379 or so), addresses are different (deliberately to avoid issues), i.e. **it's incompatible** with the previous one. 
 1) **mandatory** new binaries (1.3.0-i2pd-testnet) - https://1drv.ms/f/s!AnrEFg2ff_U_h98eiQniM60nL5ROKA - please make sure you have the latest bins (**previous bins are not compatible and will lead to forks**).
 2) Please! **sync from scratch**, don't reuse previous blocks as you'll just fork (or lead to testnet forks, performance issues). What I like to do is:  
