@@ -553,6 +553,9 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
 
     LogPrint("blockdown", "%s : end, height...: %d, %d, %d, %d \n", __func__, nWindowEnd, nMaxHeight, state->pindexLastCommonBlock->nHeight, state->pindexBestKnownBlock->nHeight);
 
+    int nInFlightTimeOut = GetArg("-inflighttimeout", 180); // 3 minutes
+    bool fInFlightFix = GetBoolArg("-inflightfix", true);
+
     NodeId waitingfor = -1;
     while (pindexWalk->nHeight < nMaxHeight) {
         // Read up to 128 (or more, if more blocks than that are needed) successors of pindexWalk (towards
@@ -598,8 +601,35 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
             } else if (waitingfor == -1) {
                 // This is the first already-in-flight block.
                 waitingfor = mapBlocksInFlight[pindex->GetBlockHash()].first;
+
+                // int nInFlightTimeOut = GetArg("-inflighttimeout", 180); // 3 minutes
+                // bool fInFlightFix = GetBoolArg("-inflightfix", true);
+                auto hash = pindex->GetBlockHash();
+                auto itInFlight = mapBlocksInFlight[hash].second;
+                auto timeSpentSecs = (GetTimeMicros() - itInFlight->nTime) / 1000000;
+                if (fInFlightFix && timeSpentSecs > nInFlightTimeOut) {
+                    CNodeState* state = State(waitingfor);
+                    assert(state != NULL);
+                    // Make sure it's not listed somewhere already.
+                    MarkBlockAsReceived(hash);
+                    LogPrintf("%s : block in flight was stalling for too long : %d, %d, %d \n", __func__, waitingfor, pindex->nHeight, (GetTimeMicros() - itInFlight->nTime) / 1000000 );
+
+                    waitingfor = -1;
+                    // now we can spin it like the rest of the lot (no need to wait for another cycle?).
+                    if (pindex->nHeight > nWindowEnd) {
+                        if (vBlocks.size() == 0 && waitingfor != nodeid) {
+                            nodeStaller = waitingfor;
+                        }
+                        return;
+                    }
+                    vBlocks.push_back(pindex);
+                    if (vBlocks.size() == count) {
+                        return;
+                    }
+                }
+
                 if (LogAcceptCategory("blockdown")) {
-                    auto itInFlight = mapBlocksInFlight[pindex->GetBlockHash()].second;
+                    // auto itInFlight = mapBlocksInFlight[hash].second;
                     LogPrint("blockdown", "%s : waitingfor: %d, %d, %d \n", __func__, waitingfor, pindex->nHeight, (GetTimeMicros() - itInFlight->nTime) / 1000000 );
                 }
             }
