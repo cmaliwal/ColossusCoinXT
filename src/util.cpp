@@ -261,6 +261,9 @@ bool LogAcceptCategory(const char* category)
         if (setCategories.count(string("")) == 0 &&
             setCategories.count(string(category)) == 0)
             return false;
+        string negative = string("-") + string(category);
+        if (setCategories.count(negative) > 0)
+            return false;
     }
     return true;
 }

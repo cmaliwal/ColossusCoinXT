@@ -7746,7 +7746,7 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
         NodeId nodeid = pto->GetId();
         bool isstalling = IsStalling(nodeid) || WasStallingRecently(nodeid);
         if (isstalling) {
-            LogPrint("blockdown", "%s : FindNextBlocksToDownload, was stalling, skip: %d \n", 
+            LogPrint("stalling", "%s : FindNextBlocksToDownload, was stalling, skip: %d \n", 
                 __func__, nodeid);
         }
         if (!pto->fDisconnect && !pto->fClient && fFetch && !isstalling && 

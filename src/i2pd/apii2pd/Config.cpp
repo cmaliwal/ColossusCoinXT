@@ -78,11 +78,13 @@ namespace config {
             ("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Maximum number of threads used by NTCP DH worker (default: 1)")
         ;
 
+		// int httpportdefault = rand () % (30777 - 9111) + 9111; // I2P network ports range
+		int httpport_ = rand () % (7999 - 7000) + 7000; // 7070
         options_description httpserver("HTTP Server options");
         httpserver.add_options()
             ("http.enabled", value<bool>()->default_value(true),                "Enable or disable webconsole")
             ("http.address", value<std::string>()->default_value("127.0.0.1"),  "Webconsole listen address")
-            ("http.port", value<uint16_t>()->default_value(7070),               "Webconsole listen port")
+            ("http.port", value<uint16_t>()->default_value(httpport_),          "Webconsole listen port")
             ("http.auth", value<bool>()->default_value(false),                  "Enable Basic HTTP auth for webconsole")
             ("http.user", value<std::string>()->default_value("i2pd"),          "Username for basic auth")
             ("http.pass", value<std::string>()->default_value(""),              "Password for basic auth (default: random, see logs)")
@@ -90,11 +92,12 @@ namespace config {
             ("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
         ;
 
+		int httpproxyport_ = rand () % (4999 - 4000) + 4000; // 4444
         options_description httpproxy("HTTP Proxy options");
         httpproxy.add_options()
             ("httpproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable HTTP Proxy")
             ("httpproxy.address", value<std::string>()->default_value("127.0.0.1"),   "HTTP Proxy listen address")
-            ("httpproxy.port", value<uint16_t>()->default_value(4444),                "HTTP Proxy listen port")
+            ("httpproxy.port", value<uint16_t>()->default_value(httpproxyport_),      "HTTP Proxy listen port")
             ("httpproxy.keys", value<std::string>()->default_value(""),               "File to persist HTTP Proxy keys")
             ("httpproxy.signaturetype", value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")
             ("httpproxy.inbound.length", value<std::string>()->default_value("3"),    "HTTP proxy inbound tunnel length")
@@ -107,11 +110,13 @@ namespace config {
             ("httpproxy.addresshelper", value<bool>()->default_value(true),           "Enable or disable addresshelper")
         ;
 
+		int socksproxyoutport_ = rand () % (9999 - 9000) + 9000; // 9050
+		int socksproxyport_ = rand () % (4999 - 4000) + 4000; // 4447
         options_description socksproxy("SOCKS Proxy options");
         socksproxy.add_options()
             ("socksproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable SOCKS Proxy")
             ("socksproxy.address", value<std::string>()->default_value("127.0.0.1"),   "SOCKS Proxy listen address")
-            ("socksproxy.port", value<uint16_t>()->default_value(4447),                "SOCKS Proxy listen port")
+            ("socksproxy.port", value<uint16_t>()->default_value(socksproxyport_),      "SOCKS Proxy listen port")
             ("socksproxy.keys", value<std::string>()->default_value(""),               "File to persist SOCKS Proxy keys")
             ("socksproxy.signaturetype", value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")
             ("socksproxy.inbound.length", value<std::string>()->default_value("3"),    "SOCKS proxy inbound tunnel length")
@@ -122,35 +127,39 @@ namespace config {
             ("socksproxy.latency.max", value<std::string>()->default_value("0"),       "SOCKS proxy max latency for tunnels")
             ("socksproxy.outproxy.enabled", value<bool>()->default_value(false),       "Enable or disable SOCKS outproxy")
             ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"),  "Upstream outproxy address for SOCKS Proxy")
-            ("socksproxy.outproxyport", value<uint16_t>()->default_value(9050),        "Upstream outproxy port for SOCKS Proxy")
+            ("socksproxy.outproxyport", value<uint16_t>()->default_value(socksproxyoutport_), "Upstream outproxy port for SOCKS Proxy")
         ;
 
+		int samport_ = rand () % (7999 - 7000) + 7000; // 7656
         options_description sam("SAM bridge options");
         sam.add_options()
             ("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
             ("sam.address", value<std::string>()->default_value("127.0.0.1"), "SAM listen address")
-            ("sam.port", value<uint16_t>()->default_value(7656),              "SAM listen port")
+            ("sam.port", value<uint16_t>()->default_value(samport_),          "SAM listen port")
         ;
 
+		int bobport_ = rand () % (2999 - 2000) + 2000; // 2827
         options_description bob("BOB options");
         bob.add_options()
             ("bob.enabled", value<bool>()->default_value(false),              "Enable or disable BOB command channel")
             ("bob.address", value<std::string>()->default_value("127.0.0.1"), "BOB listen address")
-            ("bob.port", value<uint16_t>()->default_value(2827),              "BOB listen port")
+            ("bob.port", value<uint16_t>()->default_value(bobport_),          "BOB listen port")
         ;
 
+		int i2cpport_ = rand () % (7999 - 7000) + 7000; // 7654
         options_description i2cp("I2CP options");
         i2cp.add_options()
             ("i2cp.enabled", value<bool>()->default_value(false),              "Enable or disable I2CP")
             ("i2cp.address", value<std::string>()->default_value("127.0.0.1"), "I2CP listen address")
-            ("i2cp.port", value<uint16_t>()->default_value(7654),              "I2CP listen port")
+            ("i2cp.port", value<uint16_t>()->default_value(i2cpport_),         "I2CP listen port")
         ;
 
+		int i2pcontrolport_ = rand () % (7999 - 7000) + 7000; // 7650
         options_description i2pcontrol("I2PControl options");
         i2pcontrol.add_options()
             ("i2pcontrol.enabled", value<bool>()->default_value(false),                    "Enable or disable I2P Control Protocol")
             ("i2pcontrol.address", value<std::string>()->default_value("127.0.0.1"),       "I2PCP listen address")
-            ("i2pcontrol.port", value<uint16_t>()->default_value(7650),                    "I2PCP listen port")
+            ("i2pcontrol.port", value<uint16_t>()->default_value(i2pcontrolport_),         "I2PCP listen port")
             ("i2pcontrol.password", value<std::string>()->default_value("itoopie"),        "I2PCP access password")
             ("i2pcontrol.cert", value<std::string>()->default_value("i2pcontrol.crt.pem"), "I2PCP connection cerificate")
             ("i2pcontrol.key", value<std::string>()->default_value("i2pcontrol.key.pem"),  "I2PCP connection cerificate key")
@@ -218,11 +227,12 @@ namespace config {
             ("trust.hidden", value<bool>()->default_value(false),      "Should we hide our router from other routers?")
         ;
 
+		int websocketsport_ = rand () % (7999 - 7000) + 7000; // 7666
         options_description websocket("Websocket Options");
         websocket.add_options()
             ("websockets.enabled", value<bool>()->default_value(false),              "Enable websocket server")
             ("websockets.address", value<std::string>()->default_value("127.0.0.1"), "Address to bind websocket server on")
-            ("websockets.port", value<uint16_t>()->default_value(7666),              "Port to bind websocket server on")
+            ("websockets.port", value<uint16_t>()->default_value(websocketsport_),   "Port to bind websocket server on")
         ;
 
         options_description exploratory("Exploratory Options");
@@ -233,6 +243,7 @@ namespace config {
             ("exploratory.outbound.quantity", value<int>()->default_value(3), "Exploratory outbound tunnels quantity")
         ;
 
+		// int ntcp2port_ = rand () % (7999 - 7000) + 7000; // 7666
         options_description ntcp2("NTCP2 Options");
         ntcp2.add_options()
             ("ntcp2.enabled", value<bool>()->default_value(true), "Enable NTCP2 (default: enabled)")
