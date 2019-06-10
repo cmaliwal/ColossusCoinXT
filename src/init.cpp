@@ -1320,6 +1320,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc,
         //Daemon.stop();
     }
 
+    bool fGenerateNewI2pAddress = GetBoolArg("-generatenewi2p", false);
+    if (fGenerateNewI2pAddress) {
+        CDestination addrBind;
+        GenerateNewServerDestination(addrBind, GetListenPort());
+    }
+
     // DRAGAN: this was heavily reworked (see below), is this still ok? // Q:
     // no longer needed, but it's just a flag, to be removed
     SetReachable(NET_IPV4); // ipv4 is reachable, otherwise start mn from GUI does not work
@@ -1409,8 +1415,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc,
             BOOST_FOREACH (std::string strBind, mapMultiArgs["-bind"]) {
                 // I2PDK: binding goes to neti2pd and BindListenPort and CreateNode etc. so it needs to be in .i2p-s
                 CDestination addrBind;
-                if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false))
-                    return InitError(strprintf(_("Cannot resolve -bind address: '%s'"), strBind));
+                if (strBind.empty()) {
+                    GetServerDestination(addrBind, GetListenPort());
+                } else {
+                    if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false))
+                        return InitError(strprintf(_("Cannot resolve -bind address: '%s'"), strBind));
+                }
                 fBound |= Bind(addrBind, (BF_EXPLICIT | BF_REPORT_ERROR));
             }
             BOOST_FOREACH (std::string strBind, mapMultiArgs["-whitebind"]) {
@@ -1439,11 +1449,18 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc,
         // I2PDK: leave this to go to the old-style IP address lookup (netbase.h)
         // but not sure that external ip still make any sense? it's more like external i2p address?
         BOOST_FOREACH (string strAddr, mapMultiArgs["-externalip"]) {
-            CDestination addrLocal(strAddr, GetListenPort(), fNameLookup);
-            if (!addrLocal.IsValid())
-                return InitError(strprintf(_("Cannot resolve -externalip address: '%s'"), strAddr));
-            LogPrintf("net.externalip: we're LOCAL! ('%s') %d\n", strAddr, GetAdjustedTime());
-            AddLocal(CDestination(strAddr, GetListenPort(), fNameLookup), LOCAL_MANUAL);
+            CDestination addrExternal;
+            if (strAddr.empty()) {
+                GetServerDestination(addrExternal, GetListenPort());
+                AddLocal(addrExternal, LOCAL_MANUAL);
+            } else {
+                CDestination addrLocal(strAddr, GetListenPort(), fNameLookup);
+                if (!addrLocal.IsValid())
+                    return InitError(strprintf(_("Cannot resolve -externalip address: '%s'"), strAddr));
+                LogPrintf("net.externalip: we're LOCAL! ('%s') %d\n", strAddr, GetAdjustedTime());
+                AddLocal(addrLocal, LOCAL_MANUAL);
+                // AddLocal(CDestination(strAddr, GetListenPort(), fNameLookup), LOCAL_MANUAL);
+            }
         }
     }
 
@@ -1879,15 +1896,19 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc,
         LogPrintf("IS MASTER NODE\n");
         strMasterNodeAddr = GetArg("-masternodeaddr", "");
 
-        LogPrintf(" addr %s\n", strMasterNodeAddr.c_str());
-
         if (!strMasterNodeAddr.empty()) {
             // I2PDK: mn addresses should be in i2p network - unless we wanna combine
             CDestination addrTest = CDestination(strMasterNodeAddr);
             if (!addrTest.IsValid()) {
                 return InitError("Invalid -masternodeaddr address: " + strMasterNodeAddr);
             }
+        } else {
+            CDestination addrMN;
+            GetServerDestination(addrMN, GetListenPort());
+            strMasterNodeAddr = addrMN.ToString();
         }
+
+        LogPrintf(" addr %s\n", strMasterNodeAddr.c_str());
 
         strMasterNodePrivKey = GetArg("-masternodeprivkey", "");
         if (!strMasterNodePrivKey.empty()) {

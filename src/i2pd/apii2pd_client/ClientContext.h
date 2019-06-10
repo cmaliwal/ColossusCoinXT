@@ -86,6 +86,10 @@ namespace client
                 i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256,
                 i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
+            bool GeneratePrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
+                i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256,
+                i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
+
             AddressBook& GetAddressBook () { return m_AddressBook; };
             const BOBCommandChannel * GetBOBCommandChannel () const { return m_BOBCommandChannel; };
             const SAMBridge * GetSAMBridge () const { return m_SamBridge; };

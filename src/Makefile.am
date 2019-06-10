@@ -62,6 +62,11 @@ LIBI2PDDAEMON += $(builddir)/i2pd/libi2pddaemon.a
 #SHLIBI2PDCLIENT = $(builddir)/i2pd/libi2pdclient.so
 #SHLIBI2PDDAEMON = $(builddir)/i2pd/libi2pddaemon.so
 
+I2PD_SUB_TARGET_OS = 
+if TARGET_ANDROID
+I2PD_SUB_TARGET_OS = android
+endif
+
 # add mkdir here?	@$(MKDIR_P) $(builddir)/obj
 # NOTE: The dependency in case that's an issue
 

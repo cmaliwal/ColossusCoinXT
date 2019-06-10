@@ -1010,6 +1010,7 @@ namespace client
 
 	void ClientDestination::PersistTemporaryKeys ()
 	{
+		// std::string ident1 = m_Keys.GetPublic ()->GetIdentHash ().ToBase32();
 		std::string ident = GetIdentHash().ToBase32();
 		std::string path  = i2p::fs::DataDirPath("destinations", (ident + ".dat"));
 		std::ifstream f(path, std::ifstream::binary);

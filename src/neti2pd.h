@@ -86,6 +86,8 @@ void StartNode(boost::thread_group& threadGroup, CScheduler& scheduler);
 bool StopNode();
 void TunnelSendData(CI2pdNode* pnode);
 
+// bool GenerateNewI2PDestination(CDestination& bindAddr, unsigned short port); //, std::string& strError);
+
 typedef int NodeId;
 
 // Signals for message handling
@@ -433,7 +435,11 @@ public:
     void HandleReadyToSend();
     void HandleErrorSend(const boost::system::error_code& ecode);
 
+    std::string GetIdentity() const;
+
 private:
+    std::string _inboundIdentity;
+
     // Network usage totals
     static CCriticalSection cs_totalBytesRecv;
     static CCriticalSection cs_totalBytesSent;

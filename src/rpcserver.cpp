@@ -296,7 +296,8 @@ static const CRPCCommand vRPCCommands[] =
         {"network", "listbanned", &listbanned, true, false, false},
         {"network", "clearbanned", &clearbanned, true, false, false},
         {"network", "getdestinations", &getdestinations, true, false, false},
-        {"network", "testclienttunnel", &testclienttunnel, true, false, false},
+        {"network", "getserverdestination", &getserverdestination, true, false, false},
+        // {"network", "testclienttunnel", &testclienttunnel, true, false, false},
 
         /* Block chain and UTXO */
         {"blockchain", "findserial", &findserial, true, false, false},

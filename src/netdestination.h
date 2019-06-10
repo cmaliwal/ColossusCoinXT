@@ -175,4 +175,8 @@ bool CloseTunnel(std::shared_ptr<i2p::client::I2PService> tunnel, bool isServer)
 bool SetTunnelNonBlocking(std::shared_ptr<i2p::client::I2PPureClientTunnel> tunnel, bool fNonBlocking);
 bool SetTunnelNonBlocking(std::shared_ptr<i2p::client::I2PPureServerTunnel> tunnel, bool fNonBlocking);
 
+bool GenerateNewServerDestination(CDestination &addrDest, unsigned short port);
+bool GetServerDestination(CDestination &addrDest, unsigned short port);
+
+
 #endif // BITCOIN_NETDESTINATION_H

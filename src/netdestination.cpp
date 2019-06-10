@@ -330,6 +330,72 @@ void ReadDefaultI2CPOptions(std::map<std::string, std::string>& options)
     options[I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY] = std::to_string(DEFAULT_INITIAL_ACK_DELAY);
 }
 
+bool GenerateNewServerDestination(CDestination &addrDest, unsigned short port)
+{
+    // std::string dest = "";
+    // std::shared_ptr<ClientDestination> localDestination = GetLocalDestination(dest, true); // server
+
+    std::map<std::string, std::string> options;
+    ReadDefaultI2CPOptions(options);
+
+    bool isPublic = true;
+    i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+    i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
+    std::shared_ptr<ClientDestination> localDestination = nullptr;
+
+    std::string keys = "my-keys.dat"; // this is the hardcoded name for the moment
+
+    i2p::data::PrivateKeys k;
+
+    if (!i2p::client::context.GeneratePrivateKeys(k, keys, sigType, cryptoType)) {
+        return false;
+    }
+        
+    localDestination = i2p::client::context.FindLocalDestination(k.GetPublic()->GetIdentHash());
+    if (localDestination) {
+        return false;
+    }
+
+    localDestination = i2p::client::context.CreateNewLocalDestination(k, isPublic, &options);
+
+    // if (!Lookup(address.c_str(), addrDest, port, false)) return error("address error %s\n", address);
+    // std::string address = 
+    //     k.GetPublic ()->GetIdentHash ().ToBase32().append(".b32.i2p:") + std::to_string(port);
+    // i2p::client::context.GetAddressBook().ToAddress(k.GetPublic ()->GetIdentHash())
+    std::string address = k.GetPublic ()->GetIdentHash ().ToBase32().append(".b32.i2p");
+    addrDest = CDestination(CI2pUrl(address), port);
+
+    LogPrint(eLogInfo, "GenerateNewServerDestination: new address generated: ", address, "");
+
+    return true;
+}
+
+bool GetServerDestination(CDestination &addrDest, unsigned short port)
+{
+    std::map<std::string, std::string> options;
+    ReadDefaultI2CPOptions(options);
+
+    bool isPublic = true;
+    i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+    i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
+    std::shared_ptr<ClientDestination> localDestination = nullptr;
+    std::string keys = "my-keys.dat"; // this is the hardcoded name for the moment
+
+    // LoadPrivateKeys - loads the keys if file exists, or create a new key (and saves it to disk) if it doesn't - so we're safe. It fails (returns false) only if the keys file is corrupted.
+    i2p::data::PrivateKeys k;
+    if (!i2p::client::context.LoadPrivateKeys(k, keys, sigType, cryptoType))
+        return false; // this shouldn't happen, should fail instead
+    localDestination = i2p::client::context.FindLocalDestination(k.GetPublic()->GetIdentHash());
+    if (!localDestination)
+        localDestination = i2p::client::context.CreateNewLocalDestination(k, isPublic, &options);
+
+    std::string address = k.GetPublic ()->GetIdentHash ().ToBase32().append(".b32.i2p");
+    addrDest = CDestination(CI2pUrl(address), port);
+
+    return true;
+}
+
+
 std::shared_ptr<ClientDestination> static GetLocalDestination(std::string dest, bool isServer) //= false)
 {
     // I2CP
@@ -429,38 +495,13 @@ bool ConnectServerTunnel(const CDestination &addrDest, std::shared_ptr<I2PPureSe
 {
     tunnel = nullptr; // invalid tunnel;
 
-    //#[MY-SOCKS-SRV]
-    //#type = server
-    //#host = 127.0.0.1
-    //#port = 6667
-    //#keys = my-socks-srv-keys.dat
-    // mandatory params
-    //std::string host = section.second.get<std::string>(I2P_SERVER_TUNNEL_HOST);
-    //int port = section.second.get<int> (I2P_SERVER_TUNNEL_PORT);
-    //std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS);
-    //// optional params
-    //int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
-    //std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
-    //std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
-    //std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
-    //bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
-    //i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-    //i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
-    //std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
-    //bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
-
     std::string host = "127.0.0.1";
     int port = 6667;
-    std::string keys = "my-keys.dat"; // this is the hardcoded name for the moment, created if none.
     // optional params
     int inPort = 0;
     std::string accessList = "";
-    //std::string hostOverride = "";
-    //std::string webircpass = "";
     bool gzip = true;
-    //i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
-    //i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
-    std::string address = "127.0.0.1";
+    // std::string address = "127.0.0.1";
     bool isUniqueLocal = true;
     std::string name = "MY-SOCKS-SRV";
 
@@ -491,11 +532,7 @@ bool ConnectServerTunnel(const CDestination &addrDest, std::shared_ptr<I2PPureSe
         serverTunnel->SetAccessList(idents);
     }
     
-    //i2p::client::context.GetServerPureTunnels
     bool success = i2p::client::context.InsertStartServerTunnel(localDestination->GetIdentHash(), inPort, serverTunnel);
-    //auto ins = i2p::client::context.GetServerPureTunnels().insert(std::make_pair(
-    //    std::make_pair(localDestination->GetIdentHash(), inPort),
-    //    serverTunnel));
 
     if (success) {
         // done inside
@@ -503,27 +540,10 @@ bool ConnectServerTunnel(const CDestination &addrDest, std::shared_ptr<I2PPureSe
     } else {
         LogPrint(eLogInfo, "ConnectServerTunnel: I2P server tunnel for destination/port ", i2p::client::context.GetAddressBook().ToAddress(localDestination->GetIdentHash()), "/", inPort, " already exists");
     }
-    //if (ins.second)
-    //{
-    //    // this actually calls Accept() and is setting up listening for incoming connections.
-    //    serverTunnel->Start();
-    //    //numServerTunnels++;
-    //} else
-    //{
-    //    // TODO: update
-    //    if (ins.first->second->GetLocalDestination() != serverTunnel->GetLocalDestination())
-    //    {
-    //        LogPrint(eLogInfo, "Clients: I2P server tunnel destination updated");
-    //        ins.first->second->SetLocalDestination(serverTunnel->GetLocalDestination());
-    //    }
-    //    ins.first->second->isUpdated = true;
-    //    LogPrint(eLogInfo, "Clients: I2P server tunnel for destination/port ", i2p::client::context.GetAddressBook().ToAddress(localDestination->GetIdentHash()), "/", inPort, " already exists");
-    //}
 
     // Set to non-blocking
     if (!SetTunnelNonBlocking(serverTunnel, true))
         return error("ConnectClientTunnelDirectly: Setting tunnel to non-blocking failed, error %s\n", "");
-    // NetworkErrorString(WSAGetLastError()));
 
     tunnel = serverTunnel;
     return true;
@@ -531,17 +551,9 @@ bool ConnectServerTunnel(const CDestination &addrDest, std::shared_ptr<I2PPureSe
 
 bool static ConnectClientTunnelDirectly(const CDestination& addrConnect, std::shared_ptr<I2PPureClientTunnel>& tunnel, int nTimeout, StreamCreatedCallback streamCreated)
 {
-    //hSocketRet = INVALID_SOCKET;
-
     tunnel = nullptr; // invalid tunnel;
 
     // I2PDK: read this from the config if needed?
-    // mandatory params
-    //std::string dest = section.second.get<std::string>(I2P_CLIENT_TUNNEL_DESTINATION);
-    //int port = section.second.get<int>(I2P_CLIENT_TUNNEL_PORT);
-    // optional params
-    //std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-    //int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 
     // these won't be used inside (no socket created) so it doesn't matter much...
     std::string address = "127.0.0.1";
@@ -588,9 +600,7 @@ bool static ConnectClientTunnelDirectly(const CDestination& addrConnect, std::sh
     }
 
     // add to the context list (mimick what's normally done on startup, when reading .conf, adding nodes)
-    //auto ins = i2p::client::context.GetClientTunnels().insert(std::make_pair(clientEndpoint, clientTunnel));
     bool success = i2p::client::context.InsertStartClientTunnel(identHash, destinationPort, clientTunnel);
-    // bool success = i2p::client::context.InsertStartClientTunnel(clientEndpoint, clientTunnel);
 
     if (success) {
         // done inside
@@ -598,28 +608,10 @@ bool static ConnectClientTunnelDirectly(const CDestination& addrConnect, std::sh
     } else {
         LogPrint(eLogInfo, "ConnectClientTunnelDirectly: I2P client tunnel for endpoint ", clientEndpoint, " already exists");
     }
-    //if (ins.second)
-    //{
-    //    clientTunnel->Start();
-    //    //numClientTunnels++;
-    //} else
-    //{
-    //    // TODO: update
-    //    if (ins.first->second->GetLocalDestination() != clientTunnel->GetLocalDestination())
-    //    {
-    //        LogPrint(eLogInfo, "Clients: I2P client tunnel destination updated");
-    //        ins.first->second->SetLocalDestination(clientTunnel->GetLocalDestination());
-    //    }
-    //    ins.first->second->isUpdated = true;
-    //    LogPrint(eLogInfo, "Clients: I2P client tunnel for endpoint ", clientEndpoint, " already exists");
-    //}
 
     // Set to non-blocking
-    //auto tunnel_shared = std::shared_ptr<i2p::client::I2PService>(clientTunnel);
-    //if (!SetTunnelNonBlocking(tunnel_shared, true))
     if (!SetTunnelNonBlocking(clientTunnel, true))
         return error("ConnectClientTunnelDirectly: Setting tunnel to non-blocking failed, error %s\n", "");
-        // NetworkErrorString(WSAGetLastError()));
 
     // do the tunnel 'connect', wait for connect or similar, and handler errors
     // ...do this later because of the callbacks
@@ -628,80 +620,6 @@ bool static ConnectClientTunnelDirectly(const CDestination& addrConnect, std::sh
 
     tunnel = clientTunnel;
     return true;
-
-//    struct sockaddr_storage sockaddr;
-//    socklen_t len = sizeof(sockaddr);
-//    if (!addrConnect.GetSockAddr((struct sockaddr*)&sockaddr, &len)) {
-//        LogPrintf("Cannot connect to %s: unsupported network\n", addrConnect.ToString());
-//        return false;
-//    }
-//    SOCKET hSocket = socket(((struct sockaddr*)&sockaddr)->sa_family, SOCK_STREAM, IPPROTO_TCP);
-//    if (hSocket == INVALID_SOCKET)
-//        return false;
-//
-//#ifdef SO_NOSIGPIPE
-//    int set = 1;
-//    // Different way of disabling SIGPIPE on BSD
-//    setsockopt(hSocket, SOL_SOCKET, SO_NOSIGPIPE, (void*)&set, sizeof(int));
-//#endif
-//    // Set to non-blocking
-//    if (!SetTunnelNonBlocking(clientTunnel, true))
-//		return error("ConnectClientTunnelDirectly: Setting tunnel to non-blocking failed, error %s\n", ""); 
-//        // NetworkErrorString(WSAGetLastError()));
-//
-//	// do the tunnel 'connect', wait for connect or similar, and handler errors
-//
-//    if (connect(hSocket, (struct sockaddr*)&sockaddr, len) == SOCKET_ERROR) {
-//        int nErr = WSAGetLastError();
-//        // WSAEINVAL is here because some legacy version of winsock uses it
-//        if (nErr == WSAEINPROGRESS || nErr == WSAEWOULDBLOCK || nErr == WSAEINVAL) {
-//            struct timeval timeout = MillisToTimeval(nTimeout);
-//            fd_set fdset;
-//            FD_ZERO(&fdset);
-//            FD_SET(hSocket, &fdset);
-//            int nRet = select(hSocket + 1, NULL, &fdset, NULL, &timeout);
-//            if (nRet == 0) {
-//                LogPrint("net", "connection to %s timeout\n", addrConnect.ToString());
-//                CloseTunnel(hSocket);
-//                return false;
-//            }
-//            if (nRet == SOCKET_ERROR) {
-//                LogPrintf("select() for %s failed: %s\n", addrConnect.ToString(), NetworkErrorString(WSAGetLastError()));
-//                CloseTunnel(hSocket);
-//                return false;
-//            }
-//            socklen_t nRetSize = sizeof(nRet);
-//#ifdef WIN32
-//            if (getsockopt(hSocket, SOL_SOCKET, SO_ERROR, (char*)(&nRet), &nRetSize) == SOCKET_ERROR)
-//#else
-//            if (getsockopt(hSocket, SOL_SOCKET, SO_ERROR, &nRet, &nRetSize) == SOCKET_ERROR)
-//#endif
-//            {
-//                LogPrintf("getsockopt() for %s failed: %s\n", addrConnect.ToString(), NetworkErrorString(WSAGetLastError()));
-//                CloseTunnel(hSocket);
-//                return false;
-//            }
-//            if (nRet != 0) {
-//                LogPrintf("connect() to %s failed after select(): %s\n", addrConnect.ToString(), NetworkErrorString(nRet));
-//                CloseTunnel(hSocket);
-//                return false;
-//            }
-//        }
-//#ifdef WIN32
-//        else if (WSAGetLastError() != WSAEISCONN)
-//#else
-//        else
-//#endif
-//        {
-//            LogPrintf("connect() to %s failed: %s\n", addrConnect.ToString(), NetworkErrorString(WSAGetLastError()));
-//            CloseTunnel(hSocket);
-//            return false;
-//        }
-//    }
-//
-//	tunnel = clientTunnel;
-//    //hSocketRet = hSocket;
-//    return true;
 }
 
 bool AcceptClientTunnel(boost::asio::ip::tcp::endpoint endpoint, std::shared_ptr<I2PPureClientTunnel> tunnel)

@@ -246,6 +246,30 @@ namespace client
         }
     }
 
+    bool ClientContext::GeneratePrivateKeys (
+        i2p::data::PrivateKeys& keys, 
+        const std::string& filename,
+        i2p::data::SigningKeyType sigType,
+        i2p::data::CryptoKeyType cryptoType)
+    {
+        bool success = true;
+        std::string fullPath = i2p::fs::DataDirPath (filename);
+        LogPrint (eLogWarning, "Clients.GeneratePrivateKeys: ", fullPath, " - Creating new one with signature type ", sigType, " crypto type ", cryptoType);
+
+        keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
+        
+        std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out | std::ofstream::trunc);
+        size_t len = keys.GetFullLen ();
+        uint8_t * buf = new uint8_t[len];
+        len = keys.ToBuffer (buf, len);
+        f.write ((char *)buf, len);
+        delete[] buf;
+
+        LogPrint (eLogInfo, "Clients: New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
+        return success;
+
+    }
+
     bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
         i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
     {
@@ -365,6 +389,12 @@ namespace client
             }
             return nullptr;
         }
+		// std::string ident = keys.GetPublic ()->GetIdentHash ().ToBase32();
+        // ident.ToBase32().append(".b32.i2p")
+        // std::string address = m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ());
+        // std::string address = GetB32Address(keys.GetPublic ()->GetIdentHash ());
+        // std::string address = keys.GetPublic ()->GetIdentHash ().ToBase32().append(".b32.i2p");
+
         auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
         std::unique_lock<std::mutex> l(m_DestinationsMutex);
         m_Destinations[keys.GetPublic ()->GetIdentHash ()] = localDestination;

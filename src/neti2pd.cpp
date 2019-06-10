@@ -646,6 +646,7 @@ bool CI2pdNode::IsBanned(CI2pSubNet subnet)
 void CI2pdNode::Ban(const CI2pUrl& addr, const BanReason &banReason, int64_t bantimeoffset, bool sinceUnixEpoch)
 {
     CI2pSubNet subNet(addr);
+    LogPrint("net", "%s: banning node: %s\n", __func__, addr.ToString());
     Ban(subNet, banReason, bantimeoffset, sinceUnixEpoch);
 }
 
@@ -897,6 +898,12 @@ int CNetMessage::readData(const char* pch, unsigned int nBytes)
     return nCopy;
 }
 
+std::string CI2pdNode::GetIdentity() const
+{
+    if (fInbound)
+        return _inboundIdentity;
+    return addr.ToString();
+}
 
 // requires LOCK(cs_vSend)
 void TunnelSendData(CI2pdNode* pnode)
@@ -1787,6 +1794,9 @@ void ThreadMessageHandler()
         int64_t nStartTime = GetTimeMillis();
         // LogPrintf("%s : loop start %ld msecs \n", __func__, GetTimeMillis());
 
+        // I2PTESTNET: there's a flaw here, we're always hitting the nodes in the same order, normally
+        // it's just sending messages but when requesting blocks (for download) we're always going after
+        // the same node first, and the block 'in-flight' is constantly being assigned to the same node. 
         BOOST_FOREACH (CI2pdNode* pnode, vNodesCopy) {
             if (pnode->fDisconnect)
                 continue;
@@ -1960,12 +1970,6 @@ void static HandleServerStreamAccepted(
     }
 
     // I2PDK: inbound node/socket, i.e. the 'server' in our terms, no target 'addrName'
-    // socket is result of a 'accept' (not ConnectSocket...)
-    // give it a name?
-
-    // TODO: make our 'address' from CDestination 
-    //CI2PAddress addr; 
-    //addr = CDestination(*(const struct sockaddr_in*)paddr); // : CI2pUrl(addr.sin_addr), port(ntohs(addr.sin_port))
 
     // server node created here, addr doesn't make much sense as it's going to point back to us
     // as mentioned in the comment above (binding), we get one of these per each client connection
@@ -1986,119 +1990,25 @@ void static HandleServerStreamAccepted(
 
     // now that we have a node register callbacks (bound to the node itself)
     // should this be before or after the vNodes.push?
-
-    //auto node_shared = std::make_shared<CI2pdNode>(pnode);
-    // I2PDK: these need to be lists (of callbacks) and we're just adding our callback to the list
-    // when callbacks are to be called it iterates and sends the connection along, each callback 
-    // then decides whether to process or not, something like that. We also need to 'decrement', 
-    // i.e. both add and remove to the list - I guess on the CI2pNode deconstcruct or so.
-    // GetSendMoreCallback
-    // tunnel->SetConnectionCreatedCallback(std::bind(&CI2pdNode::HandleServerConnectionCreated, pnode, _1, _2));
-    // tunnel->SetConnectedCallback(std::bind(&CI2pdNode::HandleServerClientConnected, pnode, _1, _2));
-    // tunnel->SetReceivedCallback(std::bind(&CI2pdNode::HandleServerReceived, pnode, _1, _2, _3));
-
 }
 
-// I2PDK: this doesn't seem to have anything to do w/ i2pd or tunnels, this is called from init directly 
-// on Bind (-bind, --whitelist and similar), whether that's still going to exist I'm not sure, or maybe 
-// it's going to be a vehicle for binding directly to .i2p destinations who knows at this point. I.e. this
-// could be a general type of functionality or related to nodes, not clear.
-// ...actually, these always end up as nodes, so it is directly related to server nodes (likely MN bind related).
-// (whether we may want / need to use it for something else we need to see - and duplicate this for non-i2pd
-// scenario, node class as well, I doubt it though)
+// this is called from init directly on Bind (-bind, --whitelist)
+// these always end up as nodes, i.e. it is directly related to server nodes.
 bool BindListenPort(const CDestination& addrBind, string& strError, bool fWhitelisted)
 {
-    using namespace std::placeholders;    // adds visibility of _1, _2, _3,...
+    using namespace std::placeholders;
 
     strError = "";
     int nOne = 1;
 
-    // I2PDK: rewrite this for tunnels/i2pd
-//    // Create socket for listening for incoming connections
-//    struct sockaddr_storage sockaddr;
-//    socklen_t len = sizeof(sockaddr);
-//    if (!addrBind.GetSockAddr((struct sockaddr*)&sockaddr, &len)) {
-//        strError = strprintf("Error: Bind address family for %s not supported", addrBind.ToString());
-//        LogPrintf("%s\n", strError);
-//        return false;
-//    }
-//
-//    //I2PService tunnel = ...create server tunnel
-//    SOCKET hListenSocket = socket(((struct sockaddr*)&sockaddr)->sa_family, SOCK_STREAM, IPPROTO_TCP);
-//    if (hListenSocket == INVALID_SOCKET) {
-//        strError = strprintf("Error: Couldn't open socket for incoming connections (socket returned error %s)", NetworkErrorString(WSAGetLastError()));
-//        LogPrintf("%s\n", strError);
-//        return false;
-//    }
-//    if (!IsSelectableSocket(hListenSocket)) {
-//        strError = "Error: Couldn't create a listenable socket for incoming connections";
-//        LogPrintf("%s\n", strError);
-//        return false;
-//    }
-//
-//
-//#ifndef WIN32
-//#ifdef SO_NOSIGPIPE
-//    // Different way of disabling SIGPIPE on BSD
-//    setsockopt(hListenSocket, SOL_SOCKET, SO_NOSIGPIPE, (void*)&nOne, sizeof(int));
-//#endif
-//    // Allow binding if the port is still in TIME_WAIT state after
-//    // the program was closed and restarted. Not an issue on windows!
-//    setsockopt(hListenSocket, SOL_SOCKET, SO_REUSEADDR, (void*)&nOne, sizeof(int));
-//#endif
-//
-//    // Set to non-blocking, incoming connections will also inherit this
-//    if (!SetTunnelNonBlocking(hListenSocket, true)) {
-//        strError = strprintf("BindListenPort: Setting listening socket to non-blocking failed, error %s\n", NetworkErrorString(WSAGetLastError()));
-//        LogPrintf("%s\n", strError);
-//        return false;
-//    }
-//
-//    // some systems don't have IPV6_V6ONLY but are always v6only; others do have the option
-//    // and enable it by default or not. Try to enable it, if possible.
-//    if (addrBind.IsIPv6()) {
-//#ifdef IPV6_V6ONLY
-//#ifdef WIN32
-//        setsockopt(hListenSocket, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&nOne, sizeof(int));
-//#else
-//        setsockopt(hListenSocket, IPPROTO_IPV6, IPV6_V6ONLY, (void*)&nOne, sizeof(int));
-//#endif
-//#endif
-//#ifdef WIN32
-//        int nProtLevel = PROTECTION_LEVEL_UNRESTRICTED;
-//        setsockopt(hListenSocket, IPPROTO_IPV6, IPV6_PROTECTION_LEVEL, (const char*)&nProtLevel, sizeof(int));
-//#endif
-//    }
-//
-//    if (::bind(hListenSocket, (struct sockaddr*)&sockaddr, len) == SOCKET_ERROR) {
-//        int nErr = WSAGetLastError();
-//        if (nErr == WSAEADDRINUSE)
-//            strError = strprintf(_("Unable to bind to %s on this computer. COLX Core is probably already running."), addrBind.ToString());
-//        else
-//            strError = strprintf(_("Unable to bind to %s on this computer (bind returned error %s)"), addrBind.ToString(), NetworkErrorString(nErr));
-//        LogPrintf("%s\n", strError);
-//        CloseTunnel(hListenSocket);
-//        return false;
-//    }
-//    LogPrintf("Bound to %s\n", addrBind.ToString());
-//
-//    // Listen for incoming connections
-//    if (listen(hListenSocket, SOMAXCONN) == SOCKET_ERROR) {
-//        strError = strprintf(_("Error: Listening for incoming connections failed (listen returned error %s)"), NetworkErrorString(WSAGetLastError()));
-//        LogPrintf("%s\n", strError);
-//        CloseTunnel(hListenSocket);
-//        return false;
-//    }
-
     std::shared_ptr<I2PPureServerTunnel> tunnel;
 
     // I2PDK: we're binding here only to be able to accept incoming connections/streams from clients.
-    // but we're not yet creating server nodes, 'each' server node gets created only once the client stream
-    // is opened - i.e. we have one server node per each client.
-    // ServerStreamAcceptedCallback acceptedCallback = std::bind(HandleServerStreamAccepted, _1, addrBind, fWhitelisted);
+    // but we're not yet creating server nodes, 'each' server node gets created only once the client 
+    // stream is opened - i.e. we have one server node per each client (but only one server tunnel!).
     ServerStreamAcceptedCallback acceptedCallback = 
         std::bind(HandleServerStreamAccepted, _1, _2, _3, _4, _5, _6, addrBind, fWhitelisted);
-    if (ConnectServerTunnel(addrBind, tunnel, nConnectTimeout, acceptedCallback)) { //std::bind(HandleServerStreamAccepted, _1, addrBind, fWhitelisted))) {
+    if (ConnectServerTunnel(addrBind, tunnel, nConnectTimeout, acceptedCallback)) {
         vhListenTunnel.push_back(ListenTunnel(tunnel, fWhitelisted));
 
         // what about this and i2p?
@@ -2110,6 +2020,11 @@ bool BindListenPort(const CDestination& addrBind, string& strError, bool fWhitel
 
     return false;
 }
+
+// bool GenerateNewI2PDestination(CDestination& bindAddr, unsigned short port) //, std::string& strError)
+// {
+//     return GenerateNewServerDestination(bindAddr, port);
+// }
 
 // I2PDK: is this needed? turned off to compile and makes no sense w/o sockets/ip-s
 void static Discover(boost::thread_group& threadGroup)
@@ -2774,6 +2689,9 @@ void CI2pdNode::HandleServerConnectionCreated(std::shared_ptr<I2PPureServerTunne
     
     // now we can bind the connection send for when we need to send messages (this is the right place to do it)
     _connection = connection;
+    // cache remote identity as connection can get deleted and it's hard to reliably track that later on
+    _inboundIdentity = connection->GetRemoteIdentity();
+    //GetIdentity()
 
     //_sendCallback = std::bind(&I2PPureTunnelConnection::HandleSendRawSigned, connection, _1, _2);
 

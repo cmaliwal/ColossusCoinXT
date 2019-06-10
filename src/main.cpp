@@ -178,6 +178,9 @@ struct QueuedBlock {
 };
 map<uint256, pair<NodeId, list<QueuedBlock>::iterator> > mapBlocksInFlight;
 
+NodeId _lastNodeStalling;
+int _lastBlockStalling;
+
 /** Number of blocks in flight with validated headers. */
 int nQueuedValidatedHeaders = 0;
 
@@ -318,6 +321,15 @@ struct CNodeState {
     //! Blocks sent by this node
     CNodeBlocks nodeBlocks;
 
+    int64_t _stallingFirst;
+    int64_t _stallingLast;
+    int64_t _stallingCurrent;
+    int64_t _stallingTotal;
+    int _stallingCurrentBlock;
+    bool _stillStalling;
+    NodeId _previousNodeStalling;
+    int _previousBlockStalling;
+
     CNodeState()
     {
         fCurrentlyConnected = false;
@@ -332,6 +344,15 @@ struct CNodeState {
         nBlocksInFlight = 0;
         fPreferredDownload = false;
         fPreferHeaders = false;
+
+        _stallingFirst = 0;
+        _stallingLast = 0;
+        _stallingCurrent = 0;
+        _stallingTotal = 0;
+        _stallingCurrentBlock = 0;
+        _previousNodeStalling = 0;
+        _previousBlockStalling = 0;
+        _stillStalling = false;
     }
 };
 
@@ -398,7 +419,10 @@ void FinalizeNode(NodeId nodeid)
 }
 
 // Requires cs_main.
-void MarkBlockAsReceived(const uint256& hash)
+// +1 - done - just processed new block and 100% done
+//  0 - not sure - creating new in-flight, block is removed by now and should just return
+// -1 - stalling - not done, just stalling
+void MarkBlockAsReceived(const uint256& hash, int isdone = 1)
 {
     map<uint256, pair<NodeId, list<QueuedBlock>::iterator> >::iterator itInFlight = mapBlocksInFlight.find(hash);
     if (itInFlight != mapBlocksInFlight.end()) {
@@ -406,9 +430,130 @@ void MarkBlockAsReceived(const uint256& hash)
         nQueuedValidatedHeaders -= itInFlight->second.second->fValidatedHeaders;
         state->vBlocksInFlight.erase(itInFlight->second.second);
         state->nBlocksInFlight--;
+
+        NodeId nodeid = itInFlight->second.first;
+        auto block = itInFlight->second.second;
+        int height = block->pindex != nullptr ? block->pindex->nHeight : 0;
+        int64_t nNow = GetTimeMicros();
+
+        // check overall statistics to avoid repeating the same nodes all over again (was a bug)
+        if (isdone < 0) { // stalling
+            if (_lastNodeStalling == nodeid) {
+                LogPrint("blockdown", "%s: _lastNodeStalling == nodeid: %d, %d, %d, %d, %d \n", 
+                    __func__, nodeid, height, state->_stallingCurrent, state->_stallingCurrentBlock,
+                    state->_stallingLast);
+            }
+            
+            // state->nStallingSince -> block->nTime
+            state->_stallingCurrent = (nNow - block->nTime) / 1000000;
+            state->_stallingCurrentBlock = height;
+            if (state->_stallingFirst == 0)
+                state->_stallingFirst = block->nTime;
+            state->_stallingLast = block->nTime;
+            state->_stallingTotal += state->_stallingCurrent;
+            state->_previousNodeStalling = _lastNodeStalling;
+            state->_previousBlockStalling = _lastBlockStalling;
+            state->_stillStalling = true;
+            if (_lastNodeStalling == nodeid) {
+                LogPrint("blockdown", "%s: shouldn't happen?: %d, %d \n", __func__, nodeid, height);
+                state->_previousNodeStalling = 0;
+                state->_previousBlockStalling = 0;
+            }
+            _lastNodeStalling = nodeid;
+            _lastBlockStalling = height;
+        } else if (isdone > 0) { // new block done
+            NodeId prevNode = _lastNodeStalling;
+            int prevBlock = _lastBlockStalling;
+            while (prevNode > 0) {
+                if (prevBlock != height) {
+                    LogPrint("blockdown", "%s: prevBlock != height: %d, %d \n", 
+                        __func__, prevBlock, height);
+                    break;
+                }
+                CNodeState* state = State(prevNode);
+                if (state == nullptr) {
+                    LogPrint("blockdown", "%s: State(prevNode) == null: %d, %d \n", 
+                        __func__, prevNode, prevBlock);
+                    break;
+                }
+                if (state->_previousNodeStalling == prevNode) {
+                    LogPrint("blockdown", "%s: _previousNodeStalling == prevNode: %d, %d, %d, %d, %d \n", __func__, prevNode, prevBlock, state->_stallingCurrent, state->_stallingCurrentBlock, state->_stallingLast);
+                    // we shouldn't change things here but this is to correct the possible recursion
+                    state->_previousNodeStalling = 0;
+                    state->_previousBlockStalling = 0;
+                }
+                prevNode = state->_previousNodeStalling;
+                prevBlock = state->_previousBlockStalling;
+                state->_stillStalling = false;
+                state->_previousNodeStalling = 0;
+                state->_previousBlockStalling = 0;
+            }
+            _lastNodeStalling = 0;
+            _lastBlockStalling = 0;
+        } else { // new in-flight, not sure
+            // do nothing, just preserve and deal w/ it within the MarkBlockAsInFlight
+            // shouldn't happen?
+            LogPrint("blockdown", "%s: isdone == 0: %d, %d \n", 
+                __func__, nodeid, height);
+            // _lastNodeStalling = _lastNodeStalling;
+            // _lastBlockStalling = _lastBlockStalling;
+        }
+
         state->nStallingSince = 0;
+
         mapBlocksInFlight.erase(itInFlight);
     }
+}
+
+bool IsStalling(NodeId nodeid)
+{
+    if (nodeid <= 0) return false;
+
+    NodeId prevNode = _lastNodeStalling;
+    int prevBlock = _lastBlockStalling;
+    while (prevNode > 0) {
+        if (prevNode == nodeid)
+            return true;
+
+        CNodeState* state = State(prevNode);
+        if (state == nullptr) {
+            LogPrint("blockdown", "%s: State(prevNode) == null: %d, %d \n", 
+                __func__, prevNode, prevBlock);
+            break;
+        }
+        if (state->_previousNodeStalling == prevNode) {
+            LogPrint("blockdown", "%s: _previousNodeStalling == prevNode: %d, %d, %d, %d, %d \n", __func__, prevNode, prevBlock, state->_stallingCurrent, state->_stallingCurrentBlock, state->_stallingLast);
+            // we shouldn't change things here but this is to correct the possible recursion
+            state->_previousNodeStalling = 0;
+            state->_previousBlockStalling = 0;
+        }
+        prevNode = state->_previousNodeStalling;
+        prevBlock = state->_previousBlockStalling;
+    }
+    return false;
+}
+
+bool WasStallingRecently(NodeId nodeid, int howRecentSeconds = 0)
+{
+    if (nodeid <= 0) return false;
+
+    if (IsStalling(nodeid)) return true;
+
+    if (howRecentSeconds == 0)
+        howRecentSeconds = GetArg("-stallbantime", 300); // 5 minutes
+
+    CNodeState* state = State(nodeid);
+    if (state == nullptr) {
+        LogPrint("blockdown", "%s: State(nodeid) == null: %d \n", __func__, nodeid);
+        return false;
+    }
+
+    int64_t nNow = GetTimeMicros();
+    int nSecondsSinceStalling = (nNow - state->_stallingLast) / 1000000;
+    if (nSecondsSinceStalling < howRecentSeconds)
+        return true;
+
+    return false;
 }
 
 // Requires cs_main.
@@ -418,7 +563,7 @@ void MarkBlockAsInFlight(NodeId nodeid, const uint256& hash, CBlockIndex* pindex
     assert(state != NULL);
 
     // Make sure it's not listed somewhere already.
-    MarkBlockAsReceived(hash);
+    MarkBlockAsReceived(hash, 0);
 
     QueuedBlock newentry = {hash, pindex, GetTimeMicros(), nQueuedValidatedHeaders, pindex != NULL};
     nQueuedValidatedHeaders += newentry.fValidatedHeaders;
@@ -557,6 +702,8 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
     bool fInFlightFix = GetBoolArg("-inflightfix", true);
 
     NodeId waitingfor = -1;
+    // nodeStaller = -1;
+    
     while (pindexWalk->nHeight < nMaxHeight) {
         // Read up to 128 (or more, if more blocks than that are needed) successors of pindexWalk (towards
         // pindexBestKnownBlock) into vToFetch. We fetch 128, because CBlockIndex::GetAncestor may be as expensive
@@ -595,11 +742,11 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
                     return;
                 }
                 vBlocks.push_back(pindex);
-                if (vBlocks.size() == count) {
+                if (vBlocks.size() == count)
                     return;
-                }
             } else if (waitingfor == -1) {
                 // This is the first already-in-flight block.
+                // nodeStaller = waitingfor = mapBlocksInFlight[pindex->GetBlockHash()].first;
                 waitingfor = mapBlocksInFlight[pindex->GetBlockHash()].first;
 
                 // int nInFlightTimeOut = GetArg("-inflighttimeout", 180); // 3 minutes
@@ -610,21 +757,30 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
                 if (fInFlightFix && timeSpentSecs > nInFlightTimeOut) {
                     CNodeState* state = State(waitingfor);
                     assert(state != NULL);
-                    // Make sure it's not listed somewhere already.
-                    MarkBlockAsReceived(hash);
+                    
+                    // 'un-flight' it so we can move on...
+                    MarkBlockAsReceived(hash, -1);
+
                     LogPrintf("%s : block in flight was stalling for too long : %d, %d, %d \n", __func__, waitingfor, pindex->nHeight, (GetTimeMicros() - itInFlight->nTime) / 1000000 );
 
-                    waitingfor = -1;
-                    // now we can spin it like the rest of the lot (no need to wait for another cycle?).
-                    if (pindex->nHeight > nWindowEnd) {
-                        if (vBlocks.size() == 0 && waitingfor != nodeid) {
-                            nodeStaller = waitingfor;
+                    if (waitingfor != nodeid) {
+                        // nodeStaller = waitingfor = -1;
+                        waitingfor = -1;
+                        
+                        // now we can spin it like the rest of the lot (no need to wait for another cycle?).
+                        // if (pindex->nHeight > nWindowEnd) 
+                        //     return;
+                        if (pindex->nHeight > nWindowEnd) {
+                            // We reached the end of the window.
+                            if (vBlocks.size() == 0 && waitingfor != nodeid) {
+                                // We aren't able to fetch anything, but we would be if the download window was one larger.
+                                nodeStaller = waitingfor;
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    vBlocks.push_back(pindex);
-                    if (vBlocks.size() == count) {
-                        return;
+                        vBlocks.push_back(pindex);
+                        if (vBlocks.size() == count)
+                            return;
                     }
                 }
 
@@ -6020,7 +6176,7 @@ void static ProcessGetData(CI2pdNode* pfrom)
                         if (nMaxReorganizationDepth > 0)
                             send = send && (chainActive.Height() - mi->second->nHeight < nMaxReorganizationDepth);
                         if (!send)
-                            LogPrintf("ProcessGetData(): ignoring request from peer=%i for old block that isn't in the main chain\n", pfrom->GetId());
+                            LogPrintf("ProcessGetData(): ignoring request from peer=%i (%s) for old block that isn't in the main chain\n", pfrom->GetId(), pfrom->GetIdentity());
                     }
                 }
                 // Don't send not-validated blocks
@@ -6225,7 +6381,7 @@ bool fRequestedSporksIDB = false;
 bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRecv, int64_t nTimeReceived)
 {
     RandAddSeedPerfmon();
-    LogPrint("net", "received: %s (%u bytes) peer=%d\n", SanitizeString(strCommand), vRecv.size(), pfrom->id);
+    LogPrint("net", "received: %s (%u bytes) peer=%d (%s)\n", SanitizeString(strCommand), vRecv.size(), pfrom->id, pfrom->GetIdentity());
 
     if (mapArgs.count("-dropmessagestest") && GetRand(atoi(mapArgs["-dropmessagestest"])) == 0) {
         LogPrintf("dropmessagestest DROPPING RECV MESSAGE\n");
@@ -6470,7 +6626,7 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
             pfrom->AddInventoryKnown(inv);
 
             bool fAlreadyHave = AlreadyHave(inv);
-            LogPrint("net", "got inv: %s  %s peer=%d\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom->id);
+            LogPrint("net", "got inv: %s  %s peer=%d (%s)\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom->id, pfrom->GetIdentity());
 
             if (!fAlreadyHave && !fImporting && !fReindex && inv.type != MSG_BLOCK)
                 pfrom->AskFor(inv);
@@ -6481,7 +6637,7 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
                 if (!fAlreadyHave && !fImporting && !fReindex && !mapBlocksInFlight.count(inv.hash) && CanDirectFetch()) {
                     // Add this to the list of blocks to request
                     vToFetch.push_back(inv);
-                    LogPrint("net", "getblocks (%d) %s to peer=%d\n", pindexBestHeader->nHeight, inv.hash.ToString(), pfrom->id);
+                    LogPrint("net", "getblocks (%d) %s to peer=%d (%s)\n", pindexBestHeader->nHeight, inv.hash.ToString(), pfrom->id, pfrom->GetIdentity());
                 }
             }
 
@@ -6509,10 +6665,12 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
         }
 
         if (fDebug || (vInv.size() != 1))
-            LogPrint("net", "received getdata (%u invsz) peer=%d\n", vInv.size(), pfrom->id);
+            LogPrint("net", "received getdata (%u invsz) peer=%d (%s)\n", 
+                vInv.size(), pfrom->id, pfrom->GetIdentity());
 
         if ((fDebug && vInv.size() > 0) || (vInv.size() == 1))
-            LogPrint("net", "received getdata for: %s peer=%d\n", vInv[0].ToString(), pfrom->id);
+            LogPrint("net", "received getdata for: %s peer=%d (%s)\n", 
+                vInv[0].ToString(), pfrom->id, pfrom->GetIdentity());
 
         pfrom->vRecvGetData.insert(pfrom->vRecvGetData.end(), vInv.begin(), vInv.end());
         ProcessGetData(pfrom);
@@ -6533,7 +6691,7 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
         if (pindex)
             pindex = chainActive.Next(pindex);
         int nLimit = 500;
-        LogPrint("net", "getblocks %d to %s limit %d from peer=%d\n", (pindex ? pindex->nHeight : -1), hashStop == uint256(0) ? "end" : hashStop.ToString(), nLimit, pfrom->id);
+        LogPrint("net", "getblocks %d to %s limit %d from peer=%d (%s)\n", (pindex ? pindex->nHeight : -1), hashStop == uint256(0) ? "end" : hashStop.ToString(), nLimit, pfrom->id, pfrom->GetIdentity());
         for (; pindex; pindex = chainActive.Next(pindex)) {
             if (pindex->GetBlockHash() == hashStop) {
                 LogPrint("net", "  getblocks stopping at %d %s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
@@ -6580,7 +6738,7 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
         // we must use CBlocks, as CBlockHeaders won't include the 0x00 nTx count at the end
         vector<CBlock> vHeaders;
         int nLimit = MAX_HEADERS_RESULTS;
-        LogPrint("net", "getheaders %d to %s from peer=%d\n", (pindex ? pindex->nHeight : -1), hashStop.ToString(), pfrom->id);
+        LogPrint("net", "getheaders %d to %s from peer=%d (%s)\n", (pindex ? pindex->nHeight : -1), hashStop.ToString(), pfrom->id, pfrom->GetIdentity());
         for (; pindex; pindex = chainActive.Next(pindex)) {
             vHeaders.push_back(pindex->GetBlockHeader());
             if (--nLimit <= 0 || pindex->GetBlockHash() == hashStop)
@@ -6808,15 +6966,22 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
             // Headers message had its maximum size; the peer may have more headers.
             // TODO: optimize: if pindexLast is an ancestor of chainActive.Tip or pindexBestHeader, continue
             // from there instead.
-            LogPrintf("more getheaders (%d) to end to peer=%d (startheight:%d)\n", pindexLast->nHeight, pfrom->id, pfrom->nStartingHeight);
+            LogPrintf("more getheaders (%d) to end to peer=%d (startheight:%d, %s)\n", pindexLast->nHeight, pfrom->id, pfrom->nStartingHeight, pfrom->GetIdentity());
             pfrom->PushMessage("getheaders", chainActive.GetLocator(pindexLast), uint256(0));
         }
 
         bool fCanDirectFetch = CanDirectFetch();
         CNodeState *nodestate = State(pfrom->GetId());
+
+        NodeId nodeid = pfrom->GetId();
+        bool isstalling = IsStalling(nodeid); // || WasStallingRecently(nodeid);
+        if (isstalling) {
+            LogPrint("blockdown", "%s : headers, is stalling, skip: %d \n", 
+                __func__, nodeid);
+        }
         // If this set of headers is valid and ends in a block with at least as
         // much work as our tip, download as much as possible.
-        if (fCanDirectFetch && pindexLast->IsValid(BLOCK_VALID_TREE) && chainActive.Tip()->nChainWork <= pindexLast->nChainWork) {
+        if (fCanDirectFetch && pindexLast->IsValid(BLOCK_VALID_TREE) && chainActive.Tip()->nChainWork <= pindexLast->nChainWork && !isstalling) {
             vector<CBlockIndex *> vToFetch;
             CBlockIndex *pindexWalk = pindexLast;
             // Calculate all the blocks we'd need to switch to pindexLast, up to a limit.
@@ -6846,8 +7011,8 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
                     }
                     vGetData.push_back(CInv(MSG_BLOCK, pindex->GetBlockHash()));
                     MarkBlockAsInFlight(pfrom->GetId(), pindex->GetBlockHash(), pindex);
-                    LogPrint("net", "Requesting block %s from  peer=%d\n",
-                            pindex->GetBlockHash().ToString(), pfrom->id);
+                    LogPrint("net", "Requesting block %s from  peer=%d (%s)\n",
+                            pindex->GetBlockHash().ToString(), pfrom->id, pfrom->GetIdentity());
                 }
                 if (vGetData.size() > 1) {
                     if (LogAcceptCategory("blockdown") && vToFetch.size() > 0) 
@@ -6872,7 +7037,8 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
         vRecv >> block;
         uint256 hashBlock = block.GetHash();
         CInv inv(MSG_BLOCK, hashBlock);
-        LogPrint("net", "received block %s peer=%d\n", inv.hash.ToString(), pfrom->id);
+        LogPrint("net", "received block %s peer=%d (%s)\n", 
+            inv.hash.ToString(), pfrom->id, pfrom->GetIdentity());
 
         //sometimes we will be sent their most recent block and its not the one we want, in that case tell where we are
         if (!mapBlockIndex.count(block.hashPrevBlock)) {
@@ -7264,7 +7430,7 @@ bool ProcessMessages(CI2pdNode* pfrom)
         }
 
         if (!fRet)
-            LogPrintf("ProcessMessage(%s, %u bytes) FAILED peer=%d\n", SanitizeString(strCommand), nMessageSize, pfrom->id);
+            LogPrintf("ProcessMessage(%s, %u bytes) FAILED peer=%d (%s)\n", SanitizeString(strCommand), nMessageSize, pfrom->id, pfrom->GetIdentity());
 
         break;
     }
@@ -7489,16 +7655,16 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
                     // setInventoryKnown to track this.)
                     if (!PeerHasHeader(&state, pindex)) {
                         pto->PushInventory(CInv(MSG_BLOCK, hashToAnnounce));
-                        LogPrint("net", "%s: sending inv peer=%d hash=%s\n", __func__,
-                            pto->id, hashToAnnounce.ToString());
+                        LogPrint("net", "%s: sending inv peer=%d hash=%s (%s)\n", __func__,
+                            pto->id, hashToAnnounce.ToString(), pto->GetIdentity());
                     }
                 }
             } else if (!vHeaders.empty()) {
                 if (vHeaders.size() > 1) {
-                    LogPrint("net", "%s: %u headers, range (%s, %s), to peer=%d\n", __func__,
+                    LogPrint("net", "%s: %u headers, range (%s, %s), to peer=%d (%s)\n", __func__,
                             vHeaders.size(),
                             vHeaders.front().GetHash().ToString(),
-                            vHeaders.back().GetHash().ToString(), pto->id);
+                            vHeaders.back().GetHash().ToString(), pto->id, pto->GetIdentity());
                 } else {
                     LogPrint("net", "%s: sending header %s to peer=%d\n", __func__,
                             vHeaders.front().GetHash().ToString(), pto->id);
@@ -7554,11 +7720,13 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
 
         // Detect whether we're stalling
         int64_t nNow = GetTimeMicros();
-        if (!pto->fDisconnect && state.nStallingSince && state.nStallingSince < nNow - 1000000 * BLOCK_STALLING_TIMEOUT) {
+        unsigned int timeout = BLOCK_STALLING_TIMEOUT * 15;
+        if (!pto->fDisconnect && state.nStallingSince && state.nStallingSince < nNow - 1000000 * timeout) {
             // Stalling only triggers when the block download window cannot move. During normal steady state,
             // the download window should be much larger than the to-be-downloaded set of blocks, so disconnection
             // should only happen during initial block download.
-            LogPrintf("Peer=%d is stalling block download, disconnecting\n", pto->id);
+            LogPrintf("Peer=%d (%s) is stalling block download, disconnecting\n", 
+                pto->id, pto->GetIdentity());
             pto->fDisconnect = true;
         }
         // In case there is a block that has been in flight from this peer for (2 + 0.5 * N) times the block interval
@@ -7567,7 +7735,7 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
         // being saturated. We only count validated in-flight blocks so peers can't advertize nonexisting block hashes
         // to unreasonably increase our timeout.
         if (!pto->fDisconnect && state.vBlocksInFlight.size() > 0 && state.vBlocksInFlight.front().nTime < nNow - 500000 * Params().TargetSpacing() * (4 + state.vBlocksInFlight.front().nValidatedQueuedBefore)) {
-            LogPrintf("Timeout downloading block %s from peer=%d, disconnecting\n", state.vBlocksInFlight.front().hash.ToString(), pto->id);
+            LogPrintf("Timeout downloading block %s from peer=%d (%s), disconnecting\n", state.vBlocksInFlight.front().hash.ToString(), pto->id, pto->GetIdentity());
             pto->fDisconnect = true;
         }
 
@@ -7575,25 +7743,40 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
         // Message: getdata (blocks)
         //
         vector<CInv> vGetData;
-        if (!pto->fDisconnect && !pto->fClient && fFetch && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
+        NodeId nodeid = pto->GetId();
+        bool isstalling = IsStalling(nodeid) || WasStallingRecently(nodeid);
+        if (isstalling) {
+            LogPrint("blockdown", "%s : FindNextBlocksToDownload, was stalling, skip: %d \n", 
+                __func__, nodeid);
+        }
+        if (!pto->fDisconnect && !pto->fClient && fFetch && !isstalling && 
+            state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
             vector<CBlockIndex*> vToDownload;
             NodeId staller = -1;
             FindNextBlocksToDownload(pto->GetId(), MAX_BLOCKS_IN_TRANSIT_PER_PEER - state.nBlocksInFlight, vToDownload, staller);
+            // if (vToDownload.size() > 0 || staller == pto->GetId())
+            //     staller = -1;
 
-            if (LogAcceptCategory("blockdown") && vToDownload.size() > 0) 
-                LogPrint("blockdown", "%s : FindNextBlocksToDownload: %d, %d, %s \n", 
-                    __func__, MAX_BLOCKS_IN_TRANSIT_PER_PEER, state.nBlocksInFlight, Join(vToDownload));
+            // repeat the check as we might be stalling now
+            isstalling = IsStalling(nodeid); // || WasStallingRecently(nodeid);
 
-            BOOST_FOREACH (CBlockIndex* pindex, vToDownload) {
-                vGetData.push_back(CInv(MSG_BLOCK, pindex->GetBlockHash()));
-                MarkBlockAsInFlight(pto->GetId(), pindex->GetBlockHash(), pindex);
-                LogPrintf("Requesting block %s (%d) peer=%d\n", pindex->GetBlockHash().ToString(),
-                    pindex->nHeight, pto->id);
-            }
-            if (state.nBlocksInFlight == 0 && staller != -1) {
-                if (State(staller)->nStallingSince == 0) {
-                    State(staller)->nStallingSince = nNow;
-                    LogPrint("net", "Stall started peer=%d\n", staller);
+            if (!isstalling) {
+                if (LogAcceptCategory("blockdown") && vToDownload.size() > 0) 
+                    LogPrint("blockdown", "%s : FindNextBlocksToDownload: %d, %d, %s \n", 
+                        __func__, MAX_BLOCKS_IN_TRANSIT_PER_PEER, state.nBlocksInFlight, Join(vToDownload));
+
+                BOOST_FOREACH (CBlockIndex* pindex, vToDownload) {
+                    vGetData.push_back(CInv(MSG_BLOCK, pindex->GetBlockHash()));
+                    MarkBlockAsInFlight(pto->GetId(), pindex->GetBlockHash(), pindex);
+                    LogPrintf("Requesting block %s (%d) peer=%d (%s)\n", 
+                        pindex->GetBlockHash().ToString(), pindex->nHeight, pto->id, pto->GetIdentity());
+                }
+                if (state.nBlocksInFlight == 0 && staller != -1) {
+                    if (State(staller)->nStallingSince == 0) {
+                        State(staller)->nStallingSince = nNow;
+                        LogPrint("net", "Stall started peer=%d (%s)\n", 
+                            staller, State(staller)->address.ToString());
+                    }
                 }
             }
         }

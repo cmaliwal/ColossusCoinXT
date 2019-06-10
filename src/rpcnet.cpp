@@ -664,6 +664,58 @@ UniValue getdestinations(const UniValue& params, bool fHelp)
     // return ret;
 }
 
+UniValue getserverdestination(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getserverdestination\n"
+            "\nReturns data about the public i2p destination as a json array of objects.\n"
+            "\nbResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"id\": n,                   (numeric) Peer index\n"
+            "    \"addr\":\"host:port\",      (string) The ip address and port of the peer\n"
+            "    \"addrlocal\":\"ip:port\",   (string) local address\n"
+            "    \"services\":\"xxxxxxxxxxxxxxxx\",   (string) The services offered\n"
+            "    \"lastsend\": ttt,           (numeric) The time in seconds since epoch (Jan 1 1970 GMT) of the last send\n"
+            "    \"lastrecv\": ttt,           (numeric) The time in seconds since epoch (Jan 1 1970 GMT) of the last receive\n"
+            "    \"bytessent\": n,            (numeric) The total bytes sent\n"
+            "    \"bytesrecv\": n,            (numeric) The total bytes received\n"
+            "    \"conntime\": ttt,           (numeric) The connection time in seconds since epoch (Jan 1 1970 GMT)\n"
+            "    \"timeoffset\": ttt,         (numeric) The time offset in seconds\n"
+            "    \"pingtime\": n,             (numeric) ping time\n"
+            "    \"pingwait\": n,             (numeric) ping wait\n"
+            "    \"version\": v,              (numeric) The peer version, such as 7001\n"
+            "    \"subver\": \"/COLX Core:x.x.x.x/\",  (string) The string version\n"
+            "    \"inbound\": true|false,     (boolean) Inbound (true) or Outbound (false)\n"
+            "    \"startingheight\": n,       (numeric) The starting height (block) of the peer\n"
+            "    \"banscore\": n,             (numeric) The ban score\n"
+            "    \"synced_headers\": n,       (numeric) The last header we have in common with this peer\n"
+            "    \"synced_blocks\": n,        (numeric) The last block we have in common with this peer\n"
+            "    \"inflight\": [\n"
+            "       n,                        (numeric) The heights of blocks we're currently asking from this peer\n"
+            "       ...\n"
+            "    ]\n"
+            "  }\n"
+            "  ,...\n"
+            "]\n"
+            "\nExamples:\n" +
+            HelpExampleCli("getserverdestination", "") + HelpExampleRpc("getserverdestination", ""));
+
+    UniValue destinations(UniValue::VARR);
+
+    CDestination addrPublic;
+    GetServerDestination(addrPublic, GetListenPort());
+    std::string address = addrPublic.ToString();
+
+    UniValue obj(UniValue::VOBJ);
+    obj.push_back(Pair("destination", address));
+    destinations.push_back(obj);
+
+    return destinations;
+}
+
+
 UniValue testclienttunnel(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 0)
@@ -700,7 +752,7 @@ UniValue testclienttunnel(const UniValue& params, bool fHelp)
             "  ,...\n"
             "]\n"
             "\nExamples:\n" +
-            HelpExampleCli("getdestinations", "") + HelpExampleRpc("getdestinations", ""));
+            HelpExampleCli("testclienttunnel", "") + HelpExampleRpc("testclienttunnel", ""));
 
     UniValue ret(UniValue::VARR);
 
