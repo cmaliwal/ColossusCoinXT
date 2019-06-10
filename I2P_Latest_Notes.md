@@ -51,11 +51,23 @@ Repeat the process whenever you wish to make a new address.
 
 #  How to run multiple colx instances on the same machine
 - use latest binaries.
-- comment out the rpcport= (to be generated) - or put different values for each app / data instance. I'm presuming you don't need to use colx-cli, if you do put your own 'random' #-s in each ColossusXT.conf.
-- make e.g. 5 different data directories (.ColossusXT). I.e. copy some valid data folder 5 times.
+- make e.g. 5 different bin & data directories (e.g. colx1 to colx5 and within each .ColossusXT data dir). I.e. copy some valid data folder 5 times.
 - For each data folder, remove testnet4 to reinit (wallet and all).
-- remove `router.info` - to be regenerated (this holds the ports info).
-- use the i2pd.conf from client.ColossusXT.tar.gz (i.e. all port= should be commented out, 5 or so).
+- comment out the rpcport= (to be generated) - or put different values for each app / data instance. I'm presuming you don't need to use colx-cli, if you do put your own 'random' #-s in each ColossusXT.conf.
+- remove `router.info` - to be regenerated (this holds the ports info and can't be copied around).
+- use the i2pd.conf from client.ColossusXT.tar.gz (i.e. all port= should be commented out). Or just use this minimal i2pd.conf:
+```
+log = file
+logfile = i2pd.log
+loglevel = error
+ipv4 = true
+ipv6 = false
+[sam]
+enabled = true
+[reseed]
+verify = true
+```
+- run each colx-qt with each own datadir (pointing to a subfolder). E.g. `./colx-qt -testnet -datadir=/home/user/bin/colx2/.ColossusXT &`
 
 #  Android Version
 - It's under its own 'arm' subdir (https://1drv.ms/f/s!AnrEFg2ff_U_h98eiQniM60nL5ROKA).
