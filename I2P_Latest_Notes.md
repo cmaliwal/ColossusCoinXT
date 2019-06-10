@@ -1,11 +1,11 @@
-I2P Latest Notes (060719)
+I2P Latest Notes (061019)
 =====================================
 
 [![Build Status](https://travis-ci.org/COLX-Project/COLX.svg?branch=i2pd)](https://travis-ci.org/COLX-Project/COLX) [![GitHub version](https://badge.fury.io/gh/COLX-Project%2FCOLX.svg)](https://badge.fury.io/gh/COLX-Project%2FCOLX)
 
 This is a concise summary of things important (for details please look up the other documents).  
 
-#  Status (060719)
+#  Status (061019)
 A rather substantial update:
 - it's quite stable and reliable. 
 - all known issues resolved (including a nagging and extremely rare and tricky stream close errors). 
@@ -14,10 +14,10 @@ A rather substantial update:
 - performance is ok enough (more under known issues).
 
 #  Known Issues
-1) **slow i2p network initialization** (on app start). It takes a few minutes for i2p to initialize. That's the slowest part and likely the most UX issue of all (but we should add some notifications, splash or something, so that the user is aware of what's going on). I didn't do any optimization on this, so there's space to improve (and ways to tackle this, I've elaborated on discord, test channel) but it is inherently an i2p thing (i.e. it'll never be as fast as sockets, though I expect it be faster).
+1) **slow i2p network initialization** (on app start). It takes a few minutes for i2p to initialize. That's the slowest part and likely the most UX issue of all (but we should add some notifications, splash or something, so that the user is aware of what's going on). I didn't do any optimization on this, so there's space to improve (and ways to tackle this, I've elaborated on test channel) but it is inherently an i2p thing (i.e. it'll never be as fast as sockets, though I expect it to be faster).
 2) **Slow recovery time, occasional ups and downs** - network sync slowdowns. I.e. once the 'flow' of info gets interrupted in some way (e.g. internet connection issues, forked nodes/blocks, or even i2p network slow patches etc.) it takes a bit for node to recover and rebuild the tunnels. This shouldn't normally happen though. The problem is w/ how i2p tunnels work (temporary and unstable, many hops and all) and rebuilding that is costly (if you have to reinit everything, couple tunnels it's not an issue). I've also noticed (I think) occasional i2p network slowdowns during the night (not confirmed though). Network latency (over i2p) is not really an issue (that I noticed) but it exists and it's not as prompt as over direct socket connection (when you need to recover fast). Couple testnet issues were directly related to all this (I've already fixed/adjusted the block downloading etc.), it's something we have to keep in mind.
 3) qt, peers list, **addresses are wrong for 'Inbound' connections** - i.e. you get number of connections having the same 'address' in the list, but in fact that's showing the current node's address (as a 'server'). No brainer just to get to do it.
-4) On Windows only: wallet stops syncing after initial sync (while showing as up-to-date) - I'm unable to repeat this (possibly a combo of factors, config and bad manual setup). Workaround (how to resolve): go to `i2pd.conf` and comment `nat=true` (that one should be off). Also reinstall from .exe properly. Firewall settings are irrelevant (app asks for firewall exception but that's not used any more and should be removed, only for local sockets).
+4) On Windows only: wallet stops syncing after initial sync (while showing as up-to-date) - I'm unable to repeat this (possibly a combo of factors, config and bad manual setup). Workaround (how to resolve): go to `i2pd.conf` and comment `nat=true` (that one should be off). Also reinstall from .exe properly. Firewall settings are irrelevant (app asks for firewall exception but that's not used any more and should be removed, only for local sockets). Let me know if you get to repeat this consistently (zip and send me your data dir).
 5) Android - is available now under 'arm' subdir but not tested (I mean literally not tested, just managed to compile it).  
 
 I think that's pretty much it at this point. Shutdown should now work fine (no errors any more), everything else is pretty much as over 'normal'/sockets based network (all messages, tx-s flow, MN-s etc).  
