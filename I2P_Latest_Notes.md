@@ -14,7 +14,7 @@ A rather substantial update:
 - performance is ok enough (more under known issues).
 
 #  Known Issues
-1) **slow i2p network initialization** (on app start). It takes a few minutes for i2p to initialize. That's the slowest part and likely the most UX issue of all (but we should add some notifications, splash or something, so that the user is aware of what's going on). I didn't do any optimization on this, so there's space to improve (and ways to tackle this, I've elaborated on test channel) but it is inherently an i2p thing (i.e. it'll never be as fast as sockets, though I expect it to be faster).
+1) **slow i2p network initialization** (on app start). It takes a few minutes for i2p to initialize. That's the slowest part and likely the most UX issue of all (but we should add some notifications, splash or something, so that the user is aware of what's going on). I didn't do any optimization on this, so there's space to improve (and ways to tackle this, I've elaborated on test channel) but i2p startup time will never be as fast as sockets, though I expect it to be faster. 
 2) **Slow recovery time, occasional ups and downs** - network sync slowdowns. I.e. once the 'flow' of info gets interrupted in some way (e.g. internet connection issues, forked nodes/blocks, or even i2p network slow patches etc.) it takes a bit for node to recover and rebuild the tunnels. This shouldn't normally happen though. The problem is w/ how i2p tunnels work (temporary and unstable, many hops and all) and rebuilding that is costly (if you have to reinit everything, couple tunnels it's not an issue). I've also noticed (I think) occasional i2p network slowdowns during the night (not confirmed though). Network latency (over i2p) is not really an issue (that I noticed) but it exists and it's not as prompt as over direct socket connection (when you need to recover fast). Couple testnet issues were directly related to all this (I've already fixed/adjusted the block downloading etc.), it's something we have to keep in mind.
 3) qt, peers list, **addresses are wrong for 'Inbound' connections** - i.e. you get number of connections having the same 'address' in the list, but in fact that's showing the current node's address (as a 'server'). No brainer just to get to do it.
 4) On Windows only: wallet stops syncing after initial sync (while showing as up-to-date) - I'm unable to repeat this (possibly a combo of factors, config and bad manual setup). Workaround (how to resolve): go to `i2pd.conf` and comment `nat=true` (that one should be off). Also reinstall from .exe properly. Firewall settings are irrelevant (app asks for firewall exception but that's not used any more and should be removed, only for local sockets). Let me know if you get to repeat this consistently (zip and send me your data dir).
@@ -53,7 +53,7 @@ Repeat the process whenever you wish to make a new address.
 - use latest binaries.
 - make e.g. 5 different bin & data directories (e.g. colx1 to colx5 and within each .ColossusXT data dir). I.e. copy some valid data folder 5 times.
 - For each data folder, remove testnet4 to reinit (wallet and all).
-- comment out the rpcport= (to be generated) - or put different values for each app / data instance. I'm presuming you don't need to use colx-cli, if you do put your own 'random' #-s in each ColossusXT.conf.
+- Put unique port under `rpcport=`. E.g. 51481 to 51485. ~~comment out the rpcport= (to be generated) - or put different values for each app / data instance. I'm presuming you don't need to use colx-cli, if you do put your own 'random' #-s in each ColossusXT.conf.~~
 - remove `router.info` - to be regenerated (this holds the ports info and can't be copied around).
 - use the i2pd.conf from client.ColossusXT.tar.gz (i.e. all port= should be commented out). Or just use this minimal i2pd.conf:
 ```
@@ -96,6 +96,16 @@ addnode=2enj3uuj4xbkktw3kf5jwirrr5zcycljptkha5ito5ffottdbyfq.b32.i2p:6667
 addnode=ooaur4xf7udcnvchwtx6ivznfw4ol4w6vdsnglcg2bconft7ibcq.b32.i2p:6667
 addnode=ks3rjjbbqxsc72qnqfz44jjovoumaotczmdzd3tvysoprvk6t32a.b32.i2p:6667
 addnode=avdpfoyw5xoih737jxey24x2hd5nhthdvunrrgrwnzgdi2vdirfa.b32.i2p:6667
+addnode=b23bfdjihx4dgvint7h7ofnzgxsymn6obesd4e2qlnp7z7xxtwka.b32.i2p:6667
+addnode=eoycmtdnwf4k437lrlodaw6u7zgwky6ymfgbj65abatesi7mtwvq.b32.i2p:6667
+addnode=yz6gbf7w4zs46yqwyjlluky6eoxnat65bp47cc2urk6eq4eqs7xq.b32.i2p:6667
+addnode=v3bslihxsan7txedv6aggxigicvfyk7cqqkkgo7i5qohrnt4le2q.b32.i2p:6667
+addnode=ensg42boakeibhf2v6jv5f6ddzmgjtv3hcdlpxhaxm5ru2af35oa.b32.i2p:6667
+addnode=mwh6zmrqnjh4tqtalxd4yflczb6unzrpiyvapgxadfmcpmktdtwa.b32.i2p:6667
+addnode=7lcrkcqe52vjjsqfy6w5wfvvcmeirr3nmjnwfhfydhd6emtxoklq.b32.i2p:6667
+addnode=bssl2gt636oc4xgrdptyjxc4evhowycqchwsml5jioqm3lokrqaa.b32.i2p:6667
+addnode=lu66bfhgafenyouy5j6q5kidcuqbwf72gt5cq77wprjh6b5zfakq.b32.i2p:6667
+addnode=xgoweenqnwncs53axoei2hukiu437rmv7dujk66kmn7uf5kyddqq.b32.i2p:6667
 ```
 
 # Important 
@@ -138,6 +148,16 @@ addnode=2enj3uuj4xbkktw3kf5jwirrr5zcycljptkha5ito5ffottdbyfq.b32.i2p:6667
 addnode=ooaur4xf7udcnvchwtx6ivznfw4ol4w6vdsnglcg2bconft7ibcq.b32.i2p:6667
 addnode=ks3rjjbbqxsc72qnqfz44jjovoumaotczmdzd3tvysoprvk6t32a.b32.i2p:6667
 addnode=avdpfoyw5xoih737jxey24x2hd5nhthdvunrrgrwnzgdi2vdirfa.b32.i2p:6667
+addnode=b23bfdjihx4dgvint7h7ofnzgxsymn6obesd4e2qlnp7z7xxtwka.b32.i2p:6667
+addnode=eoycmtdnwf4k437lrlodaw6u7zgwky6ymfgbj65abatesi7mtwvq.b32.i2p:6667
+addnode=yz6gbf7w4zs46yqwyjlluky6eoxnat65bp47cc2urk6eq4eqs7xq.b32.i2p:6667
+addnode=v3bslihxsan7txedv6aggxigicvfyk7cqqkkgo7i5qohrnt4le2q.b32.i2p:6667
+addnode=ensg42boakeibhf2v6jv5f6ddzmgjtv3hcdlpxhaxm5ru2af35oa.b32.i2p:6667
+addnode=mwh6zmrqnjh4tqtalxd4yflczb6unzrpiyvapgxadfmcpmktdtwa.b32.i2p:6667
+addnode=7lcrkcqe52vjjsqfy6w5wfvvcmeirr3nmjnwfhfydhd6emtxoklq.b32.i2p:6667
+addnode=bssl2gt636oc4xgrdptyjxc4evhowycqchwsml5jioqm3lokrqaa.b32.i2p:6667
+addnode=lu66bfhgafenyouy5j6q5kidcuqbwf72gt5cq77wprjh6b5zfakq.b32.i2p:6667
+addnode=xgoweenqnwncs53axoei2hukiu437rmv7dujk66kmn7uf5kyddqq.b32.i2p:6667
 ```
 
 # Testnet details
