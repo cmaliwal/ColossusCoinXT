@@ -25,7 +25,7 @@ namespace config {
    *
    * Should be called before any Parse* functions.
    */
-  void Init();
+  void Init(bool randomPorts = false);
 
   /**
    * @brief  Parse cmdline parameters, and show help if requested

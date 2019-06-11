@@ -63,15 +63,15 @@ namespace i2p
         }
 
         //bool Daemon_Singleton::init(int argc, const char* const argv[]) 
-        bool Daemon_Singleton::init(int argc, char* argv[])
+        bool Daemon_Singleton::init(int argc, char* argv[], bool randomPorts)
         {
-            return init(argc, argv, nullptr);
+            return init(argc, argv, randomPorts, nullptr);
         }
 
         //bool Daemon_Singleton::init(int argc, const char* const argv[], std::shared_ptr<std::ostream> logstream)
-        bool Daemon_Singleton::init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream)
+        bool Daemon_Singleton::init(int argc, char* argv[], bool randomPorts, std::shared_ptr<std::ostream> logstream)
         {
-            i2p::config::Init();
+            i2p::config::Init(randomPorts);
             i2p::config::ParseCmdline(argc, argv, true);
 
             std::string config;  i2p::config::GetOption("conf",    config);

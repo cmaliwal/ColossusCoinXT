@@ -27,7 +27,7 @@ namespace config {
     options_description m_OptionsDesc;
     variables_map m_Options;
 
-    void Init()
+    void Init(bool randomPorts)
     {
         options_description general("General options");
         general.add_options()
@@ -79,7 +79,7 @@ namespace config {
         ;
 
 		// int httpportdefault = rand () % (30777 - 9111) + 9111; // I2P network ports range
-		int httpport_ = rand () % (7999 - 7000) + 7000; // 7070
+		int httpport_ = randomPorts ? rand () % (7999 - 7000) + 7000 : 7070;
         options_description httpserver("HTTP Server options");
         httpserver.add_options()
             ("http.enabled", value<bool>()->default_value(true),                "Enable or disable webconsole")
@@ -92,7 +92,7 @@ namespace config {
             ("http.hostname", value<std::string>()->default_value("localhost"), "Expected hostname for WebUI")
         ;
 
-		int httpproxyport_ = rand () % (4999 - 4000) + 4000; // 4444
+		int httpproxyport_ = randomPorts ? rand () % (4999 - 4000) + 4000 : 4444;
         options_description httpproxy("HTTP Proxy options");
         httpproxy.add_options()
             ("httpproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable HTTP Proxy")
@@ -110,8 +110,8 @@ namespace config {
             ("httpproxy.addresshelper", value<bool>()->default_value(true),           "Enable or disable addresshelper")
         ;
 
-		int socksproxyoutport_ = rand () % (9999 - 9000) + 9000; // 9050
-		int socksproxyport_ = rand () % (4999 - 4000) + 4000; // 4447
+		int socksproxyoutport_ = randomPorts ? rand () % (9999 - 9000) + 9000 : 9050;
+		int socksproxyport_ = randomPorts ? rand () % (4999 - 4000) + 4000 : 4447;
         options_description socksproxy("SOCKS Proxy options");
         socksproxy.add_options()
             ("socksproxy.enabled", value<bool>()->default_value(true),                 "Enable or disable SOCKS Proxy")
@@ -130,7 +130,7 @@ namespace config {
             ("socksproxy.outproxyport", value<uint16_t>()->default_value(socksproxyoutport_), "Upstream outproxy port for SOCKS Proxy")
         ;
 
-		int samport_ = rand () % (7999 - 7000) + 7000; // 7656
+		int samport_ = randomPorts ? rand () % (7999 - 7000) + 7000 : 7656;
         options_description sam("SAM bridge options");
         sam.add_options()
             ("sam.enabled", value<bool>()->default_value(true),               "Enable or disable SAM Application bridge")
@@ -138,7 +138,7 @@ namespace config {
             ("sam.port", value<uint16_t>()->default_value(samport_),          "SAM listen port")
         ;
 
-		int bobport_ = rand () % (2999 - 2000) + 2000; // 2827
+		int bobport_ = randomPorts ? rand () % (2999 - 2000) + 2000 : 2827;
         options_description bob("BOB options");
         bob.add_options()
             ("bob.enabled", value<bool>()->default_value(false),              "Enable or disable BOB command channel")
@@ -146,7 +146,7 @@ namespace config {
             ("bob.port", value<uint16_t>()->default_value(bobport_),          "BOB listen port")
         ;
 
-		int i2cpport_ = rand () % (7999 - 7000) + 7000; // 7654
+		int i2cpport_ = randomPorts ? rand () % (7999 - 7000) + 7000 : 7654;
         options_description i2cp("I2CP options");
         i2cp.add_options()
             ("i2cp.enabled", value<bool>()->default_value(false),              "Enable or disable I2CP")
@@ -154,7 +154,7 @@ namespace config {
             ("i2cp.port", value<uint16_t>()->default_value(i2cpport_),         "I2CP listen port")
         ;
 
-		int i2pcontrolport_ = rand () % (7999 - 7000) + 7000; // 7650
+		int i2pcontrolport_ = randomPorts ? rand () % (7999 - 7000) + 7000 : 7650;
         options_description i2pcontrol("I2PControl options");
         i2pcontrol.add_options()
             ("i2pcontrol.enabled", value<bool>()->default_value(false),                    "Enable or disable I2P Control Protocol")
@@ -227,7 +227,7 @@ namespace config {
             ("trust.hidden", value<bool>()->default_value(false),      "Should we hide our router from other routers?")
         ;
 
-		int websocketsport_ = rand () % (7999 - 7000) + 7000; // 7666
+		int websocketsport_ = randomPorts ? rand () % (7999 - 7000) + 7000 : 7666;
         options_description websocket("Websocket Options");
         websocket.add_options()
             ("websockets.enabled", value<bool>()->default_value(false),              "Enable websocket server")
@@ -243,7 +243,7 @@ namespace config {
             ("exploratory.outbound.quantity", value<int>()->default_value(3), "Exploratory outbound tunnels quantity")
         ;
 
-		// int ntcp2port_ = rand () % (7999 - 7000) + 7000; // 7666
+		// int ntcp2port_ = randomPorts ? rand () % (7999 - 7000) + 7000 : 7666;
         options_description ntcp2("NTCP2 Options");
         ntcp2.add_options()
             ("ntcp2.enabled", value<bool>()->default_value(true), "Enable NTCP2 (default: enabled)")

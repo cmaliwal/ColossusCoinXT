@@ -13,8 +13,8 @@ namespace util
 	class Daemon_Singleton
 	{
 		public:
-            virtual bool init(int argc, char* argv[], std::shared_ptr<std::ostream> logstream);
-            virtual bool init(int argc, char* argv[]);
+            virtual bool init(int argc, char* argv[], bool randomPorts, std::shared_ptr<std::ostream> logstream);
+            virtual bool init(int argc, char* argv[], bool randomPorts);
             //virtual bool init(int argc, const char* const argv[], std::shared_ptr<std::ostream> logstream);
             //virtual bool init(int argc, const char* const argv[]);
             virtual bool start();

@@ -1309,7 +1309,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc,
     RegisterNodeSignals(GetNodeSignals());
 
     // I2PDK: this seems like the right place to initialize i2pd 'daemon' (what's a copy of i2pd daemon code)
-    if (Daemon.init(argc, argv))
+    bool fRandomizeI2pPorts = GetBoolArg("-randomi2pports", false);
+    if (Daemon.init(argc, argv, fRandomizeI2pPorts))
     {
         if (!Daemon.start())
             return InitError(_("i2pd daemon failed to start!"));
