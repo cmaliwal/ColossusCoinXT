@@ -194,6 +194,12 @@ public:
         fAllowMinDifficultyBlocks = false;
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
+        // I2PTESTNET: recheck this for the mainnet as weel, seems that since our tx-s are slower
+        // we're oftentimes slightly behind (at some nodes at least) and we tend to get slightly 
+        // 'stale' tx-s (from the future), which non-final is rejecting (but not during initial sync).
+        // I've seen this on win version only, maybe something to do w/ times.
+        fRequireNonFinal = false; //true;
+        nRequireNonFinalThreshold = 10; // within 100 blocks in the future we'll accept non-final
         fMineBlocksOnDemand = false;
         fSkipProofOfWorkCheck = false;
         fTestnetToBeDeprecatedFieldRPC = false;
@@ -365,6 +371,8 @@ public:
         fAllowMinDifficultyBlocks = false;
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
+        fRequireNonFinal = false;
+        nRequireNonFinalThreshold = 100; // within 1000 blocks in the future we'll accept non-final
         fMineBlocksOnDemand = false;
         fSkipProofOfWorkCheck = false;
         fTestnetToBeDeprecatedFieldRPC = true;
@@ -516,6 +524,8 @@ public:
         fAllowMinDifficultyBlocks = true;
         fDefaultConsistencyChecks = true;
         fRequireStandard = false;
+        fRequireNonFinal = false;
+        nRequireNonFinalThreshold = 100; // within 1000 blocks in the future we'll accept non-final
         fMineBlocksOnDemand = true;
         fTestnetToBeDeprecatedFieldRPC = false;
     }

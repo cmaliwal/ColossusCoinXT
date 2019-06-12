@@ -1038,6 +1038,11 @@ bool IsFinalTx(const CTransaction& tx, std::string& reason, int nBlockHeight, in
 
     if ((int64_t)tx.nLockTime < ((int64_t)tx.nLockTime < LOCKTIME_THRESHOLD ? (int64_t)nBlockHeight : nBlockTime))
         return true;
+        
+    bool isHeightTime = (int64_t)tx.nLockTime < LOCKTIME_THRESHOLD;        
+    if (!Params().RequireNonFinal() && isHeightTime &&
+        (int64_t)tx.nLockTime < (int64_t)nBlockHeight + Params().RequireNonFinalThreshold())
+        return true;
 
     BOOST_FOREACH (const CTxIn& txin, tx.vin) {
         if (!txin.IsFinal()) {

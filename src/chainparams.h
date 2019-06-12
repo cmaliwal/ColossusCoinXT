@@ -94,6 +94,8 @@ public:
     bool SkipProofOfWorkCheck() const { return fSkipProofOfWorkCheck; }
     /** Make standard checks */
     bool RequireStandard() const { return fRequireStandard; }
+    bool RequireNonFinal() const { return fRequireNonFinal; }
+    int RequireNonFinalThreshold() const { return nRequireNonFinalThreshold; }
     int64_t TargetTimespan() const { return nTargetTimespan; }
     int64_t TargetSpacing() const { return nTargetSpacing; }
     int64_t Interval() const { return nTargetTimespan / nTargetSpacing; }
@@ -197,6 +199,8 @@ protected:
     bool fAllowMinDifficultyBlocks;
     bool fDefaultConsistencyChecks;
     bool fRequireStandard;
+    bool fRequireNonFinal;
+    int nRequireNonFinalThreshold;
     bool fMineBlocksOnDemand;
     bool fSkipProofOfWorkCheck;
     bool fTestnetToBeDeprecatedFieldRPC;
