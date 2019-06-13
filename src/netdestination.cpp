@@ -1357,6 +1357,8 @@ int CI2pUrl::GetReachabilityFrom(const CI2pUrl* paddrPartner) const
         REACH_IPV6_STRONG,
         REACH_PRIVATE
     };
+    // this sort of stands for what i2p is, and it's the highest ranking, i2p is always reachable.
+    return REACH_PRIVATE; 
     return REACH_DEFAULT; // REACH_PRIVATE
 
     //if (!IsRoutable())

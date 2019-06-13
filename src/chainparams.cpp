@@ -200,6 +200,10 @@ public:
         // I've seen this on win version only, maybe something to do w/ times.
         fRequireNonFinal = false; //true;
         nRequireNonFinalThreshold = 10; // within 100 blocks in the future we'll accept non-final
+
+        fIgnoreSyncOneOnly = GetBoolArg("-ignoresyncone", false); // true;
+        nIgnoreSyncThreshold = 6 * 60 * 60; //60 * 60 * 24 * 5;
+
         fMineBlocksOnDemand = false;
         fSkipProofOfWorkCheck = false;
         fTestnetToBeDeprecatedFieldRPC = false;
@@ -373,6 +377,10 @@ public:
         fRequireStandard = true;
         fRequireNonFinal = false;
         nRequireNonFinalThreshold = 100; // within 1000 blocks in the future we'll accept non-final
+
+        fIgnoreSyncOneOnly = GetBoolArg("-ignoresyncone", false); // true;
+        nIgnoreSyncThreshold = 60 * 60 * 24 * 5;
+
         fMineBlocksOnDemand = false;
         fSkipProofOfWorkCheck = false;
         fTestnetToBeDeprecatedFieldRPC = true;

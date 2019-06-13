@@ -154,6 +154,8 @@ public:
     bool IsBlockchainLateSynced() const { return _isBlockchainLateSynced; }
     int GetBlockchainSyncedHoursInterval() const { return _blockchainSyncedHoursInterval; } 
     int GetBlockchainSyncedSeconds() const { return GetBlockchainSyncedHoursInterval() * 60 * 60; } 
+    bool IgnoreSyncOneOnly() const { return fIgnoreSyncOneOnly; }
+    int IgnoreSyncThreshold() const { return nIgnoreSyncThreshold; }
 
     virtual CBitcoinAddress GetDevFundAddress() const = 0;
     virtual CBitcoinAddress GetTxFeeAddress() const = 0;
@@ -237,6 +239,10 @@ protected:
 
     int _blockchainSyncedHoursInterval;
     bool _isBlockchainLateSynced;
+
+    bool fIgnoreSyncOneOnly;
+    int nIgnoreSyncThreshold;
+
 };
 
 /** 

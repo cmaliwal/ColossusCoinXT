@@ -1330,6 +1330,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc,
     // DRAGAN: this was heavily reworked (see below), is this still ok? // Q:
     // no longer needed, but it's just a flag, to be removed
     SetReachable(NET_IPV4); // ipv4 is reachable, otherwise start mn from GUI does not work
+    SetReachable(NET_I2P); // we turned this off anyways, but we'll need it for dual / hybrid mode
 
     if (mapArgs.count("-onlynet")) {
         std::set<enum Network> nets;

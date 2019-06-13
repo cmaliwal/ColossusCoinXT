@@ -325,6 +325,7 @@ struct CNodeState {
     int64_t _stallingLast;
     int64_t _stallingCurrent;
     int64_t _stallingTotal;
+    int64_t _googLast;
     int _stallingCurrentBlock;
     bool _stillStalling;
     NodeId _previousNodeStalling;
@@ -347,6 +348,7 @@ struct CNodeState {
 
         _stallingFirst = 0;
         _stallingLast = 0;
+        _googLast = 0;
         _stallingCurrent = 0;
         _stallingTotal = 0;
         _stallingCurrentBlock = 0;
@@ -470,26 +472,33 @@ void MarkBlockAsReceived(const uint256& hash, int isdone = 1)
                         __func__, prevBlock, height);
                     break;
                 }
-                CNodeState* state = State(prevNode);
-                if (state == nullptr) {
+                CNodeState* tempstate = State(prevNode);
+                if (tempstate == nullptr) {
                     LogPrint("blockdown", "%s: State(prevNode) == null: %d, %d \n", 
                         __func__, prevNode, prevBlock);
                     break;
                 }
-                if (state->_previousNodeStalling == prevNode) {
-                    LogPrint("blockdown", "%s: _previousNodeStalling == prevNode: %d, %d, %d, %d, %d \n", __func__, prevNode, prevBlock, state->_stallingCurrent, state->_stallingCurrentBlock, state->_stallingLast);
+                if (tempstate->_previousNodeStalling == prevNode) {
+                    LogPrint("blockdown", "%s: _previousNodeStalling == prevNode: %d, %d, %d, %d, %d \n", __func__, prevNode, prevBlock, tempstate->_stallingCurrent, tempstate->_stallingCurrentBlock, tempstate->_stallingLast);
                     // we shouldn't change things here but this is to correct the possible recursion
-                    state->_previousNodeStalling = 0;
-                    state->_previousBlockStalling = 0;
+                    tempstate->_previousNodeStalling = 0;
+                    tempstate->_previousBlockStalling = 0;
                 }
-                prevNode = state->_previousNodeStalling;
-                prevBlock = state->_previousBlockStalling;
-                state->_stillStalling = false;
-                state->_previousNodeStalling = 0;
-                state->_previousBlockStalling = 0;
+                prevNode = tempstate->_previousNodeStalling;
+                prevBlock = tempstate->_previousBlockStalling;
+                tempstate->_stillStalling = false;
+                tempstate->_previousNodeStalling = 0;
+                tempstate->_previousBlockStalling = 0;
             }
             _lastNodeStalling = 0;
             _lastBlockStalling = 0;
+
+            // clear current node as well
+            state->_stillStalling = false;
+            state->_previousNodeStalling = 0;
+            state->_previousBlockStalling = 0;
+            state->_googLast = block->nTime;
+
         } else { // new in-flight, not sure
             // do nothing, just preserve and deal w/ it within the MarkBlockAsInFlight
             // shouldn't happen?
@@ -547,6 +556,9 @@ bool WasStallingRecently(NodeId nodeid, int howRecentSeconds = 0)
         LogPrint("blockdown", "%s: State(nodeid) == null: %d \n", __func__, nodeid);
         return false;
     }
+
+    bool anyGoodSince = state->_googLast > state->_stallingLast;
+    if (anyGoodSince) return false;
 
     int64_t nNow = GetTimeMicros();
     int nSecondsSinceStalling = (nNow - state->_stallingLast) / 1000000;
@@ -6983,6 +6995,10 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
         if (isstalling) {
             LogPrint("blockdown", "%s : headers, is stalling, skip: %d \n", 
                 __func__, nodeid);
+
+            // we've just received something so don't disconnect here
+            // LogPrintf("blockdown:pre-requesting: Peer=%d (%s) is stalling block download, disconnecting\n", pfrom->id, pfrom->GetIdentity());
+            // pfrom->fDisconnect = true;
         }
         // If this set of headers is valid and ends in a block with at least as
         // much work as our tip, download as much as possible.
@@ -7564,12 +7580,16 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
 
             // I2PTESTNETFIX:
             int _initialIntervalSeconds = 6 * 60 * 60;
+            _initialIntervalSeconds = Params().IgnoreSyncThreshold();
             if (Params().NetworkID() == CBaseChainParams::TESTNET && Params().IsBlockchainLateSynced())
                 _initialIntervalSeconds = Params().GetBlockchainSyncedSeconds();
 
             // I2PTESTNET:
-            if (nSyncStarted == 0 || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - _initialIntervalSeconds) {
+            // if (nSyncStarted == 0 || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - _initialIntervalSeconds) {
             // if (nSyncStarted == 0 || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - 6 * 60 * 60) { // NOTE: was "close to today" and 24h in Bitcoin
+            if (nSyncStarted == 0 ||
+                Params().IgnoreSyncOneOnly() || 
+                pindexBestHeader->GetBlockTime() > GetAdjustedTime() - _initialIntervalSeconds) {
                 state.fSyncStarted = true;
                 nSyncStarted++;
                 //CBlockIndex *pindexStart = pindexBestHeader->pprev ? pindexBestHeader->pprev : pindexBestHeader;
@@ -7753,6 +7773,9 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
         if (isstalling) {
             LogPrint("stalling", "%s : FindNextBlocksToDownload, was stalling, skip: %d \n", 
                 __func__, nodeid);
+            // connections/tunnels are more costly for i2p so go gently
+            LogPrintf("blockdown:pre-requesting: Peer=%d (%s) is stalling block download, disconnecting\n", pto->id, pto->GetIdentity());
+            pto->fDisconnect = true;
         }
         if (!pto->fDisconnect && !pto->fClient && fFetch && !isstalling && 
             state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
@@ -7764,6 +7787,16 @@ bool SendMessages(CI2pdNode* pto, bool fSendTrickle)
 
             // repeat the check as we might be stalling now
             isstalling = IsStalling(nodeid); // || WasStallingRecently(nodeid);
+
+            if (isstalling) {
+                // connections/tunnels are more costly for i2p so go gently
+                LogPrintf("blockdown:requesting: Peer=%d (%s) is stalling block download, disconnecting\n", pto->id, pto->GetIdentity());
+                pto->fDisconnect = true;
+                // cs_main is locked already
+                // CNodeState* state = State(pto->id);
+                // if (state->fSyncStarted)
+                //     nSyncStarted--;
+            }
 
             if (!isstalling) {
                 if (LogAcceptCategory("blockdown") && vToDownload.size() > 0) 

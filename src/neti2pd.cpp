@@ -583,6 +583,10 @@ void CI2pdNode::PushVersion()
 
     // I2PDK: IsProxy is always going to be false as it doesn't make sense, check that out.
     CI2PAddress addrYou = (addr.IsRoutable() && !IsProxy(addr) ? addr : CI2PAddress(CDestination("0.0.0.0", 0)));
+    // CI2PAddress addrRemote = CI2PAddress(CDestination(GetIdentity(), 0));
+    // if (fInbound && addr.IsRoutable() && !IsProxy(addr))
+    //     addrYou = addrRemote;
+
     CI2PAddress addrMe = GetLocalAddress(&addr);
     GetRandBytes((unsigned char*)&nLocalHostNonce, sizeof(nLocalHostNonce));
     if (fLogIPs)
@@ -1763,6 +1767,9 @@ bool OpenNetworkConnection(const CI2PAddress& addrConnect, CSemaphoreGrant* gran
     pnode->fNetworkNode = true;
     if (fOneShot)
         pnode->fOneShot = true;
+
+    // treat all addnode-s as whitelisted, makes sense?    
+    pnode->fWhitelisted = true;    
 
     return true;
 }
