@@ -203,6 +203,7 @@ public:
 
         fIgnoreSyncOneOnly = GetBoolArg("-ignoresyncone", false); // true;
         nIgnoreSyncThreshold = 6 * 60 * 60; //60 * 60 * 24 * 5;
+        nReceivePopDelay = GetArg("-receivepopdelay", 5);
 
         fMineBlocksOnDemand = false;
         fSkipProofOfWorkCheck = false;
@@ -380,6 +381,7 @@ public:
 
         fIgnoreSyncOneOnly = GetBoolArg("-ignoresyncone", false); // true;
         nIgnoreSyncThreshold = 60 * 60 * 24 * 5;
+        nReceivePopDelay = GetArg("-receivepopdelay", 5);
 
         fMineBlocksOnDemand = false;
         fSkipProofOfWorkCheck = false;

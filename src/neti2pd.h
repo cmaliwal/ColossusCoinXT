@@ -365,6 +365,9 @@ public:
     std::unique_ptr<uint8_t[]> _receivedBuffer;
     size_t _receivedBufferSize;
     bool _hasPushedMessages;
+    int64_t _receivedTime;
+    int64_t _popTime;
+    int64_t _processingTime;
     CCriticalSection cs_messageReceived;
 
 protected:

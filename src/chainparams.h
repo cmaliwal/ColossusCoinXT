@@ -156,6 +156,7 @@ public:
     int GetBlockchainSyncedSeconds() const { return GetBlockchainSyncedHoursInterval() * 60 * 60; } 
     bool IgnoreSyncOneOnly() const { return fIgnoreSyncOneOnly; }
     int IgnoreSyncThreshold() const { return nIgnoreSyncThreshold; }
+    int ReceivePopDelay() const { return nReceivePopDelay; }
 
     virtual CBitcoinAddress GetDevFundAddress() const = 0;
     virtual CBitcoinAddress GetTxFeeAddress() const = 0;
@@ -242,7 +243,7 @@ protected:
 
     bool fIgnoreSyncOneOnly;
     int nIgnoreSyncThreshold;
-
+    int nReceivePopDelay;
 };
 
 /** 

@@ -1427,10 +1427,14 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, int argc,
             }
             BOOST_FOREACH (std::string strBind, mapMultiArgs["-whitebind"]) {
                 CDestination addrBind;
-                if (!Lookup(strBind.c_str(), addrBind, 0, false))
-                    return InitError(strprintf(_("Cannot resolve -whitebind address: '%s'"), strBind));
-                if (addrBind.GetPort() == 0)
-                    return InitError(strprintf(_("Need to specify a port with -whitebind: '%s'"), strBind));
+                if (strBind.empty()) {
+                    GetServerDestination(addrBind, GetListenPort());
+                } else {
+                    if (!Lookup(strBind.c_str(), addrBind, 0, false))
+                        return InitError(strprintf(_("Cannot resolve -whitebind address: '%s'"), strBind));
+                    if (addrBind.GetPort() == 0)
+                        return InitError(strprintf(_("Need to specify a port with -whitebind: '%s'"), strBind));
+                }
                 fBound |= Bind(addrBind, (BF_EXPLICIT | BF_REPORT_ERROR | BF_WHITELIST));
             }
         } else {

@@ -325,11 +325,13 @@ struct CNodeState {
     int64_t _stallingLast;
     int64_t _stallingCurrent;
     int64_t _stallingTotal;
-    int64_t _googLast;
+    int64_t _goodLast;
     int _stallingCurrentBlock;
     bool _stillStalling;
     NodeId _previousNodeStalling;
     int _previousBlockStalling;
+    int64_t _successBlockTime;
+    int64_t _messageTime;
 
     CNodeState()
     {
@@ -348,7 +350,7 @@ struct CNodeState {
 
         _stallingFirst = 0;
         _stallingLast = 0;
-        _googLast = 0;
+        _goodLast = 0;
         _stallingCurrent = 0;
         _stallingTotal = 0;
         _stallingCurrentBlock = 0;
@@ -420,11 +422,22 @@ void FinalizeNode(NodeId nodeid)
     mapNodeState.erase(nodeid);
 }
 
+bool TimeMessageReceived(NodeId nodeid)
+{
+    TRY_LOCK(cs_main, lockMain);
+    if (!lockMain) {
+        return false;
+    }
+
+    CNodeState* state = State(nodeid);
+    state->_messageTime = GetTimeMicros();
+    return true;
+}
 // Requires cs_main.
 // +1 - done - just processed new block and 100% done
 //  0 - not sure - creating new in-flight, block is removed by now and should just return
 // -1 - stalling - not done, just stalling
-void MarkBlockAsReceived(const uint256& hash, int isdone = 1)
+void MarkBlockAsReceived(const uint256& hash, int isdone = 1, NodeId blocknodeid = 0)
 {
     map<uint256, pair<NodeId, list<QueuedBlock>::iterator> >::iterator itInFlight = mapBlocksInFlight.find(hash);
     if (itInFlight != mapBlocksInFlight.end()) {
@@ -497,7 +510,7 @@ void MarkBlockAsReceived(const uint256& hash, int isdone = 1)
             state->_stillStalling = false;
             state->_previousNodeStalling = 0;
             state->_previousBlockStalling = 0;
-            state->_googLast = block->nTime;
+            state->_goodLast = block->nTime;
 
         } else { // new in-flight, not sure
             // do nothing, just preserve and deal w/ it within the MarkBlockAsInFlight
@@ -511,6 +524,20 @@ void MarkBlockAsReceived(const uint256& hash, int isdone = 1)
         state->nStallingSince = 0;
 
         mapBlocksInFlight.erase(itInFlight);
+    } else {
+        LogPrint("blockdown", "%s: in flight not found?\n", __func__);
+        if (isdone > 0) { 
+            LogPrint("blockdown", "%s: (block accepted) in flight not found?\n", __func__);
+            CNodeState* state = State(blocknodeid);
+            if (state == nullptr) {
+                LogPrint("blockdown", "%s: State(blocknodeid) == null: %d \n", __func__, blocknodeid);
+                return;
+            }
+            state->_stillStalling = false;
+            state->_previousNodeStalling = 0;
+            state->_previousBlockStalling = 0;
+            state->_goodLast = GetTimeMicros();
+        }
     }
 }
 
@@ -557,7 +584,7 @@ bool WasStallingRecently(NodeId nodeid, int howRecentSeconds = 0)
         return false;
     }
 
-    bool anyGoodSince = state->_googLast > state->_stallingLast;
+    bool anyGoodSince = state->_goodLast > state->_stallingLast;
     if (anyGoodSince) return false;
 
     int64_t nNow = GetTimeMicros();
@@ -760,14 +787,18 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
                 // This is the first already-in-flight block.
                 // nodeStaller = waitingfor = mapBlocksInFlight[pindex->GetBlockHash()].first;
                 waitingfor = mapBlocksInFlight[pindex->GetBlockHash()].first;
+                CNodeState* state = State(waitingfor);
 
                 // int nInFlightTimeOut = GetArg("-inflighttimeout", 180); // 3 minutes
                 // bool fInFlightFix = GetBoolArg("-inflightfix", true);
                 auto hash = pindex->GetBlockHash();
                 auto itInFlight = mapBlocksInFlight[hash].second;
-                auto timeSpentSecs = (GetTimeMicros() - itInFlight->nTime) / 1000000;
+                
+                auto timeBlockLast = std::max(state->_goodLast, itInFlight->nTime);
+                auto timeSpentSecs = (GetTimeMicros() - timeBlockLast) / 1000000;
+                if (state->_messageTime > timeBlockLast)
+                    timeSpentSecs -= nInFlightTimeOut / 3;
                 if (fInFlightFix && timeSpentSecs > nInFlightTimeOut) {
-                    CNodeState* state = State(waitingfor);
                     assert(state != NULL);
                     
                     // 'un-flight' it so we can move on...
@@ -4286,7 +4317,7 @@ bool ActivateBestChain(CValidationState& state, CBlock* pblock, bool fAlreadyChe
         bool fInitialDownload = false;
 
         while (true) {
-            // I2PDEADLOCK: this isn't really a TRY_LOCK as we're looping around
+            // I2PDEADLOCK: this isn't really a TRY_LOCK and it's ugly (do a timeout lock instead)
             TRY_LOCK(cs_main, lockMain);
             if (!lockMain) {
                 MilliSleep(50);
@@ -5343,7 +5374,7 @@ bool ProcessNewBlock(CValidationState& state, CI2pdNode* pfrom, CBlock* pblock, 
     if (nLockCsMain - nCheckBlockSignature > 200)
         LogPrintf("%s : cs_main lock taking too long: %ld msecs\n", __func__, nLockCsMain - nCheckBlockSignature);
 
-    MarkBlockAsReceived(pblock->GetHash());
+    MarkBlockAsReceived(pblock->GetHash(), 1, pfrom->GetId());
     if (!checked) {
         return error("%s : CheckBlock FAILED for block %s", __func__, pblock->GetHash().GetHex());
     }
@@ -7363,6 +7394,13 @@ bool ProcessMessages(CI2pdNode* pfrom)
     //  (x) data
     //
     bool fOk = true;
+
+    pfrom->_processingTime = GetTimeMicros();
+    int delay = (pfrom->_processingTime - pfrom->_popTime) / 1000000;
+    if (delay > Params().ReceivePopDelay())
+        LogPrint("receiving", "ProcessMessages: message processing too delayed?...(%d) \n", delay);
+
+    TimeMessageReceived(pfrom->GetId());
 
     if (!pfrom->vRecvGetData.empty())
         ProcessGetData(pfrom);

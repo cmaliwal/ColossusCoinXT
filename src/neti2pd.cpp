@@ -1824,12 +1824,16 @@ void ThreadMessageHandler()
 
                 TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
                 if (lockRecv) {
-                    if (!g_signals.ProcessMessages(pnode))
-                        pnode->CloseTunnelDisconnect();
+                    bool isEmpty = pnode->vRecvGetData.empty() && 
+                                   (pnode->vRecvMsg.empty() || !pnode->vRecvMsg.front().complete());
+                    if (!isEmpty) {
+                        if (!g_signals.ProcessMessages(pnode))
+                            pnode->CloseTunnelDisconnect();
 
-                    if (pnode->nSendSize < SendBufferSize()) {
-                        if (!pnode->vRecvGetData.empty() || (!pnode->vRecvMsg.empty() && pnode->vRecvMsg[0].complete())) {
-                            fSleep = false;
+                        if (pnode->nSendSize < SendBufferSize()) {
+                            if (!pnode->vRecvGetData.empty() || (!pnode->vRecvMsg.empty() && pnode->vRecvMsg[0].complete())) {
+                                fSleep = false;
+                            }
                         }
                     }
                 }
@@ -2639,6 +2643,7 @@ void CI2pdNode::HandleClientReceived(const uint8_t * buf, size_t len) //, Contin
     _receivedBuffer = std::unique_ptr<uint8_t[]>(buffer); // _receivedBuffer.reset (buffer);
     _receivedBufferSize = len;
 
+    _receivedTime = GetTimeMicros();
     _hasPushedMessages = true;
 
     // I2PERF:
@@ -2787,6 +2792,7 @@ void CI2pdNode::HandleServerReceived(const uint8_t * buf, size_t len) //, Contin
     _receivedBuffer = std::unique_ptr<uint8_t[]>(buffer); // _receivedBuffer.reset (buffer);
     _receivedBufferSize = len;
 
+    _receivedTime = GetTimeMicros();
     _hasPushedMessages = true;
 
     // _messageReceived = message;
@@ -2838,6 +2844,10 @@ size_t CI2pdNode::PopMessageReceived(std::unique_ptr<uint8_t[]>& buffer)
         // std::string message((const char*)buffer.get(), len);
         std::string message((const char*)buffer.get(), std::min((int)len, 30));
         LogPrintf("PopMessageReceived: message popped...'%s' (%d) \n", message, len);
+        _popTime = GetTimeMicros();
+        int delay = (_popTime - _receivedTime) / 1000000;
+        if (delay > Params().ReceivePopDelay())
+            LogPrint("receiving", "PopMessageReceived: message pop too delayed?...(%d) \n", delay);
     }
 
     return len;
