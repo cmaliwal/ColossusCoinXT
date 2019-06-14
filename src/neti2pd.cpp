@@ -337,8 +337,10 @@ bool SeenLocal(const CDestination& addr)
 {
     {
         LOCK(cs_mapLocalHost);
-        if (mapLocalHost.count(addr) == 0)
+        if (mapLocalHost.count(addr) == 0) {
+            LogPrint("netlocal", "SeenLocal addr not found? %s\n", addr.ToString());
             return false;
+        }
         mapLocalHost[addr].nScore++;
     }
     return true;
@@ -475,6 +477,7 @@ CI2pdNode* ConnectNode(CI2PAddress addrConnect, const char* pszDest, bool obfuSc
         //    return NULL;
         //}
 
+        // this records an attempt/try counter, so it's right, we're still not connected
         addrman.Attempt(addrConnect);
 
         // Add node
@@ -583,9 +586,9 @@ void CI2pdNode::PushVersion()
 
     // I2PDK: IsProxy is always going to be false as it doesn't make sense, check that out.
     CI2PAddress addrYou = (addr.IsRoutable() && !IsProxy(addr) ? addr : CI2PAddress(CDestination("0.0.0.0", 0)));
-    // CI2PAddress addrRemote = CI2PAddress(CDestination(GetIdentity(), 0));
-    // if (fInbound && addr.IsRoutable() && !IsProxy(addr))
-    //     addrYou = addrRemote;
+    if (fInbound) {
+        addrYou = CI2PAddress(CDestination(GetIdentity() + ".b32.i2p:6667", 6667));
+    }
 
     CI2PAddress addrMe = GetLocalAddress(&addr);
     GetRandBytes((unsigned char*)&nLocalHostNonce, sizeof(nLocalHostNonce));
@@ -595,6 +598,8 @@ void CI2pdNode::PushVersion()
         LogPrintf("net: send version message: version %d, blocks=%d, us=%s, peer=%d\n", PROTOCOL_VERSION, nBestHeight, addrMe.ToString(), id);
     PushMessage("version", PROTOCOL_VERSION, nLocalServices, nTime, addrYou, addrMe,
         nLocalHostNonce, FormatSubVersion(CLIENT_NAME, CLIENT_VERSION, std::vector<string>()), nBestHeight, true);
+
+    _versionPushed = true;
 }
 
 
@@ -918,6 +923,14 @@ void TunnelSendData(CI2pdNode* pnode)
 
     static int64_t nLastLogTime = 0; //GetTime();
 
+    // PushVersion if client and empty
+    // if (!pnode->fInbound && !pnode->_versionPushed) {
+    //     // this will be recursive (until _versionPushed set). Maybe flag to not do TunnelSendData.
+    //     // or do this only if nothing within vSendMsg
+    //     pnode->PushVersion();
+    //     return;
+    // }
+
     while (it != pnode->vSendMsg.end()) {
         const CSerializeData& data = *it;
         assert(data.size() > pnode->nSendOffset);
@@ -1052,6 +1065,10 @@ void ThreadTunnelHandler()
                     // release outbound grant (if any)
                     pnode->grantOutbound.Release();
 
+                    if (!pnode->fDisconnect)
+                        LogPrint("netdisconnect", "no fDisconnect, just inactivity?... %s, %d\n", 
+                            pnode->GetIdentity(), GetAdjustedTime());
+
                     // close tunnel and cleanup
                     pnode->CloseTunnelDisconnect();
 
@@ -1113,9 +1130,9 @@ void ThreadTunnelHandler()
         //FD_ZERO(&fdsetError);
         // I2PDK: max socket? how to map that to our i2p tunnels?
         //SOCKET hSocketMax = 0;
-        bool have_fds = false;
-        bool  recv_set[FD_SETSIZE];
-        bool  send_set[FD_SETSIZE];
+        // bool have_fds = false;
+        // bool  recv_set[FD_SETSIZE];
+        // bool  send_set[FD_SETSIZE];
         // this isn't good enough as vNodes are not locked the entire time, so index could theoretically change?
         // FD_SETSIZE >> nMaxConnections
 
@@ -1126,64 +1143,64 @@ void ThreadTunnelHandler()
         //     //have_fds = true;
         // }
 
-        {
-            LOCK(cs_vNodes);
-            int iNode = 0;
-            BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
-                if (pnode->i2pTunnel == nullptr) //INVALID_SOCKET)
-                    continue;
-                // I2PDK: not sure what to do w this
-                //FD_SET(pnode->i2pTunnel, &fdsetError);
-                //hSocketMax = max(hSocketMax, pnode->i2pTunnel);
-                //have_fds = true;
+        // {
+        //     LOCK(cs_vNodes);
+        //     int iNode = 0;
+        //     BOOST_FOREACH (CI2pdNode* pnode, vNodes) {
+        //         if (pnode->i2pTunnel == nullptr) //INVALID_SOCKET)
+        //             continue;
+        //         // I2PDK: not sure what to do w this
+        //         //FD_SET(pnode->i2pTunnel, &fdsetError);
+        //         //hSocketMax = max(hSocketMax, pnode->i2pTunnel);
+        //         //have_fds = true;
 
-                // Implement the following logic:
-                // * If there is data to send, select() for sending data. As this only
-                //   happens when optimistic write failed, we choose to first drain the
-                //   write buffer in this case before receiving more. This avoids
-                //   needlessly queueing received data, if the remote peer is not themselves
-                //   receiving data. This means properly utilizing TCP flow control signalling.
-                // * Otherwise, if there is no (complete) message in the receive buffer,
-                //   or there is space left in the buffer, select() for receiving data.
-                // * (if neither of the above applies, there is certainly one message
-                //   in the receiver buffer ready to be processed).
-                // Together, that means that at least one of the following is always possible,
-                // so we don't deadlock:
-                // * We send some data.
-                // * We wait for data to be received (and disconnect after timeout).
-                // * We process a message in the buffer (message handler thread).
+        //         // Implement the following logic:
+        //         // * If there is data to send, select() for sending data. As this only
+        //         //   happens when optimistic write failed, we choose to first drain the
+        //         //   write buffer in this case before receiving more. This avoids
+        //         //   needlessly queueing received data, if the remote peer is not themselves
+        //         //   receiving data. This means properly utilizing TCP flow control signalling.
+        //         // * Otherwise, if there is no (complete) message in the receive buffer,
+        //         //   or there is space left in the buffer, select() for receiving data.
+        //         // * (if neither of the above applies, there is certainly one message
+        //         //   in the receiver buffer ready to be processed).
+        //         // Together, that means that at least one of the following is always possible,
+        //         // so we don't deadlock:
+        //         // * We send some data.
+        //         // * We wait for data to be received (and disconnect after timeout).
+        //         // * We process a message in the buffer (message handler thread).
 
-                // I2PERF:
-                // MilliSleep(5);
+        //         // I2PERF:
+        //         // MilliSleep(5);
 
-                // I2PDK: not sure how to emulate this, FD_SET will specify preference of send over receive (as per the
-                // above comments). Probably best is to store fdset equivalents (flags) within a vector on the stack
-                // and consult those values when doing send/receive beneath. Or just repeat the conditions here, before
-                // receiving.
-                {
-                    TRY_LOCK(pnode->cs_vSend, lockSend);
-                    if (lockSend && !pnode->vSendMsg.empty()) {
-                        send_set[iNode] = true;
-                        continue;
-                        // I2PDK: not sure what to do w this
-                        //FD_SET(pnode->i2pTunnel, &fdsetSend);
-                    }
-                }
-                {
-                    TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
-                    if (lockRecv && (pnode->vRecvMsg.empty() || !pnode->vRecvMsg.front().complete() ||
-                        pnode->GetTotalRecvSize() <= ReceiveFloodSize())) {
-                        recv_set[iNode] = true;
-                        //FD_SET(pnode->i2pTunnel, &fdsetRecv);
-                    }
-                }
-                ++iNode;
-                if (!(iNode < FD_SETSIZE)) {
-                    LogPrintf("net: !(iNode < FD_SETSIZE) %s\n", pnode->addr.ToString());
-                    //exit(-1);
-                }
-            }
-        }
+        //         // I2PDK: not sure how to emulate this, FD_SET will specify preference of send over receive (as per the
+        //         // above comments). Probably best is to store fdset equivalents (flags) within a vector on the stack
+        //         // and consult those values when doing send/receive beneath. Or just repeat the conditions here, before
+        //         // receiving.
+        //         {
+        //             TRY_LOCK(pnode->cs_vSend, lockSend);
+        //             if (lockSend && !pnode->vSendMsg.empty()) {
+        //                 send_set[iNode] = true;
+        //                 continue;
+        //                 // I2PDK: not sure what to do w this
+        //                 //FD_SET(pnode->i2pTunnel, &fdsetSend);
+        //             }
+        //         }
+        //         {
+        //             TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
+        //             if (lockRecv && (pnode->vRecvMsg.empty() || !pnode->vRecvMsg.front().complete() ||
+        //                 pnode->GetTotalRecvSize() <= ReceiveFloodSize())) {
+        //                 recv_set[iNode] = true;
+        //                 //FD_SET(pnode->i2pTunnel, &fdsetRecv);
+        //             }
+        //         }
+        //         ++iNode;
+        //         if (!(iNode < FD_SETSIZE)) {
+        //             LogPrintf("net: !(iNode < FD_SETSIZE) %s\n", pnode->addr.ToString());
+        //             //exit(-1);
+        //         }
+        //     }
+        // }
 
         // I2PDK: not sure what to do w this
         //int nSelect = select(have_fds ? hSocketMax + 1 : 0,
@@ -1237,84 +1254,79 @@ void ThreadTunnelHandler()
             //
             // Receive
             //
-            if (pnode->i2pTunnel == nullptr) //INVALID_SOCKET)
+            if (pnode->i2pTunnel == nullptr) { //INVALID_SOCKET)
+                LogPrint("netreceive", "pnode->i2pTunnel == nullptr??... %s, %d\n", 
+                    pnode->GetIdentity(), GetAdjustedTime());
                 continue;
+            }
 
             // TODO: this is the tunnel received messages processing...
-            // also, having things done here within the thread helps the locks (to be in one place), so we may need to gather it and do it here as well.
+            // also, having things done here within the thread helps w/ the locks, 
+            // so we may need to gather it and do it here as well.
 
-            // I2PDK: this has to be rewritten for i2pd, none of it is useful as is
-            // always try and do the receive as we're no longer using sockets/select/FD_SET
-            //if (FD_ISSET(pnode->i2pTunnel, &fdsetRecv) || FD_ISSET(pnode->i2pTunnel, &fdsetError)) 
+            // I2PDK: always try and do the receive as we're no longer using sockets/select/FD_SET
             //if (recv_set[iNode])
             {
                 TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
                 if (lockRecv) {
-                    {
-                        // I2PDK: this is the tunnel/i2pd equivalent of the sockets receive op. It works differently,
-                        // it's based on the StreamReceive() 'loop' which is called/started from within the I2PConnect,
-                        // and it uses m_Stream->AsyncReceive to wait for any new data, which calls HandleStreamReceive
-                        // callback, which then loops back to the StreamReceive and so on. So it mostly waits in the 
-                        // AsyncReceive, then it 'writes' (calls our received callback right into a node here), and
-                        // loops back and waits for another batch of data.
+                    // I2PDK: this is the tunnel/i2pd equivalent of the sockets receive op. It works
+                    // differently, it's based on the StreamReceive() 'loop' which is called/started 
+                    // from within the I2PConnect, and it uses m_Stream->AsyncReceive to wait for any 
+                    // new data, which calls HandleStreamReceive callback, which then loops back to the
+                    // StreamReceive and so on. So it mostly waits in the AsyncReceive, then it 'writes'
+                    // (calls our received callback right into a node here), and loops back and waits 
+                    // for another batch of data.
 
-                        // should _messageReceived be locked? not for the moment, cs_vRecvMsg locks vector vRecvMsg
-                        // std::string message = pnode->PopMessageReceived();
-                        // if (message.empty()) continue;
-                        // const char* pchBuf = message.data();
-                        // size_t nBytes = message.length();
+                    static std::unique_ptr<uint8_t[]> buffer = 
+                        std::unique_ptr<uint8_t[]>(new uint8_t[I2P_TUNNEL_CONNECTION_BUFFER_SIZE]);
 
-                        static std::unique_ptr<uint8_t[]> buffer = 
-                            std::unique_ptr<uint8_t[]>(new uint8_t[I2P_TUNNEL_CONNECTION_BUFFER_SIZE]);
+                    size_t nBytes = pnode->PopMessageReceived(buffer);
+                    if (nBytes <= 0) continue;
+                    const char* pchBuf = (const char*)buffer.get();
 
-                        size_t nBytes = pnode->PopMessageReceived(buffer);
-                        if (nBytes <= 0) continue;
-                        const char* pchBuf = (const char*)buffer.get();
-
-                        //// typical socket buffer is 8K-64K
-                        //char pchBuf[0x10000];
-                        //int nBytes = recv(pnode->i2pTunnel, pchBuf, sizeof(pchBuf), MSG_DONTWAIT);
-                        if (nBytes > 0) {
-                            if (!pnode->ReceiveMsgBytes(pchBuf, nBytes))
-                                pnode->CloseTunnelDisconnect();
-                            pnode->nLastRecv = GetTime();
-                            pnode->nRecvBytes += nBytes;
-                            pnode->RecordBytesRecv(nBytes);
-                        } else if (nBytes == 0) {
-                            // socket closed gracefully
-                            if (!pnode->fDisconnect)
-                                LogPrintf("net: tunnel closed\n");
+                    //// typical socket buffer is 8K-64K
+                    if (nBytes > 0) {
+                        if (!pnode->ReceiveMsgBytes(pchBuf, nBytes))
                             pnode->CloseTunnelDisconnect();
-                        } else if (nBytes < 0) {
-                            // error (won't get here)
-                            LogPrintf("net: tunnel recv error %s\n", pnode->addr.ToString());
-                            pnode->CloseTunnelDisconnect();
-                            //int nErr = WSAGetLastError();
-                            //if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS) {
-                            //    if (!pnode->fDisconnect)
-                            //        LogPrintf("tunnel recv error %s\n", NetworkErrorString(nErr));
-                            //    pnode->CloseTunnelDisconnect();
-                            //}
-                        }
+                        pnode->nLastRecv = GetTime();
+                        pnode->nRecvBytes += nBytes;
+                        pnode->RecordBytesRecv(nBytes);
+                    } else if (nBytes == 0) {
+                        // socket closed gracefully
+                        if (!pnode->fDisconnect)
+                            LogPrintf("net: tunnel closed\n");
+                        pnode->CloseTunnelDisconnect();
+                    } else if (nBytes < 0) {
+                        // error (won't get here)
+                        LogPrintf("net: tunnel recv error %s\n", pnode->addr.ToString());
+                        pnode->CloseTunnelDisconnect();
                     }
+                } else {
+                    LogPrint("netreceive", "lockRecv try lock failed... %s, %d\n", 
+                        pnode->GetIdentity(), GetAdjustedTime());
                 }
             }
 
             //
             // Send
             //
-            if (pnode->i2pTunnel == nullptr) //INVALID_SOCKET)
+            if (pnode->i2pTunnel == nullptr) { //INVALID_SOCKET)
+                LogPrint("netsend", "pnode->i2pTunnel == nullptr??... %s, %d\n", 
+                    pnode->GetIdentity(), GetAdjustedTime());
                 continue;
+            }
 
-            // this is the new tunnel send, it looks pretty much the same, we just don't use socket FD_SET/select stuff.
-            // i.e. always check and try to send regardless (we have less optimization this way but we're shielded 
-            // better and most of the functionality is encapsulated within the i2pd classed, streaming etc.
-            //if (FD_ISSET(pnode->i2pTunnel, &fdsetSend))
+            // i.e. always check and try to send regardless (we have less optimization this way but 
+            // we're shielded better and most of the functionality is encapsulated within the i2pd
+            // classed, streaming etc.
             //if (send_set[iNode])
             {
                 TRY_LOCK(pnode->cs_vSend, lockSend);
-                if (lockSend)
+                if (lockSend) // PushVersion
                     TunnelSendData(pnode);
+                else
+                    LogPrint("netsend", "cs_vSend try lock failed... %s, %d\n", 
+                        pnode->GetIdentity(), GetAdjustedTime());
             }
 
             //
@@ -1718,7 +1730,7 @@ void ThreadOpenAddedConnections()
         }
         BOOST_FOREACH (vector<CDestination>& vserv, lservAddressesToAdd) {
             CSemaphoreGrant grant(*semOutbound);
-            LogPrintf("net.ThreadOpenAddedConnections: server connection? ('%s') %d\n", "", GetAdjustedTime());
+            // LogPrintf("net.ThreadOpenAddedConnections: server connection? ('%s') %d\n", "", GetAdjustedTime());
             OpenNetworkConnection(CI2PAddress(vserv[i % vserv.size()]), &grant);
             MilliSleep(500);
         }
@@ -2582,8 +2594,11 @@ CI2pdNode::CI2pdNode(std::shared_ptr<I2PService> tunnelIn, CI2PAddress addrIn, s
 
     // Be shy and don't send version until we hear
     //if (i2pTunnel != INVALID_SOCKET && !fInbound)
-    if (i2pTunnel != nullptr && !fInbound)
-        PushVersion();
+    // move this out and set it on after we're connected
+    // btw. i2pTunnel != nullptr is always true  
+    // if (i2pTunnel != nullptr && !fInbound)
+    //     PushVersion();
+    _versionPushed = false;
 
     GetNodeSignals().InitializeNode(GetId(), this);
 }
@@ -2603,6 +2618,20 @@ CI2pdNode::~CI2pdNode()
 void CI2pdNode::HandleClientConnectionCreated(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)
 {
     _connection = connection;
+    LogPrint("net", "%s: connection created: '%s'\n", __func__, addr.ToString());
+
+    assert(!fInbound);
+    assert(!_versionPushed);
+    // threads consideration: normally we don't want the tunnel send/receive thread stalled by possibly
+    // lengthy ops, but this is an exception, tunnel is idle at this point, connection created and 
+    // server is (and should be) waiting on our version message, so nothing is going on but us (make
+    // sure that we are not stalling other nodes but I don't think so, and even send/receive always
+    // follow node after node). And this is the most timely place to do the version (otherwise it's too
+    // early and we get a situation when the server sends some mn message, dseep etc. before version).
+    // Also, it should be ok to use any thread to send messages, it's sent from multiple threads anyways. 
+    PushVersion();
+    _versionPushed = true; 
+    // this should be locked but there's no chance for anything else changing or even accessing.
 }
 
 void CI2pdNode::HandleClientConnected(std::shared_ptr<i2p::client::I2PPureTunnelConnection> connection)

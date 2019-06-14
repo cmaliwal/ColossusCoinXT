@@ -6488,6 +6488,7 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
 
         pfrom->addrLocal = addrMe;
         if (pfrom->fInbound && addrMe.IsRoutable()) {
+            LogPrint("proc", "SeenLocal %s, %s\n", addrMe.ToString(), pfrom->GetIdentity());
             SeenLocal(addrMe);
         }
 
@@ -6558,6 +6559,7 @@ bool static ProcessMessage(CI2pdNode* pfrom, string strCommand, CDataStream& vRe
     else if (pfrom->nVersion == 0) {
         // Must have a version message before anything else
         Misbehaving(pfrom->GetId(), 1);
+        LogPrint("misbehaving", "pfrom->nVersion==0 %s, %d\n", pfrom->GetIdentity(), GetAdjustedTime());
         return false;
     }
 

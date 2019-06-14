@@ -369,6 +369,7 @@ public:
     int64_t _popTime;
     int64_t _processingTime;
     CCriticalSection cs_messageReceived;
+    bool _versionPushed = false;
 
 protected:
     // Denial-of-service detection/prevention
