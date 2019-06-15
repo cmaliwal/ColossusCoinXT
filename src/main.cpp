@@ -528,15 +528,17 @@ void MarkBlockAsReceived(const uint256& hash, int isdone = 1, NodeId blocknodeid
         LogPrint("blockdown", "%s: in flight not found?\n", __func__);
         if (isdone > 0) { 
             LogPrint("blockdown", "%s: (block accepted) in flight not found?\n", __func__);
-            CNodeState* state = State(blocknodeid);
-            if (state == nullptr) {
-                LogPrint("blockdown", "%s: State(blocknodeid) == null: %d \n", __func__, blocknodeid);
-                return;
+            if (blocknodeid > 0) {
+                CNodeState* state = State(blocknodeid);
+                if (state == nullptr) {
+                    LogPrint("blockdown", "%s: State(blocknodeid) == null: %d \n", __func__, blocknodeid);
+                    return;
+                }
+                state->_stillStalling = false;
+                state->_previousNodeStalling = 0;
+                state->_previousBlockStalling = 0;
+                state->_goodLast = GetTimeMicros();
             }
-            state->_stillStalling = false;
-            state->_previousNodeStalling = 0;
-            state->_previousBlockStalling = 0;
-            state->_goodLast = GetTimeMicros();
         }
     }
 }
@@ -5374,7 +5376,7 @@ bool ProcessNewBlock(CValidationState& state, CI2pdNode* pfrom, CBlock* pblock, 
     if (nLockCsMain - nCheckBlockSignature > 200)
         LogPrintf("%s : cs_main lock taking too long: %ld msecs\n", __func__, nLockCsMain - nCheckBlockSignature);
 
-    MarkBlockAsReceived(pblock->GetHash(), 1, pfrom->GetId());
+    MarkBlockAsReceived(pblock->GetHash(), 1, pfrom ? pfrom->GetId() : 0);
     if (!checked) {
         return error("%s : CheckBlock FAILED for block %s", __func__, pblock->GetHash().GetHex());
     }
