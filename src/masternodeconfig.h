@@ -109,6 +109,10 @@ public:
 
     bool addEntry(const CMasternodeEntry& entry);
 
+    bool modifyEntry(
+            const std::string& alias,
+            const CMasternodeEntry& entry);
+
     bool deleteEntry(int index);
 
     bool deleteEntry(const std::string& alias);

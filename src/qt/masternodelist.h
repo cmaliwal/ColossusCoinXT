@@ -32,7 +32,7 @@ class MasternodeList : public QWidget
     Q_OBJECT
 
 public:
-    explicit MasternodeList(QWidget* parent = 0);
+    explicit MasternodeList(QWidget* parent = nullptr);
     ~MasternodeList();
 
     void setClientModel(ClientModel* clientModel);
@@ -62,11 +62,17 @@ private:
 private Q_SLOTS:
     void showContextMenu(const QPoint&);
     void on_addButton_clicked();
+    void on_modifyButton_clicked();
     void on_deleteButton_clicked();
     void on_startButton_clicked();
     void on_startAllButton_clicked();
     void on_startMissingButton_clicked();
     void on_tableWidgetMyMasternodes_itemSelectionChanged();
     void on_UpdateButton_clicked();
+
+    void LockCoin(
+            bool lock,
+            const std::string& txHash,
+            const std::string& outputIndex) const;
 };
 #endif // MASTERNODELIST_H

@@ -10,6 +10,7 @@
 
 #include <QDialog>
 #include <memory>
+#include <set>
 
 class QLabel;
 class QLineEdit;
@@ -30,11 +31,20 @@ class MasternodeEntryDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit MasternodeEntryDialog(
+    MasternodeEntryDialog(
+            const std::vector<MasternodeOutput>& outputList,
+            QWidget *parent);
+
+    MasternodeEntryDialog(
+            const std::string& alias,
+            const std::string& ip,
+            const std::string& pk,
             const std::vector<MasternodeOutput>& outputList,
             QWidget *parent);
 
     ~MasternodeEntryDialog() override;
+
+    void setBusyAliases(const std::set<std::string>& aliases);
 
     std::string getAlias() const;
 
@@ -59,6 +69,7 @@ private slots:
 
 private:
     std::vector<MasternodeOutput> outputList_;
+    std::set<std::string> busyAliases_;
 
     struct {
         QLabel *labelAlias = nullptr;

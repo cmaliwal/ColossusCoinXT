@@ -19,6 +19,21 @@
 
 CCriticalSection cs_masternodes;
 
+static std::vector<MasternodeOutput> FindAvailableMasternodeOutputs()
+{
+    set<string> busyOutputs;
+    for (CMasternodeConfig::CMasternodeEntry mne : masternodeConfig.getEntries())
+        busyOutputs.insert(strprintf("%s:%s", mne.getTxHash(), mne.getOutputIndex()));
+
+    vector<MasternodeOutput> outputList;
+    vector<COutput> possibleCoins = activeMasternode.SelectCoinsMasternode();
+    for (const COutput& out : possibleCoins)
+        if (busyOutputs.find(strprintf("%s:%d", out.tx->GetHash().ToString(), out.i)) == busyOutputs.end())
+            outputList.emplace_back(out.tx->GetHash().ToString(), out.i);
+
+    return outputList;
+}
+
 MasternodeList::MasternodeList(QWidget* parent) : QWidget(parent),
                                                   ui(new Ui::MasternodeList),
                                                   clientModel(0),
@@ -46,11 +61,21 @@ MasternodeList::MasternodeList(QWidget* parent) : QWidget(parent),
     ui->tableWidgetMyMasternodes->setContextMenuPolicy(Qt::CustomContextMenu);
 
     QAction* startAliasAction = new QAction(tr("Start alias"), this);
+    QAction* modifyAction = new QAction(tr("Modify"), this);
+    QAction* deleteAction = new QAction(tr("Delete"), this);
+
     contextMenu = new QMenu();
     contextMenu->addAction(startAliasAction);
+    contextMenu->addAction(modifyAction);
+    contextMenu->addAction(deleteAction);
+
     connect(ui->tableWidgetMyMasternodes, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(showContextMenu(const QPoint&)));
     connect(startAliasAction, SIGNAL(triggered()), this, SLOT(on_startButton_clicked()));
+    connect(modifyAction, SIGNAL(triggered()), this, SLOT(on_modifyButton_clicked()));
+    connect(deleteAction, SIGNAL(triggered()), this, SLOT(on_deleteButton_clicked()));
+
     connect(ui->addButton, SIGNAL(triggered()), this, SLOT(on_addButton_clicked()));
+    connect(ui->modifyButton, SIGNAL(triggered()), this, SLOT(on_modifyButton_clicked()));
     connect(ui->deleteButton, SIGNAL(triggered()), this, SLOT(on_deleteButton_clicked()));
 
     timer = new QTimer(this);
@@ -223,25 +248,36 @@ void MasternodeList::updateMyNodeList(bool fForce)
     ui->secondsLabel->setText("0");
 }
 
+void MasternodeList::LockCoin(
+        bool lock,
+        const std::string& txHash,
+        const std::string& outputIndex) const
+{
+    LOCK(pwalletMain->cs_wallet);
+    LogPrintf("%s - Locking/Unlocking(%d) Masternode Collateral: %s %s\n", __func__, lock, txHash, outputIndex);
+    uint256 mnTxHash;
+    mnTxHash.SetHex(txHash);
+    COutPoint outpoint = COutPoint(mnTxHash, boost::lexical_cast<unsigned int>(outputIndex));
+    if (lock)
+        pwalletMain->LockCoin(outpoint);
+    else
+        pwalletMain->UnlockCoin(outpoint);
+}
+
 void MasternodeList::on_addButton_clicked()
 {
-    set<string> busyOutputs;
-    BOOST_FOREACH (CMasternodeConfig::CMasternodeEntry mne, masternodeConfig.getEntries()) {
-        busyOutputs.insert(strprintf("%s:%s", mne.getTxHash(), mne.getOutputIndex()));
-    }
-
-    vector<MasternodeOutput> outputList;
-    vector<COutput> possibleCoins = activeMasternode.SelectCoinsMasternode();
-    for (const COutput& out : possibleCoins)
-        if (busyOutputs.find(strprintf("%s:%d", out.tx->GetHash().ToString(), out.i)) == busyOutputs.end())
-            outputList.emplace_back(out.tx->GetHash().ToString(), out.i);
-
+    vector<MasternodeOutput> outputList = FindAvailableMasternodeOutputs();
     if (outputList.empty()) {
         QMessageBox::warning(this, this->windowTitle(), tr("Masternode outputs were not found."), QMessageBox::Ok, QMessageBox::Ok);
         return;
     }
 
+    set<std::string> aliases;
+    for (CMasternodeConfig::CMasternodeEntry mne : masternodeConfig.getEntries())
+        aliases.insert(mne.getAlias());
+
     MasternodeEntryDialog dlg(outputList, this);
+    dlg.setBusyAliases(aliases);
     int answer = dlg.exec();
     if (QDialog::Accepted == answer) {
         int txIndex = dlg.getOutputIndex();
@@ -250,13 +286,54 @@ void MasternodeList::on_addButton_clicked()
             CMasternodeConfig::CMasternodeEntry mne(dlg.getAlias(), dlg.getIP(), dlg.getPrivateKey(), out.txHash, to_string(out.index));
             if (masternodeConfig.addEntry(mne)) {
                 updateMyNodeList(true);
-                if (GetBoolArg("-mnconflock", true) && pwalletMain) {
-                    LOCK(pwalletMain->cs_wallet);
-                    LogPrintf("%s - Locking Masternode Collateral: %s %s\n", __func__, mne.getTxHash(), mne.getOutputIndex());
-                    uint256 mnTxHash;
-                    mnTxHash.SetHex(mne.getTxHash());
-                    COutPoint outpoint = COutPoint(mnTxHash, boost::lexical_cast<unsigned int>(mne.getOutputIndex()));
-                    pwalletMain->LockCoin(outpoint);
+                if (GetBoolArg("-mnconflock", true) && pwalletMain)
+                    LockCoin(true, mne.getTxHash(), mne.getOutputIndex());
+            }
+        }
+    }
+}
+
+void MasternodeList::on_modifyButton_clicked()
+{
+    // Find selected node alias
+    QItemSelectionModel* selectionModel = ui->tableWidgetMyMasternodes->selectionModel();
+    QModelIndexList selected = selectionModel->selectedRows();
+    if (selected.empty())
+        return;
+
+    QModelIndex index = selected.at(0);
+    int nSelectedRow = index.row();
+    std::string strAlias = ui->tableWidgetMyMasternodes->item(nSelectedRow, 0)->text().toStdString();
+    CMasternodeConfig::CMasternodeEntry mne = masternodeConfig.findEntry(strAlias);
+    if (!mne.isValid()) {
+        QMessageBox::critical(this, tr("Error"), tr("%1 was not found.").arg(QString::fromStdString(strAlias)));
+        return;
+    }
+
+    set<std::string> aliases;
+    for (CMasternodeConfig::CMasternodeEntry mne : masternodeConfig.getEntries())
+        if (mne.getAlias() != strAlias)
+            aliases.insert(mne.getAlias());
+
+    vector<MasternodeOutput> outputList = FindAvailableMasternodeOutputs();
+    outputList.insert(outputList.begin(), {mne.getTxHash(), stoi(mne.getOutputIndex())}); // zero index is our mne
+    MasternodeEntryDialog dlg(mne.getAlias(), mne.getIp(), mne.getPrivKey(), outputList, this);
+    dlg.setBusyAliases(aliases);
+    int answer = dlg.exec();
+    if (QDialog::Accepted == answer) {
+        int txIndex = dlg.getOutputIndex();
+        if (txIndex >= 0 && txIndex < outputList.size()) {
+            const MasternodeOutput& out = outputList.at(txIndex);
+            CMasternodeConfig::CMasternodeEntry mne(dlg.getAlias(), dlg.getIP(), dlg.getPrivateKey(), out.txHash, to_string(out.index));
+            if (masternodeConfig.modifyEntry(strAlias, mne)) {
+                if (strAlias != mne.getAlias())
+                    ui->tableWidgetMyMasternodes->setItem(nSelectedRow, 0, new QTableWidgetItem(mne.getAlias().c_str()));
+
+                updateMyNodeList(true);
+
+                if (txIndex > 0 && GetBoolArg("-mnconflock", true) && pwalletMain) {
+                    LockCoin(false, outputList.front().txHash, to_string(outputList.front().index)); // unlock old tx
+                    LockCoin(true, mne.getTxHash(), mne.getOutputIndex()); // lock new tx
                 }
             }
         }
@@ -286,14 +363,8 @@ void MasternodeList::on_deleteButton_clicked()
     CMasternodeConfig::CMasternodeEntry mne = masternodeConfig.findEntry(strAlias);
     if (masternodeConfig.deleteEntry(strAlias)) {
         ui->tableWidgetMyMasternodes->removeRow(nSelectedRow);
-        if (GetBoolArg("-mnconflock", true) && pwalletMain && mne.isValid()) {
-            LOCK(pwalletMain->cs_wallet);
-            LogPrintf("%s - Locking Masternode Collateral: %s %s\n", __func__, mne.getTxHash(), mne.getOutputIndex());
-            uint256 mnTxHash;
-            mnTxHash.SetHex(mne.getTxHash());
-            COutPoint outpoint = COutPoint(mnTxHash, boost::lexical_cast<unsigned int>(mne.getOutputIndex()));
-            pwalletMain->UnlockCoin(outpoint);
-        }
+        if (GetBoolArg("-mnconflock", true) && pwalletMain && mne.isValid())
+            LockCoin(false, mne.getTxHash(), mne.getOutputIndex());
     }
 }
 

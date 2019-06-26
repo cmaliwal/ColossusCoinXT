@@ -49,6 +49,24 @@ bool CMasternodeConfig::addEntry(const CMasternodeEntry& entry)
     return writeConfig();
 }
 
+bool CMasternodeConfig::modifyEntry(
+        const std::string& alias,
+        const CMasternodeEntry& entry)
+{
+    if (!entry.isValid())
+        return error("%s, entry is not valid\n", __func__);
+
+    LOCK(*csEntries_);
+    for (int i = 0; i < entries_.size(); ++i) {
+        if (entries_.at(i).getAlias() == alias) {
+            entries_.at(i) = entry;
+            return writeConfig();
+        }
+    }
+
+    return false;
+}
+
 bool CMasternodeConfig::deleteEntry(int index)
 {
     LOCK(*csEntries_);
@@ -97,6 +115,7 @@ bool CMasternodeConfig::read(std::string& strErr)
         return true; // Nothing to read, so just return
     }
 
+    std::set<std::string> aliases;
     std::vector<CMasternodeEntry> entries;
     for (std::string line; std::getline(streamConfig, line); linenumber++) {
         if (line.empty())
@@ -159,8 +178,16 @@ bool CMasternodeConfig::read(std::string& strErr)
             return false;
         }
 
+        if (aliases.count(alias) > 0) {
+            strErr = _("Alias cannot be duplicated in masternode.conf") + "\n" +
+                     strprintf(_("Line: %d"), linenumber) + "\n\"" + line + "\"";
+            streamConfig.close();
+            return false;
+        }
+
         CMasternodeEntry cme(alias, ip, privKey, txHash, outputIndex);
         entries.push_back(cme);
+        aliases.insert(alias);
     }
 
     streamConfig.close();

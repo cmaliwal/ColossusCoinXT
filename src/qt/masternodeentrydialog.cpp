@@ -30,21 +30,45 @@ MasternodeEntryDialog::MasternodeEntryDialog(
     QDialog(parent),
     outputList_(outputList)
 {
-    memset(&ui, 0, sizeof(ui));
+    this->setWindowTitle(tr("Masternode Entry"));
 
+    memset(&ui, 0, sizeof(ui));
     setupUI();
     setupLayout();
+}
+
+MasternodeEntryDialog::MasternodeEntryDialog(
+    const std::string& alias,
+    const std::string& ip,
+    const std::string& pk,
+    const std::vector<MasternodeOutput>& outputList,
+    QWidget *parent):
+    QDialog(parent),
+    outputList_(outputList)
+{
+    this->setWindowTitle(tr("Masternode Entry - %1").arg(alias.c_str()));
+
+    memset(&ui, 0, sizeof(ui));
+    setupUI();
+    setupLayout();
+
+    ui.eAlias->setText(alias.c_str());
+    ui.eIP->setText(ip.c_str());
+    ui.ePK->setText(pk.c_str());
 }
 
 MasternodeEntryDialog::~MasternodeEntryDialog()
 {}
 
+void MasternodeEntryDialog::setBusyAliases(const std::set<std::string>& aliases)
+{
+    busyAliases_ = aliases;
+}
+
 void MasternodeEntryDialog::setupUI()
 {
     if (ui.labelAlias) // must be nullptr
         throw std::runtime_error("MasternodeEntryDialog: ui has already been initialized");
-
-    this->setWindowTitle(tr("Masternode Entry"));
 
     const int WIDTH = 140;
     const char *stylesheet = "QLabel { color : black; }";
@@ -148,6 +172,11 @@ void MasternodeEntryDialog::onButtonOk()
 {
     if (getAlias().empty()) {
         ShowError(tr("Alias is required."));
+        return;
+    }
+
+    if (busyAliases_.count(getAlias()) > 0) {
+        ShowError(tr("Alias is busy."));
         return;
     }
 
