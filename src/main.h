@@ -256,8 +256,10 @@ CAmount GetBlockValueReward(int nHeight);
 CAmount GetBlockValueBudget(int nHeight);
 // dev fund part of the block value
 CAmount GetBlockValueDevFund(int nHeight);
-// masternode part of the block reward using see-saw algorithm
+// masternode part of the block reward
 CAmount GetMasternodePayment(int nHeight, int nMasternodeCount, CAmount nMoneySupply);
+// masternode part of the block reward using see-saw algorithm
+CAmount GetMasternodePaymentSeeSaw(int nHeight, int nMasternodeCount, CAmount nMoneySupply);
 
 /** Create a new block index entry for a given block hash */
 CBlockIndex* InsertBlockIndex(uint256 hash);
