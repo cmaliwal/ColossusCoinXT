@@ -133,7 +133,15 @@ SendCoinsDialog::SendCoinsDialog(QWidget* parent) : QDialog(parent),
     ui->sliderSmartFee->setValue(settings.value("nSmartFeeSliderPosition").toInt());
     ui->customFee->setValue(settings.value("nTransactionFee").toLongLong());
     ui->checkBoxMinimumFee->setChecked(settings.value("fPayOnlyMinFee").toBool());
-    ui->checkBoxFreeTx->setChecked(settings.value("fSendFreeTransactions").toBool());
+
+    bool freeEnabled = settings.value("fSendFreeTransactions").toBool();
+    ui->checkBoxFreeTx->setChecked(freeEnabled);
+    if (!freeEnabled) {
+        ui->checkBoxFreeTx->setEnabled(false);
+        ui->checkBoxFreeTx->hide();
+        ui->labelFreeTx->hide();
+    }
+
     ui->checkzPIV->hide();
     minimizeFeeSection(settings.value("fFeeSectionMinimized").toBool());
 }

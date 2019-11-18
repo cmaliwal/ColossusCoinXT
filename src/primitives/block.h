@@ -33,7 +33,7 @@ public:
     static const int32_t VERSION4 = 4; // new budget percent and masternode see-saw reward
     static const int32_t VERSION5 = 5; // zerocoins
     static const int32_t VERSION6 = 6; // enforce network update (single super block + single dev fund payment)
-    static const int32_t CURRENT_VERSION = VERSION6;
+    static const int32_t CURRENT_VERSION = VERSION5;
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
