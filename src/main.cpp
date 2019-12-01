@@ -79,6 +79,7 @@ bool fTxIndex = true;
 bool fIsBareMultisigStd = true;
 bool fCheckBlockIndex = false;
 bool fVerifyingBlocks = false;
+bool fOkToGoFast = true;
 unsigned int nCoinCacheSize = 5000;
 bool fAlerts = DEFAULT_ALERTS;
 int64_t nReserveBalance = 0;
@@ -3633,6 +3634,9 @@ bool static FlushStateToDisk(CValidationState& state, FlushStateMode mode)
 
 void FlushStateToDisk()
 {
+    //! not the ideal place for this, but it'll do
+    CheckIfOkToGoFast();
+
     CValidationState state;
     FlushStateToDisk(state, FLUSH_STATE_ALWAYS);
 }
@@ -4122,7 +4126,7 @@ bool ActivateBestChain(CValidationState& state, CBlock* pblock, bool fAlreadyChe
             }
         }
     } while (pindexMostWork != chainActive.Tip());
-    CheckBlockIndex();
+    if (!IsOkToGoFast()) CheckBlockIndex();
 
     // Write changes periodically to disk, after relay.
     if (!FlushStateToDisk(state, FLUSH_STATE_PERIODIC)) {
@@ -4413,7 +4417,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
-    if (!CheckBlockHeader(block, state, block.IsProofOfWork()))
+    if (!CheckBlockHeader(block, state, block.IsProofOfWork()) && !IsOkToGoFast())
         return state.DoS(100, error("CheckBlock() : CheckBlockHeader failed"),
             REJECT_INVALID, "bad-header", true);
 
@@ -5099,7 +5103,7 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
         mapBlockSource[pindex->GetBlockHash()] = pfrom->GetId();
     }
 
-    CheckBlockIndex();
+    if (!IsOkToGoFast()) CheckBlockIndex();
 
     if (!ret) {
         // Check spamming
@@ -6752,7 +6756,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             }
         }
 
-        CheckBlockIndex();
+        if (!IsOkToGoFast()) CheckBlockIndex();
     }
 
     else if (strCommand == "block" && !fImporting && !fReindex) // Ignore blocks received while importing
@@ -7541,6 +7545,15 @@ std::string CBlockFileInfo::ToString() const
     return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, DateTimeStrFormat("%Y-%m-%d", nTimeFirst), DateTimeStrFormat("%Y-%m-%d", nTimeLast));
 }
 
+void CheckIfOkToGoFast()
+{
+    fOkToGoFast = IsInitialBlockDownload();
+}
+
+bool IsOkToGoFast()
+{
+    return fOkToGoFast;
+}
 
 class CMainCleanup
 {
