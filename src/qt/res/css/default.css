@@ -1,11 +1,13 @@
 /* new: bg: 151515, text: ffffff, dark green: #2db988, fade green: #2db988, light green: #34e8a9 */
 
 WalletFrame {
-border-image: url(':/images/walletFrame_bg') 0 0 0 0 stretch stretch;
-border-top:0px solid #000;
-margin:0;
-padding:0;
+  background-image: url(':/images/walletFrame_bg');
+  background-size: 100% 100%;
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
+
 QFrame#frame_BG{
 margin-left:5px;
 }
