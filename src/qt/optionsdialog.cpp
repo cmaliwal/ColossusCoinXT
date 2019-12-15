@@ -82,7 +82,8 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet) : QDialog(paren
     }
     
     /* Theme selector static themes */
-    ui->theme->addItem(QString("Default"), QVariant("default"));
+    ui->theme->addItem(QString("default"), QVariant("default"));
+    ui->theme->addItem(QString("light"), QVariant("light"));
 
     /* Preferred Zerocoin Denominations */
     // ZCDENOMINATIONS: hardcoded denom values
@@ -225,7 +226,6 @@ void OptionsDialog::setMapper()
 
     /* Display */
     mapper->addMapping(ui->digits, OptionsModel::Digits);
-    mapper->addMapping(ui->theme, OptionsModel::Theme);
     mapper->addMapping(ui->theme, OptionsModel::Theme);
     mapper->addMapping(ui->lang, OptionsModel::Language);
     mapper->addMapping(ui->unit, OptionsModel::DisplayUnit);
