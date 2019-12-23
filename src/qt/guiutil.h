@@ -217,7 +217,7 @@ void restoreWindowGeometry(const QString& strSetting, const QSize& defaultSizeIn
 QString loadStyleSheet();
 
 /** Check whether a theme is not build-in */
-bool isExternal(QString theme);
+    QString getThemeName();
 
 /* Convert QString to OS specific boost path through UTF-8 */
 boost::filesystem::path qstringToBoostPath(const QString& path);

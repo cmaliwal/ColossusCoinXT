@@ -140,14 +140,6 @@ void WalletModel::pollBalanceChanged()
     TRY_LOCK(cs_main, lockMain);
     if (!lockMain)
         return;
-
-    // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
-    // mempool.cs <= checkBalanceChanged, getBalance... (every time pretty much), it makes
-    // sense to pull it out in here (and no obvious issues or downsides?)
-    TRY_LOCK(mempool.cs, lockMempool);
-    if (!lockMempool)
-        return;
-
     TRY_LOCK(wallet->cs_wallet, lockWallet);
     if (!lockWallet)
         return;
