@@ -44,6 +44,7 @@ Mark: Discard old builds
 Mark: This project is parameterized, if you need to build specific commit add string parameter with name COMMIT for the job that builds particular commit.
 
 In Source Code Management add git repository: https://github.com/devrandom/gitian-builder.git
+Use this commit for now fa0f0f4e54028b860d8b3e5428016905d1d4b0ce due to error "fatal: unknown date format format-local:%F %T".
 
 In the build step paste script:
 
