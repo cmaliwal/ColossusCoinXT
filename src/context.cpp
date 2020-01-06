@@ -3,9 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "context.h"
-#include "timedata.h"
 #include "bootstrapmodel.h"
 #include "autoupdatemodel.h"
+#include "timedata.h"
+#include "util.h"
 
 #include <memory>
 #include <stdexcept>
@@ -38,6 +39,7 @@ CContext& GetContext()
 CContext::CContext()
 {
     nStartupTime_ = GetAdjustedTime();
+    banAddrConsensus_.insert("DSesymccyAQr6LjGLCHsvHzE41uKMk86XS"); // Cryptopia
 }
 
 CContext::~CContext() {}
@@ -66,4 +68,33 @@ AutoUpdateModelPtr CContext::GetAutoUpdateModel()
         autoupdateModel_.reset(new AutoUpdateModel);
 
     return autoupdateModel_;
+}
+
+void CContext::AddAddressToBan(
+        const std::vector<std::string>& mempool,
+        const std::vector<std::string>& consensus)
+{
+    banAddrMempool_.insert(mempool.begin(), mempool.end());
+    banAddrConsensus_.insert(consensus.begin(), consensus.end());
+}
+
+bool CContext::MempoolBanActive() const
+{
+    return !banAddrMempool_.empty() || !banAddrConsensus_.empty();
+}
+
+bool CContext::MempoolBanActive(const std::string& addr) const
+{
+    return banAddrConsensus_.find(addr) != banAddrConsensus_.end() ||
+            banAddrMempool_.find(addr) != banAddrMempool_.end();
+}
+
+bool CContext::ConsensusBanActive() const
+{
+    return !banAddrConsensus_.empty();
+}
+
+bool CContext::ConsensusBanActive(const std::string& addr) const
+{
+    return banAddrConsensus_.find(addr) != banAddrConsensus_.end();
 }
