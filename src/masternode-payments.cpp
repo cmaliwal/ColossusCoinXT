@@ -196,14 +196,15 @@ bool IsBlockValueValid(const CBlock& block, int nHeight, CAmount nExpectedValue,
         (nHeight == 10800 || nHeight == 11040 || nHeight == 11041))
         return true; // these blocks on testnet breaking rules
 
-    if (nHeight > Params().GetChainHeight(ChainHeight::H9)) {
+    CAmount extraCoin = 0;
+    if (nHeight >= Params().GetChainHeight(ChainHeight::H9) &&
+            nHeight <= Params().GetChainHeight(ChainHeight::H9) + 24 * GetBudgetPaymentCycleBlocks()) extraCoin = 4500000 * COIN;
+
+    if (nHeight >= Params().GetChainHeight(ChainHeight::H9)) {
         if (0 == nHeight % GetBudgetPaymentCycleBlocks())
-            return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight);
+            return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight) + extraCoin;
         else
             return nMinted <= nExpectedValue;
-    }
-    else if (nHeight == Params().GetChainHeight(ChainHeight::H9)) {
-        return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight) + 108000000 * COIN;
     }
     else if (nHeight >= Params().GetChainHeight(ChainHeight::H8)) {
         if (0 == nHeight % GetBudgetPaymentCycleBlocks())

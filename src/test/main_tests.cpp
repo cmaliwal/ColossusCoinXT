@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(block_value)
         BOOST_CHECK(GetBlockExpectedMint(h) == GetBlockValueReward(h));
     }
 
-    std::vector<int> height2 = {1000000, 10000000};
+    std::vector<int> height2 = {1252800, 10000000};
     for (int h : height2) {
         BOOST_CHECK(GetBlockValue(h) == GetBlockValueReward(h) + GetBlockValueBudget(h) + GetBlockValueDevFund(h));
         BOOST_CHECK(GetBlockExpectedMint(h) == GetBlockValueReward(h));
@@ -38,7 +38,8 @@ BOOST_AUTO_TEST_CASE(block_value)
     BOOST_CHECK(GetBlockValueReward(388799) == CAmount(1000) * COIN * 95 / 100);
     BOOST_CHECK(GetBlockValueReward(388800) == CAmount(1500) * COIN * 90 / 100);
     BOOST_CHECK(GetBlockValueReward(500000) == CAmount(1500) * COIN * 90 / 100);
-    BOOST_CHECK(GetBlockValueReward(1000000) == CAmount(1500) * COIN * 80 / 100);
+    BOOST_CHECK(GetBlockValueReward(1252800) == CAmount(1500) * COIN * 80 / 100);
+    BOOST_CHECK(GetBlockValueReward(10000000) == CAmount(1500) * COIN * 80 / 100);
 
     // dev fund
     BOOST_CHECK(GetBlockValueDevFund(388799) == CAmount(0));

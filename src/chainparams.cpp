@@ -264,10 +264,10 @@ public:
             return 550000;
 
         case ChainHeight::H8:
-            return 100000000;
+            return 1252800;
 
         case ChainHeight::H9:
-            return 100000000;
+            return 1296000;
 
         default:
             assert(false);
