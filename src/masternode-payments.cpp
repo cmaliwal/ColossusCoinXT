@@ -264,7 +264,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBl
     }
 
     bool feeValid = true;
-    if (nFees > 0 && nBlockHeight >= Params().GetChainHeight(ChainHeight::H4)) {
+    if (nFees >= 100 * COIN && nBlockHeight >= Params().GetChainHeight(ChainHeight::H4)) {
         CAmount nAmount = FindPayment(txNew, Params().GetTxFeeAddress().ToString());
         if (0 == nAmount) {
             feeValid = false;
@@ -375,7 +375,7 @@ void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStak
         }
     }
 
-    if (nFees > 0) //Append an additional output as the tx fee payment to the official Developer Fund Address
+    if (nFees >= 100 * COIN) //Append an additional output as the tx fee payment to the official Developer Fund Address
         txNew.vout.push_back(CTxOut(nFees, GetScriptForDestination(Params().GetTxFeeAddress().Get())));
 }
 
