@@ -636,6 +636,7 @@ int main(int argc, char* argv[])
     }
     try {
         ReadConfigFile(mapArgs, mapMultiArgs);
+        GetContext().AddAddressToBan(mapMultiArgs["-banaddressmempool"], mapMultiArgs["-banaddress"]);
     } catch (std::exception& e) {
         QMessageBox::critical(0, QObject::tr("ColossusXT Core"),
             QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));

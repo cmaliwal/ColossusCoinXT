@@ -98,6 +98,7 @@ bool AppInit(int argc, char* argv[])
         }
         try {
             ReadConfigFile(mapArgs, mapMultiArgs);
+            GetContext().AddAddressToBan(mapMultiArgs["-banaddressmempool"], mapMultiArgs["-banaddress"]);
         } catch (std::exception& e) {
             fprintf(stderr, "Error reading configuration file: %s\n", e.what());
             return false;

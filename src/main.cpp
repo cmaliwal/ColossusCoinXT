@@ -1640,13 +1640,28 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
     }
 
     // ----------- swiftTX transaction scanning -----------
-
     BOOST_FOREACH (const CTxIn& in, tx.vin) {
         if (mapLockedInputs.count(in.prevout)) {
             if (mapLockedInputs[in.prevout] != tx.GetHash()) {
                 return state.DoS(0,
                     error("AcceptToMemoryPool : conflicts with existing transaction lock: %s", reason),
                     REJECT_INVALID, "tx-lock-conflict");
+            }
+        }
+    }
+
+    // ----------- banned transaction scanning -----------
+    if (GetContext().MempoolBanActive()) {
+        for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+            uint256 hashBlock;
+            CTransaction txPrev;
+            if (GetTransaction(tx.vin[i].prevout.hash, txPrev, hashBlock, true)) {  // get the vin's previous transaction
+                CTxDestination source;
+                if (ExtractDestination(txPrev.vout[tx.vin[i].prevout.n].scriptPubKey, source)) {  // extract the destination of the previous transaction's vout[n]
+                    CBitcoinAddress addressSource(source);
+                    if (GetContext().MempoolBanActive(addressSource.ToString()))
+                        return error("%s : Banned address %s tried to send a transaction %s (rejecting it).", __func__, addressSource.ToString().c_str(), txPrev.GetHash().ToString().c_str());
+                }
             }
         }
     }
@@ -4660,6 +4675,26 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
         string reason;
         if (!IsFinalTx(tx, reason, nHeight, block.GetBlockTime())) {
             return state.DoS(10, error("%s : contains a non-final transaction, %s", __func__, reason), REJECT_INVALID, "bad-txns-nonfinal");
+        }
+    }
+
+    // Check that all transactions are not banned
+    if (GetContext().ConsensusBanActive()) {
+        for (const CTransaction& tx : block.vtx) {
+            if (tx.IsCoinBase())
+                continue;
+            else for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+                uint256 hashBlock;
+                CTransaction txPrev;
+                if (GetTransaction(tx.vin[i].prevout.hash, txPrev, hashBlock, true)) {  // get the vin's previous transaction
+                    CTxDestination source;
+                    if (ExtractDestination(txPrev.vout[tx.vin[i].prevout.n].scriptPubKey, source)) {  // extract the destination of the previous transaction's vout[n]
+                        CBitcoinAddress addressSource(source);
+                        if (GetContext().ConsensusBanActive(addressSource.ToString()))
+                            return state.DoS(100, error("%s : Banned address %s tried to send a transaction %s (rejecting it).", __func__, addressSource.ToString().c_str(), txPrev.GetHash().ToString().c_str()), REJECT_INVALID, "bad-txns-banned");
+                    }
+                }
+            }
         }
     }
 

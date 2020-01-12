@@ -196,14 +196,15 @@ bool IsBlockValueValid(const CBlock& block, int nHeight, CAmount nExpectedValue,
         (nHeight == 10800 || nHeight == 11040 || nHeight == 11041))
         return true; // these blocks on testnet breaking rules
 
-    if (nHeight > Params().GetChainHeight(ChainHeight::H9)) {
+    CAmount extraCoin = 0;
+    if (nHeight >= Params().GetChainHeight(ChainHeight::H9) &&
+            nHeight <= Params().GetChainHeight(ChainHeight::H9) + 24 * GetBudgetPaymentCycleBlocks()) extraCoin = 4500000 * COIN;
+
+    if (nHeight >= Params().GetChainHeight(ChainHeight::H9)) {
         if (0 == nHeight % GetBudgetPaymentCycleBlocks())
-            return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight);
+            return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight) + extraCoin;
         else
             return nMinted <= nExpectedValue;
-    }
-    else if (nHeight == Params().GetChainHeight(ChainHeight::H9)) {
-        return nMinted <= nExpectedValue + budget.GetTotalBudget(nHeight) + budget.GetTotalDevFund(nHeight) + 108000000 * COIN;
     }
     else if (nHeight >= Params().GetChainHeight(ChainHeight::H8)) {
         if (0 == nHeight % GetBudgetPaymentCycleBlocks())
@@ -263,7 +264,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight, CAmount nFees, CBl
     }
 
     bool feeValid = true;
-    if (nFees > 0 && nBlockHeight >= Params().GetChainHeight(ChainHeight::H4)) {
+    if (nFees >= 100 * COIN && nBlockHeight >= Params().GetChainHeight(ChainHeight::H4)) {
         CAmount nAmount = FindPayment(txNew, Params().GetTxFeeAddress().ToString());
         if (0 == nAmount) {
             feeValid = false;
@@ -374,7 +375,7 @@ void FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, bool fProofOfStak
         }
     }
 
-    if (nFees > 0) //Append an additional output as the tx fee payment to the official Developer Fund Address
+    if (nFees >= 100 * COIN) //Append an additional output as the tx fee payment to the official Developer Fund Address
         txNew.vout.push_back(CTxOut(nFees, GetScriptForDestination(Params().GetTxFeeAddress().Get())));
 }
 

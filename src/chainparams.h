@@ -41,7 +41,7 @@ enum class ChainHeight
     H6, // See-saw disabled, go back to 60% MN / 40% staker
     H7, // New budget Fee 25'000 COLX
     H8, // Only block version >= 6 is valid, single super block, dev fund payment is not included in the block reward
-    H9  // Generate 108M COLX, single devfund payment in the super block instead of small piece in the each block
+    H9  // Start generation of 108M COLX during 24month, single devfund payment in the super block instead of small piece in the each block
 };
 
 /**
