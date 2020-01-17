@@ -20,11 +20,11 @@ border:0px solid #fff;
 }
 
 QMenuBar {
-background-color:#222;
+background-color:#def2e2;
 }
 
 QMenuBar::item {
-background-color:#222;
+background-color:#def2e2;
 color:#333;
 }
 
