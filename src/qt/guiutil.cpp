@@ -848,10 +848,16 @@ QString getThemeName()
     QSettings settings;
     QString theme = settings.value("theme", "").toString();
 
-    if(!theme.isEmpty()){
+    if (!theme.isEmpty())
         return theme;
-    }
-    return QString("light");  
+    else
+        return QString("light");
+}
+
+QString getIconPath(const QString& name)
+{
+    static QString theme = getThemeName();
+    return QString(":/icons/%1/%2").arg(theme, name);
 }
 
 // Open CSS when configured
