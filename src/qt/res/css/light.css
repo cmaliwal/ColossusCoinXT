@@ -1,11 +1,13 @@
 /* new: bg: 151515, text: ffffff, dark green: #2db988, fade green: #2db988, light green: #34e8a9 */
 
 WalletFrame {
-border-image: url(':/images/light/walletFrame_bg') 0 0 0 0 stretch stretch;
-border-top:0px solid #000;
-margin:0;
-padding:0;
+  background-image: url(':/images/light/walletFrame_bg');
+  background-size: 100% 100%;
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
+
 QFrame#frame_BG{
 margin-left:5px;
 }
@@ -121,7 +123,7 @@ color:#333;
 }
 
 QTextEdit {
-background-color:#222;
+background-color:#fff;
 color:#333;
 }
 
@@ -505,7 +507,7 @@ color:#333;
 }
 
 QDialog .QTabWidget .QWidget {
-background-color:#222;
+background-color:#fff;
 color:#333;
 }
 
@@ -559,7 +561,7 @@ padding-right:10px;
 
 QDialog#SignVerifyMessageDialog QPlainTextEdit { /* Message Signing Text */
 border:1px solid #34e8a9;
-background-color:#222;
+background-color:#fff;
 }
 
 QDialog#SignVerifyMessageDialog QPushButton#pasteButton_SM { /* Paste Button */
@@ -783,7 +785,7 @@ background:#fff;
 
 /* Command Line Options Dialog */
 QDialog#HelpMessageDialog QScrollArea * {
-background-color:#222;
+background-color:#fff;
 }
 
 QDialog#HelpMessageDialog QScrollBar:vertical, QDialog#HelpMessageDialog QScrollBar:horizontal {
@@ -1686,7 +1688,7 @@ font-weight:bold;
 
 QCalendarWidget QAbstractItemView { /* Calendar widget days */
 alternate-background-color:#dedbe5;
-background-color:#222;
+background-color:#fff;
 }
 
 QCalendarWidget QAbstractItemView:enabled { /* Calendar widget weekdays in month */
