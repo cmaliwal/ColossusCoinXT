@@ -222,6 +222,9 @@ QString getThemeName();
 /** Format resource icon path with current theme name: :/icons/<theme>/name */
 QString getIconPath(const QString& name);
 
+/** Return default text color for the current theme */
+QColor getForegroundColor();
+
 /* Convert QString to OS specific boost path through UTF-8 */
 boost::filesystem::path qstringToBoostPath(const QString& path);
 

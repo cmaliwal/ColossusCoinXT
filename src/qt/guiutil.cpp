@@ -18,6 +18,7 @@
 #include "script/script.h"
 #include "script/standard.h"
 #include "util.h"
+#include "guiconstants.h"
 
 #ifdef WIN32
 #ifdef _WIN32_WINNT
@@ -851,13 +852,22 @@ QString getThemeName()
     if (!theme.isEmpty())
         return theme;
     else
-        return QString("light");
+        return QString("default");
 }
 
 QString getIconPath(const QString& name)
 {
     static QString theme = getThemeName();
     return QString(":/icons/%1/%2").arg(theme, name);
+}
+
+QColor getForegroundColor()
+{
+    static QString theme = getThemeName();
+    if (theme == "light")
+        return COLOR_BLACK;
+    else // default theme
+        return COLOR_WHITE;
 }
 
 // Open CSS when configured
@@ -872,8 +882,8 @@ QString loadStyleSheet()
         cssName = QString(":/css/") + theme; 
     }
     else {
-        cssName = QString(":/css/light");  
-        settings.setValue("theme", "light");
+        cssName = QString(":/css/default");
+        settings.setValue("theme", "default");
     }
     
     QFile qFile(cssName);      

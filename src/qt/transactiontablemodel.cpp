@@ -455,7 +455,7 @@ QVariant TransactionTableModel::addressColor(const TransactionRecord* wtx) const
     default:
         // To avoid overriding above conditional formats a default text color for this QTableView is not defined in stylesheet,
         // so we must always return a color here
-        return COLOR_BLACK;
+        return GUIUtil::getForegroundColor();
     }
 }
 
@@ -506,7 +506,7 @@ QVariant TransactionTableModel::txStatusDecoration(const TransactionRecord* wtx)
     case TransactionStatus::NotAccepted:
         return QIcon(GUIUtil::getIconPath("transaction_0"));
     default:
-        return COLOR_BLACK;
+        return GUIUtil::getForegroundColor();
     }
 }
 
@@ -596,7 +596,7 @@ QVariant TransactionTableModel::data(const QModelIndex& index, int role) const
 
         // To avoid overriding above conditional formats a default text color for this QTableView is not defined in stylesheet,
         // so we must always return a color here
-        return COLOR_BLACK;
+        return GUIUtil::getForegroundColor();
     case TypeRole:
         return rec->type;
     case DateRole:
