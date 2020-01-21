@@ -6,11 +6,14 @@
 
 #include "splashscreen.h"
 
+#include "guiutil.h"
+#include "networkstyle.h"
 #include "clientversion.h"
 #include "init.h"
 #include "networkstyle.h"
 #include "ui_interface.h"
 #include "util.h"
+#include "ui_interface.h"
 #include "version.h"
 
 #ifdef ENABLE_WALLET
@@ -25,6 +28,11 @@
 SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle* networkStyle) : QWidget(0, f), curAlignment(0)
 {
     // set reference point, paddings
+    setAttribute(Qt::WA_TranslucentBackground);
+    setStyleSheet("background:transparent;");
+
+    // no window decorations
+    setWindowFlags(Qt::FramelessWindowHint);
     int paddingLeft = 14;
     int paddingTop = 375;
     int titleVersionVSpace = 17;
@@ -40,10 +48,15 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle* networkStyle) 
     QString copyrightTextColossusXT = QChar(0xA9) + QString(" 2015-%1 ").arg(COPYRIGHT_YEAR) + QString(tr("The ColossusXT Core developers"));
     QString titleAddText = networkStyle->getTitleAddText();
 
+    QString splashScreenPath = ":/images/" + GUIUtil::getThemeName() + "/splash";
+    if(GetBoolArg("-regtest", false))
+        splashScreenPath = ":/images/" + GUIUtil::getThemeName() + "/splash_testnet";
+    if(GetBoolArg("-testnet", false))
+        splashScreenPath = ":/images/" + GUIUtil::getThemeName() + "/splash_testnet";
     QString font = QApplication::font().toString();
 
     // load the bitmap for writing some text over it
-    pixmap = networkStyle->getSplashImage();
+    pixmap = QPixmap(splashScreenPath);
 
     QPainter pixPaint(&pixmap);
     pixPaint.setPen(QColor(100, 100, 100));

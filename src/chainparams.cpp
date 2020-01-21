@@ -65,12 +65,13 @@ static Checkpoints::MapCheckpoints mapCheckpoints =
         (388800, uint256("162ba8a591e130267bbe671abe20bd9bbc1c055ba3fae08ce2e2c1ef6679799e")) // H4
         (692100, uint256("9d24cb4f32f74e83bf0edd2c6ef4719ba41f7004b7bf9a77f186fa787107490d"))
         (840000, uint256("b8028db08b3da8e853b217d96b563c2f3e264aec9254a10e6dfa48d2de9c0baf"))
-        (1109000, uint256("20ca3808fb8536a600fcafe747ef25908db12e79c212b1bec9010157d691c9f0"));
+        (1109000, uint256("20ca3808fb8536a600fcafe747ef25908db12e79c212b1bec9010157d691c9f0"))
+        (1200430, uint256("67b6af0c398435b8ff60ac0088cf0691d8da03a3eee628e3a301d7dd6c7cc17f"));
 
 static const Checkpoints::CCheckpointData data = {
     &mapCheckpoints,
-    1574057540, // * UNIX timestamp of last checkpoint block
-    4161854,    // * total number of transactions between genesis and last checkpoint
+    1579601061, // * UNIX timestamp of last checkpoint block
+    6055920,    // * total number of transactions between genesis and last checkpoint
                 //   (the tx=... number in the SetBestChain debug.log lines)
     2000        // * estimated number of transactions per day after checkpoint
 };
@@ -264,10 +265,10 @@ public:
             return 550000;
 
         case ChainHeight::H8:
-            return 100000000;
+            return 1252800;
 
         case ChainHeight::H9:
-            return 100000000;
+            return 1296000;
 
         default:
             assert(false);

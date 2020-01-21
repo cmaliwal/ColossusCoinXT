@@ -546,17 +546,17 @@ int main(int argc, char* argv[])
     Q_INIT_RESOURCE(colx_locale);
     Q_INIT_RESOURCE(colx);
 
-    BitcoinApplication app(argc, argv);
 #if QT_VERSION > 0x050100
     // Generate high-dpi pixmaps
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 #endif
 #if QT_VERSION >= 0x050600
-    QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
 #ifdef Q_OS_MAC
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus);
 #endif
+    BitcoinApplication app(argc, argv);
 
     // Register meta types used for QMetaObject::invokeMethod
     qRegisterMetaType<bool*>();
@@ -636,6 +636,7 @@ int main(int argc, char* argv[])
     }
     try {
         ReadConfigFile(mapArgs, mapMultiArgs);
+        GetContext().AddAddressToBan(mapMultiArgs["-banaddressmempool"], mapMultiArgs["-banaddress"]);
     } catch (std::exception& e) {
         QMessageBox::critical(0, QObject::tr("ColossusXT Core"),
             QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));

@@ -221,7 +221,7 @@ void GovernanceTable::updateModel()
 
 QPushButton* GovernanceTable::createUrlButton()
 {
-    QPushButton *btn = new QPushButton(QIcon(":/icons/link"), "", this);
+    QPushButton *btn = new QPushButton(QIcon(GUIUtil::getIconPath("link")), "", this);
     btn->setFlat(true);
     btn->setStyleSheet(stylesheet);
     btn->setToolTip(tr("Open website"));
@@ -231,7 +231,7 @@ QPushButton* GovernanceTable::createUrlButton()
 
 QPushButton* GovernanceTable::createInfoButton()
 {
-    QPushButton *btn = new QPushButton(QIcon(":/icons/info"), "", this);
+    QPushButton *btn = new QPushButton(QIcon(GUIUtil::getIconPath("info")), "", this);
     btn->setFlat(true);
     btn->setStyleSheet(stylesheet);
     btn->setToolTip(tr("Show details"));

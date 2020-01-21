@@ -69,6 +69,9 @@ void OptionsModel::Init()
         settings.setValue("strThirdPartyTxUrls", "");
     strThirdPartyTxUrls = settings.value("strThirdPartyTxUrls", "").toString();
 
+    if (!settings.contains("theme"))
+        settings.setValue("theme", "");
+
     if (!settings.contains("fHideZeroBalances"))
         settings.setValue("fHideZeroBalances", true);
     fHideZeroBalances = settings.value("fHideZeroBalances").toBool();

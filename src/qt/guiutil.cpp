@@ -18,6 +18,7 @@
 #include "script/script.h"
 #include "script/standard.h"
 #include "util.h"
+#include "guiconstants.h"
 
 #ifdef WIN32
 #ifdef _WIN32_WINNT
@@ -842,13 +843,31 @@ void restoreWindowGeometry(const QString& strSetting, const QSize& defaultSize, 
     parent->move(pos);
 }
 
-// Check whether a theme is not build-in
-bool isExternal(QString theme)
+// Return name of current UI-theme or default theme if no theme was found
+QString getThemeName()
 {
-    if (theme.isEmpty())
-        return false;
+    QSettings settings;
+    QString theme = settings.value("theme", "").toString();
 
-    return (theme.operator!=("default"));
+    if (!theme.isEmpty())
+        return theme;
+    else
+        return QString("default");
+}
+
+QString getIconPath(const QString& name)
+{
+    static QString theme = getThemeName();
+    return QString(":/icons/%1/%2").arg(theme, name);
+}
+
+QColor getForegroundColor()
+{
+    static QString theme = getThemeName();
+    if (theme == "light")
+        return COLOR_BLACK;
+    else // default theme
+        return COLOR_WHITE;
 }
 
 // Open CSS when configured
@@ -859,27 +878,19 @@ QString loadStyleSheet()
     QString cssName;
     QString theme = settings.value("theme", "").toString();
 
-    if (isExternal(theme)) {
-        // External CSS
-        settings.setValue("fCSSexternal", true);
-        boost::filesystem::path pathAddr = GetDataDir() / "themes/";
-        cssName = pathAddr.string().c_str() + theme + "/css/theme.css";
-    } else {
-        // Build-in CSS
-        settings.setValue("fCSSexternal", false);
-        if (!theme.isEmpty()) {
-            cssName = QString(":/css/") + theme;
-        } else {
-            cssName = QString(":/css/default");
-            settings.setValue("theme", "default");
-        }
+    if(!theme.isEmpty()){
+        cssName = QString(":/css/") + theme; 
     }
-
-    QFile qFile(cssName);
+    else {
+        cssName = QString(":/css/default");
+        settings.setValue("theme", "default");
+    }
+    
+    QFile qFile(cssName);      
     if (qFile.open(QFile::ReadOnly)) {
         styleSheet = QLatin1String(qFile.readAll());
     }
-
+        
     return styleSheet;
 }
 

@@ -652,8 +652,12 @@ void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, b
     }
 
     const int nTargetHeight = pindexPrev->nHeight + 1;
-    const CAmount nTotalBudget = GetTotalBudget(nTargetHeight);
+    if (!IsBudgetPaymentBlock(nTargetHeight)) {
+        error("%s: %d is not budget block", __func__, nTargetHeight);
+        return;
+    }
 
+    const CAmount nTotalBudget = GetTotalBudget(nTargetHeight);
     if (nTargetHeight >= Params().GetChainHeight(ChainHeight::H8)) { // single superblock
         // Add finalized budgets first
         CAmount nPaidBudget = 0;
@@ -683,10 +687,11 @@ void CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, CAmount nFees, b
             LogPrint("masternode", "%s - Dev fund payment %s to the official Developer Fund Address\n", __func__, FormatMoney(GetTotalDevFund(nTargetHeight)));
         }
 
-        // Create 108M once
-        if (nTargetHeight == Params().GetChainHeight(ChainHeight::H9)) {
-            txNew.vout.push_back(CTxOut(108000000 * COIN, GetScriptForDestination(Params().Get108MAddress().Get())));
-            LogPrint("masternode", "%s - 108M created to the official Address\n", __func__);
+        // Create 4.5M
+        if (nTargetHeight >= Params().GetChainHeight(ChainHeight::H9) &&
+                nTargetHeight <= Params().GetChainHeight(ChainHeight::H9) + 24 * GetBudgetPaymentCycleBlocks()) {
+            txNew.vout.push_back(CTxOut(4500000 * COIN, GetScriptForDestination(Params().Get108MAddress().Get())));
+            LogPrint("masternode", "%s - 4.5M created to the official Address\n", __func__);
         }
     } else {
         CScript payee;
@@ -840,10 +845,11 @@ bool CBudgetManager::IsTransactionValid(const CTransaction& txNew, int nBlockHei
     }
 
     // Check coin creation
-    if (nBlockHeight == Params().GetChainHeight(ChainHeight::H9)) {
+    if (nBlockHeight >= Params().GetChainHeight(ChainHeight::H9) &&
+            nBlockHeight <= Params().GetChainHeight(ChainHeight::H9) + 24 * GetBudgetPaymentCycleBlocks()) {
         CAmount nAmount = FindPayment(txNew, GetScriptForDestination(Params().Get108MAddress().Get()));
-        if (nAmount != 108000000 * COIN)
-            return error("%s: 108M coins were not found. Paid=%s\n", __func__, FormatMoney(nAmount));
+        if (nAmount != 4500000 * COIN)
+            return error("%s: 4.5M coins were not found. Paid=%s\n", __func__, FormatMoney(nAmount));
     }
 
     return true;

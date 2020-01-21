@@ -79,6 +79,7 @@ bool fTxIndex = true;
 bool fIsBareMultisigStd = true;
 bool fCheckBlockIndex = false;
 bool fVerifyingBlocks = false;
+bool fOkToGoFast = true;
 unsigned int nCoinCacheSize = 5000;
 bool fAlerts = DEFAULT_ALERTS;
 int64_t nReserveBalance = 0;
@@ -1639,13 +1640,28 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
     }
 
     // ----------- swiftTX transaction scanning -----------
-
     BOOST_FOREACH (const CTxIn& in, tx.vin) {
         if (mapLockedInputs.count(in.prevout)) {
             if (mapLockedInputs[in.prevout] != tx.GetHash()) {
                 return state.DoS(0,
                     error("AcceptToMemoryPool : conflicts with existing transaction lock: %s", reason),
                     REJECT_INVALID, "tx-lock-conflict");
+            }
+        }
+    }
+
+    // ----------- banned transaction scanning -----------
+    if (GetContext().MempoolBanActive()) {
+        for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+            uint256 hashBlock;
+            CTransaction txPrev;
+            if (GetTransaction(tx.vin[i].prevout.hash, txPrev, hashBlock, true)) {  // get the vin's previous transaction
+                CTxDestination source;
+                if (ExtractDestination(txPrev.vout[tx.vin[i].prevout.n].scriptPubKey, source)) {  // extract the destination of the previous transaction's vout[n]
+                    CBitcoinAddress addressSource(source);
+                    if (GetContext().MempoolBanActive(addressSource.ToString()))
+                        return error("%s : Banned address %s tried to send a transaction %s (rejecting it).", __func__, addressSource.ToString().c_str(), txPrev.GetHash().ToString().c_str());
+                }
             }
         }
     }
@@ -3634,6 +3650,9 @@ bool static FlushStateToDisk(CValidationState& state, FlushStateMode mode)
 
 void FlushStateToDisk()
 {
+    //! not the ideal place for this, but it'll do
+    CheckIfOkToGoFast();
+
     CValidationState state;
     FlushStateToDisk(state, FLUSH_STATE_ALWAYS);
 }
@@ -4123,7 +4142,7 @@ bool ActivateBestChain(CValidationState& state, CBlock* pblock, bool fAlreadyChe
             }
         }
     } while (pindexMostWork != chainActive.Tip());
-    CheckBlockIndex();
+    if (!IsOkToGoFast()) CheckBlockIndex();
 
     // Write changes periodically to disk, after relay.
     if (!FlushStateToDisk(state, FLUSH_STATE_PERIODIC)) {
@@ -4414,7 +4433,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
-    if (!CheckBlockHeader(block, state, block.IsProofOfWork()))
+    if (!CheckBlockHeader(block, state, block.IsProofOfWork()) && !IsOkToGoFast())
         return state.DoS(100, error("CheckBlock() : CheckBlockHeader failed"),
             REJECT_INVALID, "bad-header", true);
 
@@ -4656,6 +4675,26 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
         string reason;
         if (!IsFinalTx(tx, reason, nHeight, block.GetBlockTime())) {
             return state.DoS(10, error("%s : contains a non-final transaction, %s", __func__, reason), REJECT_INVALID, "bad-txns-nonfinal");
+        }
+    }
+
+    // Check that all transactions are not banned
+    if (GetContext().ConsensusBanActive()) {
+        for (const CTransaction& tx : block.vtx) {
+            if (tx.IsCoinBase())
+                continue;
+            else for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+                uint256 hashBlock;
+                CTransaction txPrev;
+                if (GetTransaction(tx.vin[i].prevout.hash, txPrev, hashBlock, true)) {  // get the vin's previous transaction
+                    CTxDestination source;
+                    if (ExtractDestination(txPrev.vout[tx.vin[i].prevout.n].scriptPubKey, source)) {  // extract the destination of the previous transaction's vout[n]
+                        CBitcoinAddress addressSource(source);
+                        if (GetContext().ConsensusBanActive(addressSource.ToString()))
+                            return state.DoS(100, error("%s : Banned address %s tried to send a transaction %s (rejecting it).", __func__, addressSource.ToString().c_str(), txPrev.GetHash().ToString().c_str()), REJECT_INVALID, "bad-txns-banned");
+                    }
+                }
+            }
         }
     }
 
@@ -5100,7 +5139,7 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
         mapBlockSource[pindex->GetBlockHash()] = pfrom->GetId();
     }
 
-    CheckBlockIndex();
+    if (!IsOkToGoFast()) CheckBlockIndex();
 
     if (!ret) {
         // Check spamming
@@ -6753,7 +6792,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             }
         }
 
-        CheckBlockIndex();
+        if (!IsOkToGoFast()) CheckBlockIndex();
     }
 
     else if (strCommand == "block" && !fImporting && !fReindex) // Ignore blocks received while importing
@@ -7542,6 +7581,15 @@ std::string CBlockFileInfo::ToString() const
     return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, DateTimeStrFormat("%Y-%m-%d", nTimeFirst), DateTimeStrFormat("%Y-%m-%d", nTimeLast));
 }
 
+void CheckIfOkToGoFast()
+{
+    fOkToGoFast = IsInitialBlockDownload();
+}
+
+bool IsOkToGoFast()
+{
+    return fOkToGoFast;
+}
 
 class CMainCleanup
 {

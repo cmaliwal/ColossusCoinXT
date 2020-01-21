@@ -1,11 +1,13 @@
 /* new: bg: 151515, text: ffffff, dark green: #2db988, fade green: #2db988, light green: #34e8a9 */
 
 WalletFrame {
-border-image: url(':/images/walletFrame_bg') 0 0 0 0 stretch stretch;
-border-top:0px solid #000;
-margin:0;
-padding:0;
+  background-image: url(':/images/default/walletFrame_bg');
+  background-size: 100% 100%;
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
+
 QFrame#frame_BG{
 margin-left:5px;
 }
@@ -219,7 +221,7 @@ border:0px;
 }
 
 QComboBox::down-arrow {
-border-image: url(':/images/downArrow') 0 0 0 0 stretch stretch;
+border-image: url(':/images/default/downArrow') 0 0 0 0 stretch stretch;
 }
 
 QComboBox QListView {
@@ -278,7 +280,7 @@ padding-top:2px;
 }
 
 QAbstractSpinBox::up-arrow {
-image:url(':/images/upArrow_small');
+image:url(':/images/default/upArrow_small');
 }
 
 QAbstractSpinBox::down-button {
@@ -296,7 +298,7 @@ padding-bottom:2px;
 }
 
 QAbstractSpinBox::down-arrow {
-image:url(':/images/downArrow_small');
+image:url(':/images/default/downArrow_small');
 }
 
 /****************************************************************************************/
@@ -434,19 +436,19 @@ height:10px;
 }
 
 QScrollBar:up-arrow {
-background-image: url(':/images/upArrow_small');
+background-image: url(':/images/default/upArrow_small');
 }
 
 QScrollBar:down-arrow {
-background-image: url(':/images/downArrow_small');
+background-image: url(':/images/default/downArrow_small');
 }
 
 QScrollBar:left-arrow {
-background-image: url(':/images/leftArrow_small');
+background-image: url(':/images/default/leftArrow_small');
 }
 
 QScrollBar:right-arrow {
-background-image: url(':/images/rightArrow_small');
+background-image: url(':/images/default/rightArrow_small');
 }
 
 QSlider::handle:horizontal {
@@ -563,7 +565,7 @@ background-color:#fff;
 }
 
 QDialog#SignVerifyMessageDialog QPushButton#pasteButton_SM { /* Paste Button */
-/* qproperty-icon: url(":/icons/editpaste"); */
+/* qproperty-icon: url(":/icons/default/editpaste"); */
 background-color:transparent;
 padding-left:5px;
 }
@@ -573,7 +575,7 @@ font-size:9px;
 }
 
 QDialog#SignVerifyMessageDialog QPushButton#copySignatureButton_SM { /* Copy Button */
-/* qproperty-icon: url(":/icons/editcopy"); */
+/* qproperty-icon: url(":/icons/default/editcopy"); */
 background-color:transparent;
 padding-left:5px;
 padding-right:5px;
@@ -1150,7 +1152,7 @@ min-width:410px;
 margin-right:20px;
 margin-left:0;
 margin-top:0;
-background-image: url(':/images/colx_logo_horizontal');
+background-image: url(':/images/default/colx_logo_horizontal');
 background-repeat:none;
 }
 
@@ -1190,7 +1192,7 @@ color:#ccc;
 /**************************** SEND DIALOG ***********************************************/
 
 QDialog#SendCoinsDialog {
-border-image: url(':/images/walletFrame_bg') 0 0 0 0 stretch stretch;
+border-image: url(':/images/default/walletFrame_bg') 0 0 0 0 stretch stretch;
 color:#fff;
 }
 QDialog#SendCoinsDialog QLabel {
@@ -1499,7 +1501,7 @@ color:#fff;
 }
 
 QDialog#CoinControlDialog .CoinControlTreeWidget#treeWidget::branch:selected { /* Coin Control Branch Icon */
-background-image: url(':/images/qtreeview_selected');
+background-image: url(':/images/default/qtreeview_selected');
 background-repeat:no-repeat;
 background-position:center;
 background-color:#f7f7f7;
@@ -1507,7 +1509,7 @@ color:#333;
 }
 
 QDialog#CoinControlDialog .CoinControlTreeWidget#treeWidget::branch:checked { /* Coin Control Branch Icon */
-background-image: url(':/images/qtreeview_selected');
+background-image: url(':/images/default/qtreeview_selected');
 background-repeat:no-repeat;
 background-position:center;
 background-color:#f7f7f7;
@@ -1525,7 +1527,7 @@ QDialog#CoinControlDialog .CoinControlTreeWidget#treeWidget::indicator { /* Coin
 /**************************** RECEIVE COINS *********************************************/
 
 QWidget#ReceiveCoinsDialog {
-border-image: url(':/images/walletFrame_bg') 0 0 0 0 stretch stretch;
+border-image: url(':/images/default/walletFrame_bg') 0 0 0 0 stretch stretch;
 color:#fff;
 }
 QWidget#ReceiveCoinsDialog QLabel {
@@ -1721,7 +1723,7 @@ font-size:22px;
 }
 
 QWidget#PrivacyDialog {
-background-image: url(':/images/walletFrame_bg') 0 0 0 0 stretch stretch;
+background-image: url(':/images/default/walletFrame_bg') 0 0 0 0 stretch stretch;
 color:#fff;
 }
 QWidget#PrivacyDialog QLabel {
@@ -1734,7 +1736,7 @@ QWidget#PrivacyDialog.QCheckBox {
 color:#fff;
 }
 QDialog#ZPivControlDialog{
-background-image: url(':/images/walletFrame_bg') 0 0 0 0 stretch stretch;
+background-image: url(':/images/default/walletFrame_bg') 0 0 0 0 stretch stretch;
 color:#fff;	
 }
 QDialog#ZPivControlDialog QLabel {
@@ -1768,7 +1770,7 @@ color:#fff;
 }
 
 QMessageBox {
-background-image: url(':/images/walletFrame_bg') 0 0 0 0 stretch stretch;
+background-image: url(':/images/default/walletFrame_bg') 0 0 0 0 stretch stretch;
 color: #fff;
 }
 

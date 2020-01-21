@@ -44,6 +44,8 @@ HelpMessageDialog::HelpMessageDialog(QWidget* parent, bool about) : QDialog(pare
     version += " " + tr("(%1-bit)").arg(32);
 #endif
 
+    ui->graphic->setPixmap(QPixmap(QString(":/images/" + GUIUtil::getThemeName() + "/about")));
+
     if (about) {
         setWindowTitle(tr("About ColossusXT Core"));
 

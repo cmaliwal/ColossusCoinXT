@@ -75,7 +75,7 @@ public:
         }
 
         QVariant value = index.data(Qt::ForegroundRole);
-        QColor foreground = COLOR_BLACK;
+        QColor foreground = GUIUtil::getForegroundColor();
         if (value.canConvert<QBrush>()) {
             QBrush brush = qvariant_cast<QBrush>(value);
             foreground = brush.color();
@@ -96,9 +96,9 @@ public:
         } else if (!confirmed || fImmature) {
             foreground = COLOR_UNCONFIRMED;
         } else if (amount < 0) {
-            foreground = COLOR_NEGATIVE;
+            foreground = GUIUtil::getForegroundColor();
         } else {
-            foreground = COLOR_BLACK;
+            foreground = GUIUtil::getForegroundColor();
         }
         painter->setPen(foreground);
         QString amountText = BitcoinUnits::formatWithUnit(unit, amount, true, BitcoinUnits::separatorAlways);
@@ -107,7 +107,7 @@ public:
         }
         painter->drawText(amountRect, Qt::AlignRight | Qt::AlignVCenter, amountText);
 
-        painter->setPen(COLOR_BLACK);
+        painter->setPen(GUIUtil::getForegroundColor());
         painter->drawText(amountRect, Qt::AlignLeft | Qt::AlignVCenter, GUIUtil::dateTimeStr(date));
 
         painter->restore();

@@ -5,8 +5,10 @@
 #ifndef BITCOIN_CONTEXT_H
 #define BITCOIN_CONTEXT_H
 
+#include <set>
 #include <string>
 #include <memory>
+#include <vector>
 
 class CContext;
 class BootstrapModel;
@@ -81,6 +83,37 @@ public:
      */
     AutoUpdateModelPtr GetAutoUpdateModel();
 
+    /**
+     * Add ColossusXT address to the ban list.
+     * @param mempool list of ColossusXT address for mempool ban
+     * @param consensus list of ColossusXT address for consensus ban
+     */
+    void AddAddressToBan(
+            const std::vector<std::string>& mempool,
+            const std::vector<std::string>& consensus);
+
+    /**
+     * Return true if there is at least one address for banning.
+     */
+    bool MempoolBanActive() const;
+
+    /**
+     * Return true if given address is banned.
+     * @param addr ColossusXT address in base58 format
+     */
+    bool MempoolBanActive(const std::string& addr) const;
+
+    /**
+     * Return true if there is at least one address for banning.
+     */
+    bool ConsensusBanActive() const;
+
+    /**
+     * Return true if given address is banned.
+     * @param addr ColossusXT address in base58 format
+     */
+    bool ConsensusBanActive(const std::string& addr) const;
+
 private:
     CContext();
     CContext(const CContext&);
@@ -91,6 +124,8 @@ private:
     int64_t nStartupTime_ = 0;
     BootstrapModelPtr bootstrapModel_;
     AutoUpdateModelPtr autoupdateModel_;
+    std::set<std::string> banAddrMempool_;
+    std::set<std::string> banAddrConsensus_;
 };
 
 #endif // BITCOIN_CONTEXT_H
