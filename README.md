@@ -24,7 +24,17 @@ ColossusXT is an open source, peer-to-peer, energy-saving, community driven, dec
 
 https://bitcointalk.org/index.php?topic=2141880.0
 
-### Roadmap 2019: ![Roadmap 2019](https://pbs.twimg.com/media/D01J-TnXcAABc23.jpg:large) 
+### ColossusXT $COLX Roadmap 2020+
+ColossusXT is built on the strengths of our diverse community.
+After a year of achievements on our 2019 roadmap, we're excited to announce 
+our Roadmap for Year 2020+ and look forward to your questions & feedback while
+we continue to expand throughout 2020.
+
+$COLX Website Version of our Roadmap for Year 2020
+https://colossusxt.io/roadmap/
+
+A Bright Future: ColossusXT has many new & exciting projects underway to be released 
+throughout 2020+ to increase COLX utility and new user adoption across the globe.
 
 ### Blockchain Explorer:
 
