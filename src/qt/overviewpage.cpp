@@ -96,7 +96,7 @@ public:
         } else if (!confirmed || fImmature) {
             foreground = COLOR_UNCONFIRMED;
         } else if (amount < 0) {
-            foreground = COLOR_NEGATIVE;
+            foreground = GUIUtil::getForegroundColor();
         } else {
             foreground = GUIUtil::getForegroundColor();
         }
