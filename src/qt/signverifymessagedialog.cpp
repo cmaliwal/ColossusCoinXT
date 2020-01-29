@@ -43,6 +43,12 @@ SignVerifyMessageDialog::SignVerifyMessageDialog(QWidget* parent) : QDialog(pare
 
     ui->signatureOut_SM->setFont(GUIUtil::bitcoinAddressFont());
     ui->signatureIn_VM->setFont(GUIUtil::bitcoinAddressFont());
+
+    // icons update for current theme
+    ui->addressBookButton_VM->setIcon(QIcon(GUIUtil::getIconPath("address-book")));
+    ui->addressBookButton_SM->setIcon(QIcon(GUIUtil::getIconPath("address-book")));
+    ui->pasteButton_SM->setIcon(QIcon(GUIUtil::getIconPath("editpaste")));
+    ui->copySignatureButton_SM->setIcon(QIcon(GUIUtil::getIconPath("editcopy")));
 }
 
 SignVerifyMessageDialog::~SignVerifyMessageDialog()

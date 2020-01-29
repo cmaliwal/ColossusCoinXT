@@ -144,6 +144,10 @@ PrivacyDialog::PrivacyDialog(QWidget* parent) : QDialog(parent),
         ui->pushButtonSpendzPIV->setEnabled(false);
         ui->pushButtonSpendzPIV->setToolTip(tr("zCOLX is currently disabled due to maintenance."));
     }
+
+    // icons update for current theme
+    ui->addressBookButton->setIcon(QIcon(GUIUtil::getIconPath("address-book")));
+    ui->pasteButton->setIcon(QIcon(GUIUtil::getIconPath("editpaste")));
 }
 
 PrivacyDialog::~PrivacyDialog()

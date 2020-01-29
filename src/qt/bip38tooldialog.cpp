@@ -39,6 +39,12 @@ Bip38ToolDialog::Bip38ToolDialog(QWidget* parent) : QDialog(parent),
     ui->encryptedKeyIn_DEC->installEventFilter(this);
     ui->passphraseIn_DEC->installEventFilter(this);
     ui->decryptedKeyOut_DEC->installEventFilter(this);
+
+    // icons update for current theme
+    ui->addressBookButton_ENC->setIcon(QIcon(GUIUtil::getIconPath("address-book")));
+    ui->pasteButton_DEC->setIcon(QIcon(GUIUtil::getIconPath("editpaste")));
+    ui->pasteButton_ENC->setIcon(QIcon(GUIUtil::getIconPath("editpaste")));
+    ui->copyKeyButton_ENC->setIcon(QIcon(GUIUtil::getIconPath("editcopy")));
 }
 
 Bip38ToolDialog::~Bip38ToolDialog()

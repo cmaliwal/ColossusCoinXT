@@ -37,6 +37,11 @@ SendCoinsEntry::SendCoinsEntry(QWidget* parent) : QStackedWidget(parent),
     // just a label for displaying colx address(es)
     ui->payTo_is->setFont(GUIUtil::bitcoinAddressFont());
 
+    // icons update for current theme
+    ui->addressBookButton->setIcon(QIcon(GUIUtil::getIconPath("address-book")));
+    ui->pasteButton->setIcon(QIcon(GUIUtil::getIconPath("editpaste")));
+    ui->deleteButton->setIcon(QIcon(GUIUtil::getIconPath("remove")));
+
     // Connect signals
     connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
     connect(ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteClicked()));
