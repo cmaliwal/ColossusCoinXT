@@ -1,7 +1,15 @@
+### ColossusXT – Extremely resource friendly | Lightning fast | Stealth Anonymous 
+<p align="center"><img src="https://i.imgur.com/NnR0Y18.png" height="130"></p>
+
 COLX Core integration/staging repository
 =====================================
 
-[![Build Status](https://travis-ci.org/COLX-Project/COLX.svg?branch=master)](https://travis-ci.org/COLX-Project/COLX) [![GitHub version](https://badge.fury.io/gh/COLX-Project%2FCOLX.svg)](https://badge.fury.io/gh/COLX-Project%2FCOLX)
+<a href="https://discordapp.com/invite/pRbDzPd">
+  <img src="https://img.shields.io/discord/380069131829116928?logo=discord" alt="chat on Discord">
+</a>
+<a href="https://github.com/ColossusCoinXT/ColossusCoinXT/releases/tag/v1.2.2">
+  ![version](https://img.shields.io/badge/version-1.2.2-green)
+</a>
 
 COLX is a cutting edge cryptocurrency, with many features not available in most other cryptocurrencies.
 - Anonymized transactions using the [_Zerocoin Protocol_](http://www.pivx.org/zpiv).
