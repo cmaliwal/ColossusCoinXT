@@ -123,7 +123,8 @@ public:
                 // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
                 // mempool.cs is acquired within index(int idx) and at each iteration, 
                 // it makes sense to pull it out in here (and no obvious issues or downsides?)
-                LOCK3(cs_main, mempool.cs, wallet->cs_wallet);
+                // mempool cs incapsulated
+                LOCK2(cs_main, wallet->cs_wallet);
 
                 // Find transaction in wallet
                 std::map<uint256, CWalletTx>::iterator mi = wallet->mapWallet.find(hash);
@@ -186,15 +187,13 @@ public:
                 // updateStatus, IsTrusted, GetDepthInMainChain => mempool.cs
                 // mempool.cs is acquired within updateStatus and at each iteration, 
                 // it makes sense to pull it out in here (and no obvious issues or downsides?)
-                TRY_LOCK(mempool.cs, lockMempool);
-                if (lockMempool) {
-                    TRY_LOCK(wallet->cs_wallet, lockWallet);
-                    if (lockWallet && rec->statusUpdateNeeded()) {
-                        std::map<uint256, CWalletTx>::iterator mi = wallet->mapWallet.find(rec->hash);
+                // mempool cs incapsulated
+                TRY_LOCK(wallet->cs_wallet, lockWallet);
+                if (lockWallet && rec->statusUpdateNeeded()) {
+                    std::map<uint256, CWalletTx>::iterator mi = wallet->mapWallet.find(rec->hash);
 
-                        if (mi != wallet->mapWallet.end()) {
-                            rec->updateStatus(mi->second);
-                        }
+                    if (mi != wallet->mapWallet.end()) {
+                        rec->updateStatus(mi->second);
                     }
                 }
             }

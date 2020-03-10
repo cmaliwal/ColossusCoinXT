@@ -564,20 +564,17 @@ CCoinsViewCache MultisigDialog::getInputsCoinsViewCache(const vector<CTxIn>& vin
 {
     CCoinsView viewDummy;
     CCoinsViewCache view(&viewDummy);
-    {
-        LOCK(mempool.cs);
-        CCoinsViewCache& viewChain = *pcoinsTip;
-        CCoinsViewMemPool viewMempool(&viewChain, mempool);
-        view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
-        for(const CTxIn& txin : vin) {
-            const uint256& prevHash = txin.prevout.hash;
-            view.AccessCoins(prevHash); // this is certainly allowed to fail
-        }
+    CCoinsViewCache& viewChain = *pcoinsTip;
+    CCoinsViewMemPool viewMempool(&viewChain, mempool);
+    view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
-        view.SetBackend(viewDummy); // switch back to avoid locking mempool for too long
+    for(const CTxIn& txin : vin) {
+        const uint256& prevHash = txin.prevout.hash;
+        view.AccessCoins(prevHash); // this is certainly allowed to fail
     }
 
+    view.SetBackend(viewDummy); // switch back to avoid locking mempool for too long
     return view;
 }
 

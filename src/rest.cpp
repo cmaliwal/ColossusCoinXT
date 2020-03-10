@@ -492,7 +492,7 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
     std::string bitmapStringRepresentation;
     boost::dynamic_bitset<unsigned char> hits(vOutPoints.size());
     {
-        LOCK2(cs_main, mempool.cs);
+        LOCK(cs_main);
 
         CCoinsView viewDummy;
         CCoinsViewCache view(&viewDummy);

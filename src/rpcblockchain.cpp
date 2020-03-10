@@ -175,9 +175,8 @@ UniValue getdifficulty(const UniValue& params, bool fHelp)
 UniValue mempoolToJSON(bool fVerbose = false)
 {
     if (fVerbose) {
-        LOCK(mempool.cs);
         UniValue o(UniValue::VOBJ);
-        BOOST_FOREACH (const PAIRTYPE(uint256, CTxMemPoolEntry) & entry, mempool.mapTx) {
+        for (const std::pair<uint256, CTxMemPoolEntry>& entry : mempool.GetMapTx()) {
             const uint256& hash = entry.first;
             const CTxMemPoolEntry& e = entry.second;
             UniValue info(UniValue::VOBJ);
@@ -485,7 +484,6 @@ UniValue gettxout(const UniValue& params, bool fHelp)
 
     CCoins coins;
     if (fMempool) {
-        LOCK(mempool.cs);
         CCoinsViewMemPool view(pcoinsTip, mempool);
         if (!view.GetCoins(hash, coins))
             return NullUniValue;

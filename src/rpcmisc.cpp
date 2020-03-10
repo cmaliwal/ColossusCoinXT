@@ -97,7 +97,8 @@ UniValue getinfo(const UniValue& params, bool fHelp)
     //LOCK2(cs_main, pwalletMain ? &pwalletMain->cs_wallet : NULL);
     // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
     // mempool.cs is acquired within GetBalance and after a few lines so it makes sense to pull it here
-    LOCK3(cs_main, mempool.cs, pwalletMain ? &pwalletMain->cs_wallet : NULL);
+    // mempool cs incapsulated
+    LOCK2(cs_main, pwalletMain ? &pwalletMain->cs_wallet : NULL);
 #else
     LOCK(cs_main);
 #endif

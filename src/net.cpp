@@ -1567,20 +1567,18 @@ void ThreadMessageHandler()
                 if (lockMain) {
                     // DLOCKSFIX: order of locks: cs_main, mempool.cs, ...
                     // I'm reluctantly doing this but almost always mempool goes along
-                    TRY_LOCK(mempool.cs, lockMempool);
-                    if (lockMempool) {
-                        if (pnode->nVersion != 0)
-                        {
-                            // DLOCKSFIX: AddressRefreshBroadcast <= a signal of its own. The idea is to separate the locks, as it's isolated code. Just something we have to do from time to time, SendMessages was used as a trigger
-                            TRY_LOCK(cs_vNodes, lockNodes);
-                            if (lockNodes) {
-                                g_signals.AddressRefreshBroadcast();
-                            }
+                    // mempool cs incapsulated
+                    if (pnode->nVersion != 0)
+                    {
+                        // DLOCKSFIX: AddressRefreshBroadcast <= a signal of its own. The idea is to separate the locks, as it's isolated code. Just something we have to do from time to time, SendMessages was used as a trigger
+                        TRY_LOCK(cs_vNodes, lockNodes);
+                        if (lockNodes) {
+                            g_signals.AddressRefreshBroadcast();
                         }
-                        TRY_LOCK(pnode->cs_vSend, lockSend);
-                        if (lockSend) {
-                            g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
-                        }
+                    }
+                    TRY_LOCK(pnode->cs_vSend, lockSend);
+                    if (lockSend) {
+                        g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
                     }
                 }
             }

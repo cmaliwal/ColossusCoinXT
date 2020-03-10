@@ -325,7 +325,8 @@ CBudgetDB::ReadResult CBudgetDB::Read(CBudgetManager& objToLoad, bool fDryRun)
         // and mempool.cs follows (mempool.lookup), that's almost always the prferred order.
         // probably an overkill (not sure how often other path is invoked), but trying to
         // optimize and avoid over-locking things (and slowing other parts)
-        LOCK3(cs_main, mempool.cs, objToLoad.cs);
+        // mempool cs incapsulated
+        LOCK2(cs_main, objToLoad.cs);
         return ReadINTERNAL(objToLoad, fDryRun);
     } else {
         return ReadINTERNAL(objToLoad, fDryRun);
@@ -1113,9 +1114,6 @@ void CBudgetManager::NewBlock()
     TRY_LOCK(cs_main, lockMain);
     if (!lockMain) return;
 
-    TRY_LOCK(mempool.cs, lockMempool);
-    if (!lockMempool) return;
-
     TRY_LOCK(cs, fBudgetNewBlock);
     if (!fBudgetNewBlock) return;
 
@@ -1237,7 +1235,8 @@ void CBudgetManager::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
     // this fast ends up at requiring cs_main/mempool (on most paths here)
     // I tried optimizing to avoid over-locking things but IMO not worth it 
     // (we need all 3 most of the time)
-    LOCK3(cs_main, mempool.cs, cs_budget);
+    // mempool cs incapsulated
+    LOCK2(cs_main, cs_budget);
 
     if (strCommand == "mnvs") { //Masternode vote sync
         uint256 nProp;

@@ -933,19 +933,17 @@ int GetInputAge(CTxIn& vin)
 {
     CCoinsView viewDummy;
     CCoinsViewCache view(&viewDummy);
-    {
-        LOCK(mempool.cs);
-        CCoinsViewMemPool viewMempool(pcoinsTip, mempool);
-        view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
-        const CCoins* coins = view.AccessCoins(vin.prevout.hash);
+    CCoinsViewMemPool viewMempool(pcoinsTip, mempool);
+    view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
-        if (coins) {
-            if (coins->nHeight < 0) return 0;
-            return (chainActive.Tip()->nHeight + 1) - coins->nHeight;
-        } else
-            return -1;
-    }
+    const CCoins* coins = view.AccessCoins(vin.prevout.hash);
+
+    if (coins) {
+        if (coins->nHeight < 0) return 0;
+        return (chainActive.Tip()->nHeight + 1) - coins->nHeight;
+    } else
+        return -1;
 }
 
 int GetInputAgeIX(uint256 nTXHash, CTxIn& vin)
@@ -1576,15 +1574,12 @@ bool CheckFinalTx(const CTransaction& tx, int flags)
 
 CAmount GetMinRelayFee(const CTransaction& tx, unsigned int nBytes, bool fAllowFree)
 {
-    {
-        LOCK(mempool.cs);
-        uint256 hash = tx.GetHash();
-        double dPriorityDelta = 0;
-        CAmount nFeeDelta = 0;
-        mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
-        if (dPriorityDelta > 0 || nFeeDelta > 0)
-            return 0;
-    }
+    uint256 hash = tx.GetHash();
+    double dPriorityDelta = 0;
+    CAmount nFeeDelta = 0;
+    mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
+    if (dPriorityDelta > 0 || nFeeDelta > 0)
+        return 0;
 
     CAmount nMinFee = ::minRelayTxFee.GetFee(nBytes);
 
@@ -1668,10 +1663,9 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
 
     // Check for conflicts with in-memory transactions
     if (!tx.IsZerocoinSpend()) {
-        LOCK(pool.cs); // protect pool.mapNextTx
         for (unsigned int i = 0; i < tx.vin.size(); i++) {
             COutPoint outpoint = tx.vin[i].prevout;
-            if (pool.mapNextTx.count(outpoint)) {
+            if (pool.existsOutPoint(outpoint)) {
                 // Disable replacement feature for now
                 return false;
             }
@@ -1703,7 +1697,6 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
                     return state.Invalid(error("%s: zCOLX spend in tx %s failed to pass context checks", __func__, txid.GetHex()));
             }
         } else {
-            LOCK(pool.cs);
             CCoinsViewMemPool viewMemPool(pcoinsTip, pool);
             view.SetBackend(viewMemPool);
 
@@ -1774,7 +1767,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
         // Don't accept it if it can't get into a block
         // but prioritise dstx and don't check fees for it
         if (mapObfuscationBroadcastTxes.count(hash)) {
-            mempool.PrioritiseTransaction(hash, hash.ToString(), 1000, 0.1 * COIN);
+            pool.PrioritiseTransaction(hash, hash.ToString(), 1000, 0.1 * COIN);
         } else if (!ignoreFees) {
             CAmount txMinFee = GetMinRelayFee(tx, nSize, true);
             if (fLimitFree && nFees < txMinFee && !tx.IsZerocoinSpend())
@@ -1894,10 +1887,9 @@ bool AcceptableInputs(CTxMemPool& pool, CValidationState& state, const CTransact
 
     // Check for conflicts with in-memory transactions
     if (!tx.IsZerocoinSpend()) {
-        LOCK(pool.cs); // protect pool.mapNextTx
         for (unsigned int i = 0; i < tx.vin.size(); i++) {
             COutPoint outpoint = tx.vin[i].prevout;
-            if (pool.mapNextTx.count(outpoint)) {
+            if (pool.existsOutPoint(outpoint)) {
                 // Disable replacement feature for now
                 return false;
             }
@@ -1911,7 +1903,6 @@ bool AcceptableInputs(CTxMemPool& pool, CValidationState& state, const CTransact
 
         CAmount nValueIn = 0;
         {
-            LOCK(pool.cs);
             CCoinsViewMemPool viewMemPool(pcoinsTip, pool);
             view.SetBackend(viewMemPool);
 
@@ -5123,9 +5114,7 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, CBlock* pblock, CDis
         }
     }
 
-    // DLOCKSFIX: TRY_LOCK is safer here, the only piece doing an unconditional lock
-    LOCK2(cs_main, mempool.cs);
-    //LOCK(cs_main);   // Replaces the former TRY_LOCK loop because busy waiting wastes too much resources
+    LOCK(cs_main);
 
     MarkBlockAsReceived(pblock->GetHash());
     if (!checked) {
@@ -6602,7 +6591,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             LogPrint("mempool", "AcceptToMemoryPool: peer=%d %s : accepted %s (poolsz %u)\n",
                      pfrom->id, pfrom->cleanSubVer,
                      tx.GetHash().ToString(),
-                     mempool.mapTx.size());
+                     mempool.size());
 
             // Recursively process any orphan transactions that depended on this one
             set<NodeId> setMisbehaving;
@@ -6655,7 +6644,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             LogPrint("mempool", "AcceptToMemoryPool: Zerocoinspend peer=%d %s : accepted %s (poolsz %u)\n",
                      pfrom->id, pfrom->cleanSubVer,
                      tx.GetHash().ToString(),
-                     mempool.mapTx.size());
+                     mempool.size());
         } else if (fMissingInputs) {
             AddOrphanTx(tx, pfrom->GetId());
 

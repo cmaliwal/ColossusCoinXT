@@ -1477,7 +1477,8 @@ void CWallet::ReacceptWalletTransactions()
     // DLOCKSFIX: order of locks (miner.cpp:CreateNewBlock): cs_main, mempool.cs, cs_wallet
     // mempool.cs is acquired within wtx.GetDepthInMainChain and at each iteration, it makes
     // sense to pull it out in here (and no obvious issues or downsides?)
-    LOCK3(cs_main, mempool.cs, cs_wallet);
+    // mempool cs incapsulated
+    LOCK2(cs_main, cs_wallet);
 
     BOOST_FOREACH (PAIRTYPE(const uint256, CWalletTx) & item, mapWallet) {
         const uint256& wtxid = item.first;
@@ -1485,22 +1486,14 @@ void CWallet::ReacceptWalletTransactions()
         assert(wtx.GetHash() == wtxid);
 
         int nDepth = wtx.GetDepthInMainChain();
-
-        if (!wtx.IsCoinBase() && !wtx.IsCoinStake() && nDepth < 0) {
-            // Try to add to memory pool
-            LOCK(mempool.cs);
+        if (!wtx.IsCoinBase() && !wtx.IsCoinStake() && nDepth < 0)
             wtx.AcceptToMemoryPool(false);
-        }
     }
 }
 
 bool CWalletTx::InMempool() const
 {
-    LOCK(mempool.cs);
-    if (mempool.exists(GetHash())) {
-        return true;
-    }
-    return false;
+    return mempool.exists(GetHash());
 }
 
 void CWalletTx::RelayWalletTransaction(std::string strCommand)
@@ -1555,7 +1548,8 @@ void CWallet::ResendWalletTransactions()
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs <= RelayWalletTransaction/GetDepthInMainChain and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK2(mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK(cs_wallet);
 
         // Sort them in chronological order
         multimap<unsigned int, CWalletTx*> mapSorted;
@@ -1589,7 +1583,8 @@ CAmount CWallet::GetBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within wtx.GetDepthInMainChain and at each iteration, it makes
         // sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1617,7 +1612,8 @@ CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         // Get Unused coins
         list<CZerocoinMint> listPubCoin = CWalletDB(strWalletFile).ListMintedCoins(true, fMatureOnly, true);
@@ -1697,7 +1693,8 @@ CAmount CWallet::GetUnlockedCoins() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1720,7 +1717,8 @@ CAmount CWallet::GetLockedCoins() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1766,7 +1764,8 @@ CAmount CWallet::GetAnonymizableBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1789,7 +1788,8 @@ CAmount CWallet::GetAnonymizedBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1890,7 +1890,8 @@ CAmount CWallet::GetUnconfirmedBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1909,7 +1910,8 @@ CAmount CWallet::GetImmatureBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs <== GetImmatureCredit/GetBlocksToMaturity at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1927,8 +1929,8 @@ CAmount CWallet::GetWatchOnlyBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted/GetDepthInMainChain and at each iteration
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
-
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1948,7 +1950,8 @@ CAmount CWallet::GetUnconfirmedWatchOnlyBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within IsTrusted/GetDepthInMainChain and at each iteration
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1967,7 +1970,8 @@ CAmount CWallet::GetImmatureWatchOnlyBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within GetImmatureWatchOnlyCredit and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -1985,7 +1989,8 @@ CAmount CWallet::GetLockedWatchOnlyBalance() const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within GetDepthInMainChain/IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const CWalletTx* pcoin = &(*it).second;
@@ -2008,7 +2013,8 @@ void CWallet::AvailableCoins(vector<COutput>& vCoins, bool fOnlyConfirmed, const
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs is acquired within GetDepthInMainChain/IsTrusted and at each iteration, 
         // it makes sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const uint256& wtxid = it->first;
@@ -3189,7 +3195,8 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, std:
         // DLOCKSFIX: order of locks: cs_main, mempool.cs, cs_wallet
         // mempool.cs <= GetDepthInMainChain/RelayWalletTransaction, it makes
         // sense to pull it out in here (and no obvious issues or downsides?)
-        LOCK3(cs_main, mempool.cs, cs_wallet);
+        // mempool cs incapsulated
+        LOCK2(cs_main, cs_wallet);
 
         LogPrintf("CommitTransaction:\n%s", wtxNew.ToString());
         {

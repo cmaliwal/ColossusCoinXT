@@ -235,13 +235,11 @@ void CMasternodeMan::Check()
 {
     // DLOCKSFIX: order of locks: cs_main, mempool.cs, CMasternodeMan.cs
     // Check requiring cs_main and mempool.cs. TRY_ is used there so doing that here as well.
+    // mempool cs incapsulated
     TRY_LOCK(cs_main, lockMain);
     if (!lockMain) return;
-    TRY_LOCK(mempool.cs, lockMempool);
-    if (!lockMempool) return;
 
     LOCK(cs);
-
     BOOST_FOREACH (CMasternode& mn, vMasternodes) {
         mn.Check();
     }

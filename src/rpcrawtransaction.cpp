@@ -600,20 +600,18 @@ UniValue signrawtransaction(const UniValue& params, bool fHelp)
     // Fetch previous transactions (inputs):
     CCoinsView viewDummy;
     CCoinsViewCache view(&viewDummy);
-    {
-        LOCK(mempool.cs);
-        CCoinsViewCache& viewChain = *pcoinsTip;
-        CCoinsViewMemPool viewMempool(&viewChain, mempool);
-        view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
-        BOOST_FOREACH (const CTxIn& txin, mergedTx.vin) {
-            const uint256& prevHash = txin.prevout.hash;
-            CCoins coins;
-            view.AccessCoins(prevHash); // this is certainly allowed to fail
-        }
+    CCoinsViewCache& viewChain = *pcoinsTip;
+    CCoinsViewMemPool viewMempool(&viewChain, mempool);
+    view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
-        view.SetBackend(viewDummy); // switch back to avoid locking mempool for too long
+    BOOST_FOREACH (const CTxIn& txin, mergedTx.vin) {
+        const uint256& prevHash = txin.prevout.hash;
+        CCoins coins;
+        view.AccessCoins(prevHash); // this is certainly allowed to fail
     }
+
+    view.SetBackend(viewDummy); // switch back to avoid locking mempool for too long
 
     bool fGivenKeys = false;
     CBasicKeyStore tempKeystore;

@@ -102,13 +102,14 @@ private:
     CFeeRate minRelayFee; //! Passed to constructor to avoid dependency on main
     uint64_t totalTxSize; //! sum of all mempool tx' byte sizes
 
-public:
-    mutable CCriticalSection cs;
     std::map<uint256, CTxMemPoolEntry> mapTx;
     std::map<COutPoint, CInPoint> mapNextTx;
     std::map<uint256, std::pair<double, CAmount> > mapDeltas;
+    mutable CCriticalSection cs;
 
+public:
     CTxMemPool(const CFeeRate& _minRelayFee);
+
     ~CTxMemPool();
 
     /**
@@ -136,21 +137,34 @@ public:
     void ApplyDeltas(const uint256 hash, double& dPriorityDelta, CAmount& nFeeDelta);
     void ClearPrioritisation(const uint256 hash);
 
-    unsigned long size()
+    std::map<uint256, CTxMemPoolEntry> GetMapTx() const
+    {
+        LOCK(cs);
+        return mapTx;
+    }
+
+    unsigned long size() const
     {
         LOCK(cs);
         return mapTx.size();
     }
-    uint64_t GetTotalTxSize()
+
+    uint64_t GetTotalTxSize() const
     {
         LOCK(cs);
         return totalTxSize;
     }
 
-    bool exists(uint256 hash)
+    bool exists(uint256 hash) const
     {
         LOCK(cs);
         return (mapTx.count(hash) != 0);
+    }
+
+    bool existsOutPoint(const COutPoint& outpoint) const
+    {
+        LOCK(cs);
+        return (mapNextTx.count(outpoint) != 0);
     }
 
     bool lookup(uint256 hash, CTransaction& result) const;
