@@ -301,6 +301,13 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         vector<CBigNum> vBlockSerials;
         vector<CBigNum> vTxSerials;
         while (!vecPriority.empty()) {
+            const int64_t spork23 = GetSporkValue(SPORK_23_LIMIT_BLOCK_TX);
+            const int64_t spork23val = GetSporkValue(SPORK_24_BLOCK_TX_VALUE);
+            if (nHeight >= spork23 && nBlockTx >= spork23val) {
+                LogPrint("%s, number of tx in block limited by spork, max=%ld", __func__, spork23val);
+                break;
+            }
+
             // Take highest priority transaction off the priority queue:
             double dPriority = vecPriority.front().get<0>();
             CFeeRate feeRate = vecPriority.front().get<1>();
@@ -367,6 +374,14 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             }
 
             CAmount nTxFees = view.GetValueIn(tx) - tx.GetValueOut();
+
+            const int64_t spork21 = GetSporkValue(SPORK_21_ENFORCE_MIN_TX_FEE);
+            const int64_t spork21val = GetSporkValue(SPORK_22_TX_FEE_VALUE);
+            if (!tx.IsZerocoinSpend() && nHeight >= spork21 && nTxFees < spork21val * COIN) {
+                LogPrint("%s, tx %s violates min fee requirement by spork, min=%s COLX, payed=%s COLX",
+                    __func__, tx.GetHash().ToString(), FormatMoney(spork21val), FormatMoney(nTxFees));
+                continue;
+            }
 
             nTxSigOps += GetP2SHSigOpCount(tx, view);
             if (nBlockSigOps + nTxSigOps >= nMaxBlockSigOps)

@@ -1757,6 +1757,13 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
 
         CAmount nValueOut = tx.GetValueOut();
         CAmount nFees = nValueIn - nValueOut;
+
+        const int64_t spork21 = GetSporkValue(SPORK_21_ENFORCE_MIN_TX_FEE);
+        const int64_t spork21val = GetSporkValue(SPORK_22_TX_FEE_VALUE);
+        if (!tx.IsZerocoinSpend() && chainActive.Height() >= spork21 && nFees < spork21val * COIN)
+            return error("%s, tx %s violates min fee requirement by spork, min=%s COLX, payed=%s COLX",
+                         __func__, tx.GetHash().ToString(), FormatMoney(spork21val), FormatMoney(nFees));
+
         double dPriority = 0;
         if (!tx.IsZerocoinSpend())
             view.GetPriority(tx, chainActive.Height());
@@ -3323,7 +3330,11 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         return state.DoS(100, error("ConnectBlock() : PoW period ended"),
             REJECT_INVALID, "PoW-ended");
 
-    bool fScriptChecks = pindex->nHeight >= Checkpoints::GetTotalBlocksEstimate();
+    const int64_t spork23 = GetSporkValue(SPORK_23_LIMIT_BLOCK_TX);
+    const int64_t spork23val = GetSporkValue(SPORK_24_BLOCK_TX_VALUE);
+    if (pindex->nHeight >= spork23 && block.vtx.size() > spork23val + 2)
+       return state.DoS(0, error("%s : number of tx in block limited by spork, max=%ld, actual=%ld",
+                                 __func__, spork23val, block.vtx.size() - 2), REJECT_INVALID, "spork-restriction");
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
     // unless those are already completely spent.
@@ -3357,6 +3368,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             flags |= SCRIPT_VERIFY_DERSIG;
     }
 
+    bool fScriptChecks = pindex->nHeight >= Checkpoints::GetTotalBlocksEstimate();
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : NULL);
 
     int64_t nTimeStart = GetTimeMicros();
@@ -3433,13 +3445,23 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             if (nSigOps > nMaxBlockSigOps)
                 return state.DoS(100, error("ConnectBlock() : too many sigops"), REJECT_INVALID, "bad-blk-sigops");
 
+            CAmount nTxValueIn = view.GetValueIn(tx);
             if (!tx.IsCoinStake())
-                nFees += view.GetValueIn(tx) - tx.GetValueOut();
-            nValueIn += view.GetValueIn(tx);
+                nFees += nTxValueIn - tx.GetValueOut();
+
+            nValueIn += nTxValueIn;
 
             std::vector<CScriptCheck> vChecks;
             if (!CheckInputs(tx, state, view, fScriptChecks, flags, false, nScriptCheckThreads ? &vChecks : NULL))
                 return false;
+
+            CAmount nTxFee = nTxValueIn - tx.GetValueOut();
+            const int64_t spork21 = GetSporkValue(SPORK_21_ENFORCE_MIN_TX_FEE);
+            const int64_t spork21val = GetSporkValue(SPORK_22_TX_FEE_VALUE);
+            if (!tx.IsCoinStake() && pindex->nHeight >= spork21 && nTxFee < spork21val * COIN)
+               return state.DoS(0, error("%s, tx %s violates min fee requirement by spork, min=%s COLX, payed=%s COLX",
+                                         __func__, tx.GetHash().ToString(), FormatMoney(spork21val), FormatMoney(nTxFee)), REJECT_INVALID, "spork-restriction");
+
             control.Add(vChecks);
         }
         nValueOut += tx.GetValueOut();
